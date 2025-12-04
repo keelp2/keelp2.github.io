@@ -76,13 +76,26 @@ nav {
   display: inline-block;
 }
 
-.bird {
-  position: absolute;
-  width: 60px;
+.nav-bird {
+  width: 40px;
   height: auto;
-  opacity: 0;
-  transition: opacity 0.8s ease;
-  will-change: top, left;
+  margin-right: -5px;
+  margin-left: 15px;
+  vertical-align: top;
+  margin-top: -15px; /* Higher up */
+}
+
+.bird {
+  display: none;
+}
+
+/* Adjust bird position for mobile screens */
+@media (max-width: 768px) {
+  .letter-l {
+    position: relative;
+    display: inline-block;
+    top: 0.1em; /* Slight adjustment for better alignment */
+  }
 }
 
 @keyframes hop {
