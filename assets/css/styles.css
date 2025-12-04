@@ -1,0 +1,98 @@
+:root {
+  --font-body: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --font-display: "DM Sans", var(--font-body);
+  --bg: #fff;
+  --fg: #111;
+  --accent: #0077ff;
+  --shadow: 0 4px 10px rgba(0,0,0,0.15);
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.profile-pic {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+}
+
+.nav-links {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--fg);
+  font-weight: bold;
+  position: relative;
+}
+
+.nav-links a:hover {
+  color: var(--accent);
+}
+
+.nav-links a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.centered {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: clamp(12vh, 20vh, 24vh);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: bold;
+  position: relative;
+}
+
+.letter-l {
+  position: relative;
+  display: inline-block;
+}
+
+.bird {
+  position: absolute;
+  width: 60px;
+  height: auto;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  will-change: top, left;
+}
+
+@keyframes hop {
+  0%   { transform: translateY(0); }
+  30%  { transform: translateY(-15px); }
+  60%  { transform: translateY(0); }
+  80%  { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
