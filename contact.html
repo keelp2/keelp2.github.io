@@ -3,8 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Your Website</title>
+  <title>Contact Me - Keel</title>
   <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    .contact-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 var(--space-3);
+    }
+
+    .contact-header {
+      text-align: center;
+      margin-bottom: var(--space-4);
+    }
+
+    .contact-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: var(--space-2);
+      color: var(--fg);
+    }
+
+    .contact-header p {
+      color: #666;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .contact-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+    }
+
+    .contact-form {
+      background: white;
+      padding: var(--space-3);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .form-group {
+      margin-bottom: var(--space-2);
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: var(--font-body);
+    }
+
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    button[type="submit"] {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.3s ease;
+    }
+
+    button[type="submit"]:hover {
+      background: #0056b3;
+    }
+
+    .contact-info {
+      background: #f8f9fa;
+      padding: var(--space-3);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .contact-info h3 {
+      margin-top: 0;
+      color: var(--fg);
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 8px;
+      display: inline-block;
+    }
+
+    .contact-method {
+      margin-bottom: var(--space-3);
+    }
+
+    .contact-method h4 {
+      margin: 0 0 4px 0;
+      color: #333;
+    }
+
+    .contact-method p, 
+    .contact-method a {
+      margin: 0;
+      color: #555;
+      text-decoration: none;
+    }
+
+    .contact-method a:hover {
+      color: var(--accent);
+    }
+
+    @media (max-width: 768px) {
+      .contact-content {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -17,5 +136,40 @@
       <a href="contact.html" aria-current="page">Contact</a>
     </div>
   </nav>
+
+  <div class="contact-container">
+      <div class="contact-info">
+        <h3>Contact Information</h3>
+        
+        <div class="contact-method">
+          <h4>Email</h4>
+          <p><a href="mailto:pmkeel20@gmail.com">pmkeel20@gmail.com</a></p>
+        </div>
+        
+        <div class="contact-method">
+          <h4>Location</h4>
+          <p>Chicago, IL</p>
+        </div>
+        
+        <div class="contact-method">
+          <h4>Social</h4>
+          <p>
+            <a href="https://github.com/keelp2" target="_blank" rel="noopener noreferrer">GitHub</a> · 
+            <a href="https://www.linkedin.com/in/peter-keel" target="_blank" rel="noopener noreferrer">LinkedIn</a> ·
+            <a href="https://soundcloud.com/pmkpmk" target="_blank" rel="noopener noreferrer">Soundcloud</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Add your form submission logic here
+      alert('Thank you for your message! I\'ll get back to you soon.');
+      this.reset();
+    });
+  </script>
 </body>
 </html>
