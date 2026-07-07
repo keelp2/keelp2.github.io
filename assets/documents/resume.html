@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peter Keel — Resume</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 15px; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #1a1a1a;
+      background: white;
+      line-height: 1.5;
+      padding: 48px 56px;
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .resume-header {
+      text-align: center;
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #111;
+    }
+
+    .resume-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+
+    .resume-header .contact-line {
+      font-size: 0.9rem;
+      color: #444;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+    }
+
+    .resume-header .contact-line a {
+      color: #444;
+      text-decoration: none;
+    }
+
+    .resume-header .contact-line a:hover {
+      color: #0077ff;
+    }
+
+    /* ── Sections ── */
+    .resume-section {
+      margin-bottom: 22px;
+    }
+
+    .resume-section h2 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #111;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Experience entries ── */
+    .exp-entry {
+      margin-bottom: 16px;
+    }
+
+    .exp-entry:last-child {
+      margin-bottom: 0;
+    }
+
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+
+    .exp-header .company {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .exp-header .location {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .exp-subheader {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .exp-subheader .title {
+      font-style: italic;
+      font-size: 0.95rem;
+    }
+
+    .exp-subheader .dates {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .exp-entry ul {
+      padding-left: 18px;
+    }
+
+    .exp-entry ul li {
+      margin-bottom: 4px;
+      font-size: 0.93rem;
+      line-height: 1.45;
+    }
+
+    /* ── Skills ── */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 16px;
+      font-size: 0.93rem;
+    }
+
+    .skills-grid .skill-label {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .skills-grid .skill-value {
+      color: #333;
+    }
+
+    /* ── Print ── */
+    @media print {
+      html { font-size: 13px; }
+      body { padding: 0; }
+      .resume-header { border-bottom-width: 1.5px; }
+    }
+
+    @page {
+      margin: 0.55in 0.6in;
+      size: letter;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="resume-header">
+    <h1>Peter Keel</h1>
+    <div class="contact-line">
+      <span>Chicago, IL</span>
+      <span>612.715.8382</span>
+      <a href="mailto:pmkeel20@gmail.com">pmkeel20@gmail.com</a>
+      <a href="https://www.linkedin.com/in/peter-keel" target="_blank">linkedin.com/in/peter-keel</a>
+      <a href="https://github.com/keelp2" target="_blank">github.com/keelp2</a>
+    </div>
+  </header>
+
+  <section class="resume-section">
+    <h2>Experience</h2>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">DRW</span>
+        <span class="location">Chicago, IL</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Market Data Systems Engineer</span>
+        <span class="dates">Apr 2024 &ndash; Present</span>
+      </div>
+      <ul>
+        <li>Designed and built Sisyphus, a parameterized continuous futures roll system covering 190+ products across 36 exchanges, with per-consumer YAML profiles controlling roll timing, adjustments, symbology, and output</li>
+        <li>Built end-to-end data pipelines for 10+ new database products including Barra, BBG COAX, SwapsMonitor, BBO futures, FUTURES_BARS_EOD V5, and LSEG SEDOL</li>
+        <li>Extended onetick-py with LVC and point-in-time query functionality, packaged it as a conda library, and promoted it firm-wide</li>
+        <li>Created supporting databases for roll info, upcoming rolls, and data quality tracking, improving reliability and transparency for downstream consumers</li>
+        <li>Built automation for scaling factor extraction, corporate action processing, daily roll scripts, and reference data uploads with quality checks and alerting</li>
+        <li>Set up server monitoring, backend sync alerting, and added logging across all automated processes</li>
+        <li>Created internal documentation hubs, Python notebooks, onboarding materials, and an AI-powered OneTick Skills assistant for the firm</li>
+        <li>Led standups, demos, and user support across trading teams (FIRV, GD1, PRODC, Risk, AI), serving as primary onboarding contact for new onetick-py users</li>
+      </ul>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">Cboe Global Markets</span>
+        <span class="location">Chicago, IL</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Product Manager</span>
+        <span class="dates">Nov 2021 &ndash; Apr 2024</span>
+      </div>
+      <ul>
+        <li>Led the development of an automated NewsFeed powered by Trade Alert, from initial concept to product, overseeing weekly standups and sprints with developers, specification writing, and design in Python and Jinja</li>
+        <li>Tested and prepared Trade Alert API for standalone release. Authored documentation and command libraries</li>
+        <li>Enhanced and documented Livevol Pro platform with features like Flow Analytics, Trade Review, and Theo Calc, collaborating in an agile environment and addressing client-driven requests</li>
+        <li>Developed Python scripts automating quarterly index rebalancing validations and index processes, saving hours of quarterly and daily work for the Cboe index team</li>
+        <li>Contributed to an API harmonization proof of concept including a data dictionary, API best practices research, and parallel analysis between Cboe APIs</li>
+      </ul>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">Nasdaq</span>
+        <span class="location">Rockville, MD</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Senior Index Analyst</span>
+        <span class="dates">Apr 2021 &ndash; Nov 2021</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Index Analyst</span>
+        <span class="dates">Apr 2020 &ndash; Apr 2021</span>
+      </div>
+      <ul>
+        <li>Developed coded models and a function library in Python for the Dorsey Wright suite of weekly indexes, resulting in 3x faster execution and multiple hours saved every week</li>
+        <li>Coded daily automated index and security quality checks detecting discrepancies in index levels, constituent changes, bond par value changes, and upcoming corporate actions</li>
+        <li>Converted 20+ Access/Excel index models into R or Python, resulting in a 30-80% reduction in time spent on reconstitutions</li>
+        <li>Performed analysis and mapping for Bloomberg to Intercontinental Exchange fixed income data migration</li>
+      </ul>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">Wells Fargo</span>
+        <span class="location">Minneapolis, MN</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Data Science Intern</span>
+        <span class="dates">Dec 2019 &ndash; Jan 2020</span>
+      </div>
+      <ul>
+        <li>Developed Python web app for traders to receive bond orders from portfolio managers with Bloomberg IMGR top results, prioritizing bonds with favorable in-house credit ratings</li>
+      </ul>
+    </div>
+
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">Piper Jaffray Companies</span>
+        <span class="location">Minneapolis, MN</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Analytics Fixed Income Intern</span>
+        <span class="dates">Jun 2019 &ndash; Dec 2019</span>
+      </div>
+      <ul>
+        <li>Developed statistical models to assign credit scores to municipalities, predict corporate bond rating changes, and predict defaults using data cleaning, parameter tuning, and train/test validation</li>
+      </ul>
+    </div>
+
+  </section>
+
+  <section class="resume-section">
+    <h2>Projects</h2>
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">Random Forest NBA Hall of Fame Prediction Model</span>
+        <span class="location">Feb 2020</span>
+      </div>
+      <ul>
+        <li>Cleaned and modeled NBA Hall of Fame induction probability for a large player dataset using random forest with 10-fold cross-validation. <a href="https://keelp2.shinyapps.io/final-project-kim-keel/" target="_blank">Live demo</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="resume-section">
+    <h2>Skills</h2>
+    <div class="skills-grid">
+      <span class="skill-label">Languages:</span>
+      <span class="skill-value">Python, SQL, R, Bash, JavaScript, HTML/CSS</span>
+      <span class="skill-label">Data &amp; Analytics:</span>
+      <span class="skill-value">Pandas, OneTick, Bloomberg, Power BI, Trino, Databricks</span>
+      <span class="skill-label">Infrastructure:</span>
+      <span class="skill-value">Linux, Git, AWS, Conda, CI/CD, Cron, PagerDuty, Jira</span>
+      <span class="skill-label">Other:</span>
+      <span class="skill-value">API Development, Data Pipeline Design, ETL, Web Applications, Prompt Engineering</span>
+    </div>
+  </section>
+
+  <section class="resume-section">
+    <h2>Education</h2>
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">Carleton College</span>
+        <span class="location">Northfield, MN</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Bachelor of Arts in Mathematics</span>
+        <span class="dates">Class of 2020</span>
+      </div>
+    </div>
+    <div class="exp-entry">
+      <div class="exp-header">
+        <span class="company">Dartmouth Tuck School of Business</span>
+        <span class="location">Hanover, NH</span>
+      </div>
+      <div class="exp-subheader">
+        <span class="title">Bridge Program</span>
+        <span class="dates">Dec 2018</span>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

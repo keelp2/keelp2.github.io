@@ -4,362 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Peter Keel</title>
-  <link rel="icon" type="image/jpeg" href="assets/images/profile_pic.JPEG">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%23111'/><text x='32' y='43' font-family='system-ui,sans-serif' font-size='28' font-weight='700' fill='white' text-anchor='middle'>PK</text></svg>">
+  <meta name="description" content="Peter Keel — personal website, projects, and contact info.">
+  <meta property="og:title" content="Peter Keel">
+  <meta property="og:description" content="Personal website of Peter Keel — projects, resume, and contact.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://keelp2.github.io">
   <link rel="stylesheet" href="assets/css/styles.css">
-  <style>
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      height: auto;
-    }
-
-    .nav-links a {
-      cursor: pointer;
-      font-size: 1.2rem;
-      align-self: flex-end;
-    }
-
-    section {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      /* align content toward the top instead of centered */
-      justify-content: flex-start;
-      align-items: center;
-      /* increase top padding so content sits lower on page */
-      padding: var(--space-3) var(--space-4);
-      /* slightly larger scroll offset to account for sticky nav */
-      scroll-margin-top: 120px;
-    }
-
-    /* make home heading sit further down (not too close to top) */
-    #home {
-      padding-top: 200px;
-      padding-bottom: var(--space-3);
-    }
-
-    #home h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: bold;
-      margin: 0;
-      text-align: center;
-    }
-
-    #playground {
-      background: #f8f9fa;
-    }
-
-    #playground h2,
-    #resume h2,
-    #contact h2 {
-      font-size: 2.5rem;
-      margin-bottom: var(--space-3);
-      color: var(--fg);
-    }
-
-    .playground-content {
-      max-width: 1200px;
-      width: 100%;
-    }
-
-    .playground-intro {
-      text-align: center;
-      margin-bottom: var(--space-4);
-    }
-
-    .playground-intro p {
-      color: #666;
-      font-size: 1.1rem;
-      line-height: 1.6;
-      margin-bottom: var(--space-2);
-    }
-
-    .projects-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--space-3);
-      width: 100%;
-    }
-
-    .project-card {
-      background: white;
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-      display: block;
-    }
-
-    .project-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    }
-
-    .project-card.large {
-      grid-column: span 1;
-    }
-
-    .project-card.tall {
-      grid-column: span 1;
-    }
-
-    .project-thumbnail {
-      width: 100%;
-      height: 120px;
-      background: linear-gradient(135deg, var(--accent), #667eea);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 1rem;
-      text-align: center;
-      padding: var(--space-2);
-      box-sizing: border-box;
-    }
-
-    .project-card.tall .project-thumbnail {
-      height: 120px;
-    }
-
-    .project-card.large .project-thumbnail {
-      height: 120px;
-    }
-
-    .project-info {
-      padding: var(--space-2);
-    }
-
-    .project-info h3 {
-      margin: 0 0 8px 0;
-      font-size: 1.1rem;
-      color: var(--fg);
-    }
-
-    .project-info p {
-      margin: 0;
-      color: #666;
-      font-size: 0.9rem;
-      line-height: 1.4;
-    }
-
-    @media (max-width: 768px) {
-      .projects-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .project-card.large {
-        grid-column: span 1;
-      }
-
-      .project-card.tall {
-        grid-row: span 1;
-      }
-    }
-
-    .resume-container {
-      max-width: 1200px;
-      width: 100%;
-    }
-
-    .pdf-container {
-      width: 100%;
-      height: 600px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      position: relative;
-    }
-
-    .loading {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(255,255,255,0.9);
-      color: #666;
-      font-style: italic;
-      z-index: 10;
-    }
-
-    .pdf-container iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    .contact-container {
-      max-width: 800px;
-      width: 100%;
-    }
-
-    .contact-content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-4);
-      margin-top: var(--space-4);
-      width: 100%;
-    }
-
-    .contact-form {
-      background: white;
-      padding: var(--space-3);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-    }
-
-    .contact-info {
-      background: white;
-      padding: var(--space-3);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-    }
-
-    .contact-info h3 {
-      margin-top: 0;
-      color: var(--fg);
-      border-bottom: 2px solid var(--accent);
-      padding-bottom: 8px;
-      display: inline-block;
-    }
-
-    .form-group {
-      margin-bottom: var(--space-2);
-      text-align: left;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 500;
-    }
-
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-family: var(--font-body);
-      box-sizing: border-box;
-    }
-
-    .form-group textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
-
-    button[type="submit"] {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background 0.3s ease;
-      width: 100%;
-    }
-
-    button[type="submit"]:hover {
-      background: #0056b3;
-    }
-
-    .contact-method {
-      margin-bottom: var(--space-3);
-      text-align: left;
-    }
-
-    .contact-method h4 {
-      margin: 0 0 4px 0;
-      color: #333;
-    }
-
-    .contact-method p, 
-    .contact-method a {
-      margin: 0;
-      color: #555;
-      text-decoration: none;
-    }
-
-    .contact-method a:hover {
-      color: var(--accent);
-    }
-
-    @media (max-width: 768px) {
-      section {
-        min-height: auto;
-        padding-top: 120px;
-        padding-bottom: var(--space-4);
-      }
-
-      #home {
-        padding-top: 150px;
-        min-height: auto;
-      }
-
-      .content-container {
-        grid-template-columns: 1fr;
-      }
-
-      .contact-content {
-        grid-template-columns: 1fr;
-      }
-
-      .pdf-container {
-        height: 400px;
-      }
-
-      #playground h2,
-      #resume h2,
-      #contact h2 {
-        font-size: 1.8rem;
-      }
-    }
-
-    nav {
-      position: sticky;
-      top: 0;
-      background: var(--bg);
-      z-index: 100;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .form-message {
-      margin-top: var(--space-2);
-      padding: var(--space-2);
-      border-radius: 4px;
-      text-align: center;
-      display: none;
-    }
-
-    .form-message.success {
-      display: block;
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-
-    .form-message.error {
-      display: block;
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .success-checkmark {
-      display: inline-block;
-      margin-right: 8px;
-      color: #28a745;
-      font-size: 1.2rem;
-    }
-  </style>
 </head>
 <body>
   <nav>
@@ -375,39 +26,38 @@
 
   <!-- Home Section -->
   <section id="home">
-    <h1>Hi, my name is Peter Keel.</h1>
+    <div class="home-layout">
+      <div class="home-text">
+        <h1>Hi, my name is Peter Keel.</h1>
+        <p class="home-subtitle">Data Engineering &middot; Analytics &middot; Automation</p>
+        <p class="home-blurb">I build data pipelines, analytics tools, and automated systems. Currently a Market Data Systems Engineer at DRW in Chicago.</p>
+      </div>
+      <div class="home-hero">
+        <img src="assets/images/profile_pic.JPEG" alt="Peter Keel" class="home-photo">
+      </div>
+    </div>
   </section>
 
   <!-- Playground Section -->
-  <section id="playground">
+  <section id="playground" class="fade-in">
     <h2>Playground</h2>
     <div class="playground-content">
       <div class="playground-intro">
-        <p>Welcome to my playground! This is where I experiment with creative projects and ideas.</p>
-        <p>Check out some of my work and projects here.</p>
+        <p>Side projects and creative experiments.</p>
       </div>
       <div class="projects-grid">
-        <a href="#" class="project-card" onclick="event.preventDefault()">
-          <div class="project-thumbnail">
-            Web Development
+        <a href="https://keelp2.shinyapps.io/final-project-kim-keel/" class="project-card" target="_blank" rel="noopener noreferrer">
+          <div class="project-thumbnail thumb-nba">
+            <span class="thumb-icon">&#127936;</span>
           </div>
           <div class="project-info">
-            <h3>Web Projects</h3>
-            <p>Creative web experiences</p>
-          </div>
-        </a>
-        <a href="#" class="project-card" onclick="event.preventDefault()">
-          <div class="project-thumbnail">
-            Design
-          </div>
-          <div class="project-info">
-            <h3>UI/UX Design</h3>
-            <p>Beautiful interfaces</p>
+            <h3>NBA Hall of Fame</h3>
+            <p>Random forest prediction model</p>
           </div>
         </a>
         <a href="https://soundcloud.com/pmkpmk" class="project-card" target="_blank" rel="noopener noreferrer">
-          <div class="project-thumbnail">
-            Music
+          <div class="project-thumbnail thumb-music">
+            <span class="thumb-icon">&#127911;</span>
           </div>
           <div class="project-info">
             <h3>Music</h3>
@@ -415,8 +65,8 @@
           </div>
         </a>
         <a href="https://keelp2.github.io/kkpottery/" class="project-card" target="_blank" rel="noopener noreferrer">
-          <div class="project-thumbnail">
-            Pottery
+          <div class="project-thumbnail thumb-pottery">
+            <span class="thumb-icon">&#127843;</span>
           </div>
           <div class="project-info">
             <h3>Pottery</h3>
@@ -428,73 +78,208 @@
   </section>
 
   <!-- Resume Section -->
-  <section id="resume">
-    <h2>Resume</h2>
+  <section id="resume" class="fade-in">
     <div class="resume-container">
-      <div class="pdf-container">
-        <div class="loading">Loading resume...</div>
-        <iframe 
-          src="assets/documents/pkeel_resume.pdf#toolbar=1&navpanes=0" 
-          onload="this.parentElement.querySelector('.loading').style.display='none'"
-          title="Peter Keel's Resume">
-          Your browser does not support PDFs. 
-          <a href="assets/documents/pkeel_resume.pdf">Download my resume</a> instead.
-        </iframe>
+      <div class="resume-card">
+
+        <header class="r-header">
+          <h3 class="r-name">Peter Keel</h3>
+          <button onclick="printResume()" class="resume-save-btn">Save as PDF</button>
+          <div class="r-contact">
+            <span>Chicago, IL</span>
+            <a href="mailto:pmkeel20@gmail.com">pmkeel20@gmail.com</a>
+            <a href="https://www.linkedin.com/in/peter-keel" target="_blank" rel="noopener noreferrer">linkedin.com/in/peter-keel</a>
+            <a href="https://github.com/keelp2" target="_blank" rel="noopener noreferrer">github.com/keelp2</a>
+          </div>
+        </header>
+
+        <div class="r-section">
+          <h4 class="r-section-title">Experience</h4>
+
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">DRW</span>
+              <span class="r-light">Chicago, IL</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Market Data Systems Engineer</span>
+              <span class="r-light">Apr 2024 &ndash; Present</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Designed and built Sisyphus, a parameterized continuous futures roll system covering 190+ products across 36 exchanges, with per-consumer YAML profiles controlling roll timing, adjustments, symbology, and output</li>
+              <li>Built end-to-end data pipelines for 10+ new database products including Barra, BBG COAX, SwapsMonitor, BBO futures, FUTURES_BARS_EOD V5, and LSEG SEDOL</li>
+              <li>Extended onetick-py with LVC and point-in-time query functionality, packaged it as a conda library, and promoted it firm-wide</li>
+              <li>Created supporting databases for roll info, upcoming rolls, and data quality tracking, improving reliability and transparency for downstream consumers</li>
+              <li>Built automation for scaling factor extraction, corporate action processing, daily roll scripts, and reference data uploads with quality checks and alerting</li>
+              <li>Set up server monitoring, backend sync alerting, and added logging across all automated processes</li>
+              <li>Created internal documentation hubs, Python notebooks, onboarding materials, and an AI-powered OneTick Skills assistant for the firm</li>
+              <li>Led standups, demos, and user support across trading teams (FIRV, GD1, PRODC, Risk, AI), serving as primary onboarding contact for new onetick-py users</li>
+            </ul>
+          </div>
+
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">Cboe Global Markets</span>
+              <span class="r-light">Chicago, IL</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Product Manager</span>
+              <span class="r-light">Nov 2021 &ndash; Apr 2024</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Led the development of an automated NewsFeed powered by Trade Alert, from initial concept to product, overseeing weekly standups and sprints with developers, specification writing, and design in Python and Jinja</li>
+              <li>Tested and prepared Trade Alert API for standalone release. Authored documentation and command libraries</li>
+              <li>Enhanced and documented Livevol Pro platform with features like Flow Analytics, Trade Review, and Theo Calc, collaborating in an agile environment and addressing client-driven requests</li>
+              <li>Developed Python scripts automating quarterly index rebalancing validations and index processes, saving hours of quarterly and daily work for the Cboe index team</li>
+              <li>Contributed to an API harmonization proof of concept including a data dictionary, API best practices research, and parallel analysis between Cboe APIs</li>
+            </ul>
+          </div>
+
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">Nasdaq</span>
+              <span class="r-light">Rockville, MD</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Senior Index Analyst</span>
+              <span class="r-light">Apr 2021 &ndash; Nov 2021</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Index Analyst</span>
+              <span class="r-light">Apr 2020 &ndash; Apr 2021</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Developed coded models and a function library in Python for the Dorsey Wright suite of weekly indexes, resulting in 3x faster execution and multiple hours saved every week</li>
+              <li>Coded daily automated index and security quality checks detecting discrepancies in index levels, constituent changes, bond par value changes, and upcoming corporate actions</li>
+              <li>Converted 20+ Access/Excel index models into R or Python, resulting in a 30-80% reduction in time spent on reconstitutions</li>
+              <li>Performed analysis and mapping for Bloomberg to Intercontinental Exchange fixed income data migration</li>
+            </ul>
+          </div>
+
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">Wells Fargo</span>
+              <span class="r-light">Minneapolis, MN</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Data Science Intern</span>
+              <span class="r-light">Dec 2019 &ndash; Jan 2020</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Developed Python web app for traders to receive bond orders from portfolio managers with Bloomberg IMGR top results, prioritizing bonds with favorable in-house credit ratings</li>
+            </ul>
+          </div>
+
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">Piper Jaffray Companies</span>
+              <span class="r-light">Minneapolis, MN</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Analytics Fixed Income Intern</span>
+              <span class="r-light">Jun 2019 &ndash; Dec 2019</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Developed statistical models to assign credit scores to municipalities, predict corporate bond rating changes, and predict defaults using data cleaning, parameter tuning, and train/test validation</li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div class="r-section">
+          <h4 class="r-section-title">Projects</h4>
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">Random Forest NBA Hall of Fame Prediction Model</span>
+              <span class="r-light">Feb 2020</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Cleaned and modeled NBA Hall of Fame induction probability for a large player dataset using random forest with 10-fold cross-validation. <a href="https://keelp2.shinyapps.io/final-project-kim-keel/" target="_blank" rel="noopener noreferrer">Live demo</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="r-section">
+          <h4 class="r-section-title">Skills</h4>
+          <div class="r-skills">
+            <div><strong>Languages:</strong> Python, SQL, R, Bash, JavaScript, HTML/CSS</div>
+            <div><strong>Data &amp; Analytics:</strong> Pandas, OneTick, Bloomberg, Power BI, Trino, Databricks</div>
+            <div><strong>Infrastructure:</strong> Linux, Git, AWS, Conda, CI/CD, Cron, PagerDuty, Jira</div>
+            <div><strong>Other:</strong> API Development, Data Pipeline Design, ETL, Web Applications, Prompt Engineering</div>
+          </div>
+        </div>
+
+        <div class="r-section">
+          <h4 class="r-section-title">Education</h4>
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">Carleton College</span>
+              <span class="r-light">Northfield, MN</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Bachelor of Arts in Mathematics</span>
+              <span class="r-light">Class of 2020</span>
+            </div>
+          </div>
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">Dartmouth Tuck School of Business</span>
+              <span class="r-light">Hanover, NH</span>
+            </div>
+            <div class="r-row">
+              <span class="r-title">Bridge Program</span>
+              <span class="r-light">Dec 2018</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
 
   <!-- Contact Section -->
-  <section id="contact">
-    <h2>Contact</h2>
+  <section id="contact" class="fade-in">
+    <h2>Get in Touch</h2>
     <div class="contact-container">
-      <div class="contact-content">
-        <div class="contact-form">
-          <h3>Get in Touch</h3>
-          <form id="contactForm" action="https://formspree.io/f/xvzgepjw" method="POST">
-            <div class="form-group">
-              <label for="name">Name</label>
-              <input type="text" id="name" name="name" required>
-            </div>
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" name="email" required>
-            </div>
-            <div class="form-group">
-              <label for="message">Message</label>
-              <textarea id="message" name="message" required></textarea>
-            </div>
-            <button type="submit">Send Message</button>
-            <div id="formMessage" class="form-message"></div>
-          </form>
+      <form id="contactForm" class="contact-form" action="https://formspree.io/f/xvzgepjw" method="POST">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required>
         </div>
-        <div class="contact-info">
-          <h3>Contact Information</h3>
-          
-          <div class="contact-method">
-            <h4>Email</h4>
-            <p><a href="mailto:pmkeel20@gmail.com">pmkeel20@gmail.com</a></p>
-          </div>
-          
-          <div class="contact-method">
-            <h4>Location</h4>
-            <p>Chicago, IL</p>
-          </div>
-          
-          <div class="contact-method">
-            <h4>Social</h4>
-            <p>
-              <a href="https://github.com/keelp2" target="_blank" rel="noopener noreferrer">GitHub</a> · 
-              <a href="https://www.linkedin.com/in/peter-keel" target="_blank" rel="noopener noreferrer">LinkedIn</a> ·
-              <a href="https://soundcloud.com/pmkpmk" target="_blank" rel="noopener noreferrer">Soundcloud</a>
-            </p>
-          </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
         </div>
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" required></textarea>
+        </div>
+        <button type="submit">Send Message</button>
+        <div id="formMessage" class="form-message"></div>
+      </form>
+      <div class="contact-links">
+        <a href="mailto:pmkeel20@gmail.com">pmkeel20@gmail.com</a>
+        <span>&middot;</span>
+        <span>Chicago, IL</span>
       </div>
     </div>
   </section>
 
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/keelp2" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://www.linkedin.com/in/peter-keel" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="https://soundcloud.com/pmkpmk" target="_blank" rel="noopener noreferrer">Soundcloud</a>
+    </div>
+    <p>&copy; 2026 Peter Keel</p>
+  </footer>
+
   <script>
+    function printResume() {
+      const w = window.open('assets/documents/resume.html', '_blank');
+      w.addEventListener('load', () => w.print());
+    }
+
     function scrollToSection(sectionId) {
       const section = document.getElementById(sectionId);
       if (section) {
@@ -528,6 +313,23 @@
       });
 
       updateActiveNav(currentSection);
+    });
+
+    // Scroll fade-in animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.08 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Bird easter egg
+    document.querySelector('.nav-bird').addEventListener('click', function() {
+      this.style.animation = 'hop 0.5s ease';
+      setTimeout(() => this.style.animation = '', 500);
     });
 
     document.getElementById('contactForm').addEventListener('submit', async function(e) {
