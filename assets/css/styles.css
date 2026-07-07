@@ -223,6 +223,7 @@ section {
 .resume-container {
   max-width: 850px;
   width: 100%;
+  position: relative;
 }
 
 .resume-card {
@@ -230,14 +231,33 @@ section {
   border: 1px solid #eee;
   border-radius: 8px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-  padding: 32px 40px;
+  padding: 28px 36px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.resume-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.resume-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.resume-card::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.resume-card::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
 }
 
 .r-header {
   text-align: center;
-  margin-bottom: 18px;
-  padding-bottom: 12px;
-  border-bottom: 1.5px solid #ddd;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8e8e8;
   position: relative;
 }
 
@@ -288,7 +308,7 @@ section {
 }
 
 .r-section {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .r-section:last-child {
@@ -296,18 +316,18 @@ section {
 }
 
 .r-section-title {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #999;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 4px;
-  margin: 0 0 10px 0;
+  color: #aaa;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin: 0 0 8px 0;
 }
 
 .r-entry {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .r-entry:last-child {
@@ -339,13 +359,13 @@ section {
 
 .r-bullets {
   padding-left: 16px;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .r-bullets li {
-  margin-bottom: 3px;
-  font-size: 0.82rem;
-  line-height: 1.45;
+  margin-bottom: 2px;
+  font-size: 0.8rem;
+  line-height: 1.4;
   color: #444;
 }
 
