@@ -677,42 +677,149 @@ nav {
 }
 
 @media (max-width: 768px) {
-  .projects-grid {
-    grid-template-columns: 1fr;
-    max-width: 320px;
-  }
-
   section {
-    padding-top: 60px;
-    padding-bottom: var(--space-4);
+    padding: 50px 16px 32px;
   }
 
+  /* Nav */
+  nav {
+    padding: 10px 12px;
+  }
+
+  .nav-initials {
+    width: 36px;
+    height: 36px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
+
+  .nav-links a {
+    font-size: 0.95rem;
+  }
+
+  .nav-bird {
+    width: 28px;
+    margin-left: 8px;
+    margin-top: -10px;
+  }
+
+  /* Home */
   #home {
-    padding-top: 80px;
-    padding-bottom: 60px;
+    padding-top: 70px;
+    padding-bottom: 40px;
   }
 
   .home-layout {
-    flex-direction: column;
+    flex-direction: column-reverse;
     text-align: center;
-    gap: 30px;
+    gap: 24px;
+  }
+
+  .typewriter {
+    white-space: normal;
+    overflow: visible;
+    border-right: none;
+    width: auto;
+    animation: none;
+    opacity: 1;
+  }
+
+  .home-fade {
+    animation-delay: 0.3s;
+  }
+
+  #home h1 {
+    font-size: 1.6rem;
+  }
+
+  .home-subtitle {
+    font-size: 0.95rem;
   }
 
   .home-blurb {
     max-width: 100%;
+    font-size: 0.9rem;
   }
 
   .home-photo {
-    width: 180px;
-    height: 180px;
+    width: 160px;
+    height: 160px;
+    animation-delay: 0s;
   }
 
-  .resume-card {
-    padding: 24px 20px;
+  /* Playground */
+  .projects-grid {
+    grid-template-columns: 1fr;
+    max-width: 300px;
   }
 
   #playground h2,
   #contact h2 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+  }
+
+  .playground-intro p {
+    font-size: 0.9rem;
+  }
+
+  /* Resume */
+  .resume-card {
+    padding: 20px 16px;
+    max-height: 60vh;
+  }
+
+  .r-name {
+    font-size: 1.2rem;
+  }
+
+  .r-contact {
+    font-size: 0.72rem;
+    gap: 2px 8px;
+  }
+
+  .resume-save-btn {
+    font-size: 0.68rem;
+    padding: 4px 10px;
+  }
+
+  .r-company {
+    font-size: 0.82rem;
+  }
+
+  .r-title {
+    font-size: 0.78rem;
+  }
+
+  .r-light {
+    font-size: 0.72rem;
+  }
+
+  .r-bullets li {
+    font-size: 0.75rem;
+  }
+
+  .r-skills {
+    font-size: 0.75rem;
+  }
+
+  /* Contact */
+  .contact-container {
+    max-width: 100%;
+  }
+
+  .contact-form {
+    padding: 16px;
+  }
+
+  .contact-links {
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Footer */
+  .footer-links {
+    gap: 14px;
+    font-size: 0.8rem;
   }
 }
