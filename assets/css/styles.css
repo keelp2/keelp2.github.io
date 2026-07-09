@@ -316,9 +316,9 @@ section {
 
 .r-header {
   text-align: center;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e8e8e8;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--fg);
   position: relative;
 }
 
@@ -344,10 +344,10 @@ section {
 }
 
 .r-name {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
   margin: 0 0 8px 0;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
 .r-contact {
@@ -369,7 +369,8 @@ section {
 }
 
 .r-section {
-  margin-bottom: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 6px;
 }
 
 .r-section:last-child {
@@ -388,9 +389,14 @@ section {
 }
 
 .r-entry {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   padding-left: 12px;
-  border-left: 2px solid #eee;
+  border-left: 2px solid #ddd;
+  transition: border-color 0.2s;
+}
+
+.r-entry:hover {
+  border-left-color: var(--accent);
 }
 
 .r-entry:last-child {
