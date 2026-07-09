@@ -184,10 +184,10 @@ section {
 
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3);
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
 }
 
 .project-card {
@@ -211,6 +211,7 @@ section {
 
 .project-card:has(.thumb-nba):hover { border-left-color: #c9510c; }
 .project-card:has(.thumb-music):hover { border-left-color: #4a5acb; }
+.project-card:has(.thumb-housing):hover { border-left-color: #059669; }
 .project-card:has(.thumb-pottery):hover { border-left-color: #8B6F47; }
 
 .project-thumbnail {
@@ -256,6 +257,11 @@ section {
 .thumb-music {
   background: linear-gradient(135deg, #eef0fb, #e0e4f7);
   color: #4a5acb;
+}
+
+.thumb-housing {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  color: #059669;
 }
 
 .thumb-pottery {
