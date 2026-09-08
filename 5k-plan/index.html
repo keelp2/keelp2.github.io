@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sub-19 5K Plan — Oct 3, 2026</title>
+<style>
+  :root {
+    --strava-orange: #FC4C02;
+    --strava-orange-light: #FF6B2B;
+    --strava-orange-bg: rgba(252,76,2,0.08);
+    --strava-orange-bg-strong: rgba(252,76,2,0.15);
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e5e5e5;
+    --border-light: #f0f0f0;
+    --text: #2d2d2d;
+    --text-secondary: #6d6d78;
+    --muted: #8e8e93;
+    --red: #e34402;
+    --red-bg: rgba(227,68,2,0.08);
+    --green: #00b84d;
+    --green-bg: rgba(0,184,77,0.08);
+    --blue: #0077cc;
+    --blue-bg: rgba(0,119,204,0.08);
+    --purple: #8B5CF6;
+    --purple-bg: rgba(139,92,246,0.08);
+    --dark: #1a1a2e;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Strava-style top bar */
+  .top-bar {
+    background: var(--dark);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;
+  }
+  .top-bar-logo {
+    color: var(--strava-orange);
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .top-bar-subtitle { color: rgba(255,255,255,0.6); font-size: 0.8rem; }
+
+  .content-wrapper { padding: 24px; }
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+  .goal-banner {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 28px;
+    margin-bottom: 28px;
+    display: flex;
+    gap: 36px;
+    flex-wrap: wrap;
+    align-items: center;
+    box-shadow: var(--shadow);
+    border-top: 3px solid var(--strava-orange);
+  }
+  .goal-stat { text-align: center; }
+  .goal-stat .num { font-size: 1.8rem; font-weight: 700; color: var(--strava-orange); }
+  .goal-stat .label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+
+  /* Tabs — Strava style */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border-bottom: 2px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .tab {
+    padding: 10px 18px;
+    border-radius: 0;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); border-bottom-color: var(--border); }
+  .tab.active { color: var(--strava-orange); border-bottom-color: var(--strava-orange); background: transparent; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Calendar grid */
+  .week-label {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 28px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.85rem;
+  }
+  .week-label .miles {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    background: var(--strava-orange-bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: var(--strava-orange);
+    font-weight: 600;
+  }
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .day-header {
+    text-align: center;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 4px;
+    font-weight: 600;
+  }
+  .day-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 130px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .day-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); border-color: var(--strava-orange); }
+  .day-card.off { opacity: 0.55; min-height: 80px; box-shadow: none; }
+  .day-card.key { border-left: 3px solid var(--strava-orange); }
+  .day-card.easy { border-left: 3px solid var(--green); }
+  .day-card.race { border-left: 3px solid var(--strava-orange); background: var(--strava-orange-bg-strong); }
+  .day-card.done { border-left: 3px solid var(--muted); opacity: 0.55; }
+  .day-date { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+  .day-type {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .day-type.key-type { background: var(--strava-orange-bg); color: var(--strava-orange); }
+  .day-type.easy-type { background: var(--green-bg); color: var(--green); }
+  .day-type.off-type { background: rgba(142,142,147,0.1); color: var(--muted); }
+  .day-type.race-type { background: var(--strava-orange); color: white; }
+  .day-type.done-type { background: rgba(142,142,147,0.1); color: var(--muted); }
+  .day-workout { font-size: 0.8rem; line-height: 1.4; color: var(--text); font-weight: 500; }
+  .day-pace { font-size: 0.7rem; color: var(--strava-orange); margin-top: 4px; font-weight: 600; }
+  .day-miles { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .day-icons { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+  .day-icons span { font-size: 0.75rem; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 620px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .modal h2 { font-size: 1.2rem; margin-bottom: 4px; color: var(--text); font-weight: 700; }
+  .modal .modal-date { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+  .modal-section { margin-bottom: 16px; }
+  .modal-section h3 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--strava-orange);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .modal-section p, .modal-section li { font-size: 0.9rem; color: var(--text); }
+  .modal-section ul { padding-left: 18px; }
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  .modal-close:hover { color: var(--text); }
+  .cal-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  /* Race pacing table */
+  .pace-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  .pace-table th, .pace-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .pace-table th { color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pace-table td.pace { color: var(--strava-orange); font-weight: 700; }
+  .pace-table td.cue { color: var(--text-secondary); font-style: italic; }
+
+  /* Info cards */
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 16px 0; }
+  .info-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .info-card h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--strava-orange);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .info-card ul { padding-left: 16px; }
+  .info-card li { font-size: 0.85rem; margin-bottom: 4px; color: var(--text); }
+  .info-card .highlight { color: var(--strava-orange); font-weight: 600; }
+
+  /* Strength */
+  .exercise-list { list-style: none; padding: 0; }
+  .exercise-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.85rem;
+  }
+  .exercise-list li:last-child { border: none; }
+  .exercise-list .reps { color: var(--strava-orange); font-weight: 600; }
+
+  /* Nutrition section */
+  .nutrition-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  .nutrition-table th, .nutrition-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.83rem;
+  }
+  .nutrition-table th { color: var(--muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; }
+  .nutrition-table .cal { color: var(--strava-orange); font-weight: 700; }
+
+  /* Print */
+  .print-btn {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    float: right;
+  }
+  .print-btn:hover { border-color: var(--strava-orange); color: var(--strava-orange); }
+
+  @media print {
+    body { background: white; color: #111; padding: 12px; font-size: 10px; }
+    .tabs, .modal-overlay, .print-btn, .goal-banner, .top-bar { display: none !important; }
+    .tab-content { display: block !important; page-break-inside: avoid; }
+    .day-card { border: 1px solid #ccc; min-height: auto; padding: 6px; box-shadow: none; }
+    .day-card.off { opacity: 0.7; }
+    h1 { font-size: 1.4rem; }
+    .week-grid { gap: 4px; }
+    .info-card { border: 1px solid #ccc; box-shadow: none; }
+    .pace-table th, .pace-table td, .nutrition-table th, .nutrition-table td { padding: 4px 6px; }
+    .content-wrapper { padding: 0; }
+  }
+
+  @media (max-width: 768px) {
+    .week-grid { grid-template-columns: 1fr; }
+    .day-card { min-height: auto; }
+    .goal-banner { flex-direction: column; gap: 12px; }
+    .content-wrapper { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-bar-logo">RACE PLAN</div>
+  <div class="top-bar-subtitle">Sub-19 5K Training — Oct 3, 2026</div>
+</div>
+<div class="content-wrapper">
+<button class="print-btn" onclick="window.print()">🖨️ Print</button>
+<h1>Sub-19 5K Race Plan</h1>
+<p class="subtitle">October 3, 2026 (Saturday) — 25 days of preparation</p>
+
+<div class="goal-banner">
+  <div class="goal-stat"><div class="num">18:59</div><div class="label">Target Time</div></div>
+  <div class="goal-stat"><div class="num">6:07</div><div class="label">Race Pace /mi</div></div>
+  <div class="goal-stat"><div class="num">25</div><div class="label">Days to Race</div></div>
+  <div class="goal-stat"><div class="num">4</div><div class="label">Key Workouts</div></div>
+  <div class="goal-stat"><div class="num">3,100</div><div class="label">Cal on Hard Days</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('calendar')">Calendar</div>
+  <div class="tab" onclick="switchTab('race')">Race Day</div>
+  <div class="tab" onclick="switchTab('nutrition')">Nutrition</div>
+  <div class="tab" onclick="switchTab('strength')">Strength</div>
+  <div class="tab" onclick="switchTab('routines')">Warmup / Recovery</div>
+  <div class="tab" onclick="switchTab('contingency')">If Things Go Wrong</div>
+  <div class="tab" onclick="switchTab('glossary')">📖 Glossary</div>
+</div>
+
+<!-- CALENDAR TAB -->
+<div id="tab-calendar" class="tab-content active">
+
+<div id="calendar-container"></div>
+
+</div>
+
+<!-- RACE DAY TAB -->
+<div id="tab-race" class="tab-content">
+  <h2 style="margin-bottom: 16px;">Race Day Protocol — Saturday Oct 3</h2>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Morning Timeline</h3>
+      <ul>
+        <li><span class="highlight">3-4 hrs before:</span> Wake up, no rushing</li>
+        <li><span class="highlight">3 hrs before:</span> Breakfast — 500-600 cal (toast/bagel + banana + PB + coffee)</li>
+        <li><span class="highlight">2 hrs before:</span> Sip 16-20 oz water, stop 45 min before</li>
+        <li><span class="highlight">40 min before:</span> Caffeine 150-200mg</li>
+        <li><span class="highlight">30 min before:</span> Warmup jog 1.5 mi easy</li>
+        <li><span class="highlight">15 min before:</span> 4×100m strides</li>
+        <li><span class="highlight">5 min before:</span> Line up. Deep breaths.</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Night Before (Fri 10/2)</h3>
+      <ul>
+        <li>Normal dinner — nothing heavy or new</li>
+        <li>Lay out race clothes</li>
+        <li>Pin bib to shirt</li>
+        <li>Set 2 alarms</li>
+        <li>16-20 oz water before bed</li>
+        <li>Early bedtime — 8 hrs sleep</li>
+        <li><strong>NO running Friday</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin: 24px 0 12px; font-size: 1rem;">Race Pacing — Target: 18:45 – 18:59</h3>
+  <table class="pace-table">
+    <tr><th>Segment</th><th>Pace</th><th>Split</th><th>Mental Cue</th></tr>
+    <tr><td>Mile 1</td><td class="pace">6:07-6:10</td><td>6:07-6:10</td><td class="cue">Smooth and patient. Let others go out fast.</td></tr>
+    <tr><td>Mile 2</td><td class="pace">6:05-6:07</td><td>12:12-12:17</td><td class="cue">Relax and hold. Drop shoulders. Quick cadence.</td></tr>
+    <tr><td>Mile 2.5</td><td class="pace">Push</td><td>—</td><td class="cue">Start hunting. Pick off runners one at a time.</td></tr>
+    <tr><td>Mile 3</td><td class="pace">5:58-6:05</td><td>18:10-18:22</td><td class="cue">This is what I trained for.</td></tr>
+    <tr><td>Last 0.1</td><td class="pace">ALL OUT</td><td>18:45-18:57</td><td class="cue">Sprint. Leave nothing. Lean at the line.</td></tr>
+  </table>
+  <p style="color: var(--muted); font-size: 0.8rem; margin-top: 8px;">
+    Split math: Fast 6:07+6:05+5:58+0:35 = <strong>18:45</strong> | Slow 6:10+6:07+6:05+0:35 = <strong>18:57</strong>
+  </p>
+</div>
+
+<!-- NUTRITION TAB -->
+<div id="tab-nutrition" class="tab-content">
+  <h2 style="margin-bottom: 4px;">Nutrition Plan</h2>
+  <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 16px;">6'3" / 180-185 lbs | BMR ~1,876 | TDEE ~2,625 (sedentary) | ~110 cal/mi running</p>
+
+  <h3 style="margin: 16px 0 8px; font-size: 1rem;">Daily Targets by Day Type</h3>
+  <table class="nutrition-table">
+    <tr><th>Day Type</th><th>Calories</th><th>Carbs</th><th>Protein</th><th>Fat</th><th>Notes</th></tr>
+    <tr><td>Rest (Tue/Thu)</td><td class="cal">2,500-2,600</td><td>250-275g</td><td>140-150g</td><td>85-95g</td><td>Don't undereat — muscles repair on rest days</td></tr>
+    <tr><td>Easy run (3-5 mi)</td><td class="cal">2,700-2,900</td><td>275-325g</td><td>140-150g</td><td>85-95g</td><td>Eat normally + pre/post run snacks</td></tr>
+    <tr><td>Key session (Mon/Wed)</td><td class="cal">3,000-3,200</td><td>350-400g</td><td>140-150g</td><td>80-90g</td><td>Higher carbs — big carb dinner</td></tr>
+    <tr><td>Long/moderate (6-7 mi)</td><td class="cal">2,900-3,100</td><td>325-375g</td><td>140-150g</td><td>85-95g</td><td>Extra carbs before and after</td></tr>
+    <tr><td>Race day (pre-race)</td><td class="cal">500-600</td><td>80-100g</td><td>15-20g</td><td>10-15g</td><td>3 hrs before. Nothing new.</td></tr>
+  </table>
+
+  <h3 style="margin: 24px 0 8px; font-size: 1rem;">Meal Timing Around Runs</h3>
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Before</h3>
+      <ul>
+        <li><span class="highlight">2-3 hrs before:</span> 300-400 cal — oatmeal + banana, toast + PB, bagel + honey</li>
+        <li><span class="highlight">Night before key sessions:</span> Carb-heavy dinner (pasta, rice)</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>After</h3>
+      <ul>
+        <li><span class="highlight">Within 30 min (key):</span> 30-40g protein + 50-60g carbs — chocolate milk + banana, protein shake</li>
+        <li><span class="highlight">Within 30 min (easy):</span> Smaller snack — yogurt + granola, banana + PB</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin: 24px 0 8px; font-size: 1rem;">Meal Ideas</h3>
+  <table class="nutrition-table">
+    <tr><th>Meal</th><th>Option 1</th><th>Option 2</th><th>Option 3</th></tr>
+    <tr><td><strong>Breakfast</strong></td><td>Oatmeal + banana + PB + honey (500 cal)</td><td>3 eggs + 2 toast + avocado (550 cal)</td><td>Greek yogurt + granola + berries (450 cal)</td></tr>
+    <tr><td><strong>Lunch</strong></td><td>Chicken burrito bowl + rice (700 cal)</td><td>Turkey sandwich + salad + fruit (600 cal)</td><td>Salmon + quinoa + veggies (650 cal)</td></tr>
+    <tr><td><strong>Dinner (easy)</strong></td><td>Chicken stir fry + rice (700 cal)</td><td>Pasta + meat sauce + salad (750 cal)</td><td>Steak + sweet potato + broccoli (700 cal)</td></tr>
+    <tr><td><strong>Dinner (key)</strong></td><td>Big pasta bowl + garlic bread (900 cal)</td><td>Rice bowl + chicken + teriyaki (850 cal)</td><td>Burrito + chips + guac (900 cal)</td></tr>
+    <tr><td><strong>Snacks</strong></td><td>Apple + PB (250 cal)</td><td>Trail mix (300 cal)</td><td>Protein bar (200-250 cal)</td></tr>
+  </table>
+
+  <h3 style="margin: 24px 0 8px; font-size: 1rem;">Race Week Nutrition</h3>
+  <table class="nutrition-table">
+    <tr><th>Day</th><th>Plan</th></tr>
+    <tr><td>Mon 9/28</td><td>Normal eating. Stay hydrated.</td></tr>
+    <tr><td>Tue 9/29</td><td>Normal. Extra glass of water.</td></tr>
+    <tr><td>Wed 9/30</td><td>Slightly bigger dinner — extra serving of pasta/rice (+200 cal carbs)</td></tr>
+    <tr><td>Thu 10/1</td><td>Carb-focused dinner: pasta + bread. 800-1000 cal. Not a huge binge — just full glycogen.</td></tr>
+    <tr><td>Fri 10/2</td><td>Normal dinner, nothing heavy. Early bedtime. Hydrate well.</td></tr>
+    <tr><td><strong>Sat 10/3</strong></td><td><strong>Pre-race breakfast 3 hrs before: 500-600 cal. Toast/bagel + banana + PB + coffee. NOTHING NEW.</strong></td></tr>
+  </table>
+
+  <div class="info-card" style="margin-top: 16px; border-color: var(--strava-orange);">
+    <h3 style="color: var(--red);">Avoid</h3>
+    <ul>
+      <li>No alcohol race week (Mon 9/28 – Sat 10/3)</li>
+      <li>Limit fried/heavy food the night before key sessions (Sun + Tue nights)</li>
+      <li>No new foods or supplements — race with what you've trained with</li>
+      <li>Don't skip meals to cut weight — you need fuel for the speed work</li>
+    </ul>
+  </div>
+</div>
+
+<!-- STRENGTH TAB -->
+<div id="tab-strength" class="tab-content">
+  <h2 style="margin-bottom: 4px;">Strength Circuit</h2>
+  <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 16px;">Bodyweight only | 15 min | After easy runs only | Stop after Sep 26</p>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Schedule</h3>
+      <ul>
+        <li><span class="highlight">Fri 9/11:</span> 2 rounds (after easy run)</li>
+        <li><span class="highlight">Fri 9/18:</span> 2 rounds (after easy run)</li>
+        <li><span class="highlight">Sat 9/26:</span> 1 round — FINAL session</li>
+        <li style="color: var(--red); margin-top: 8px;"><strong>NO strength after Sep 26</strong></li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Rules</h3>
+      <ul>
+        <li>Never before a key session (Mon/Wed)</li>
+        <li>Only after easy runs</li>
+        <li>Bodyweight only — no gym needed</li>
+        <li>If sore next day → cut volume in half</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin: 24px 0 12px; font-size: 1rem;">The Circuit</h3>
+  <ul class="exercise-list">
+    <li><span>Single-leg squat to bench/chair</span><span class="reps">8 each leg</span></li>
+    <li><span>Single-leg Romanian deadlift (bodyweight)</span><span class="reps">10 each leg</span></li>
+    <li><span>Single-leg calf raise (3-sec lower)</span><span class="reps">15 each leg</span></li>
+    <li><span>Single-leg glute bridge</span><span class="reps">12 each leg</span></li>
+    <li><span>Lateral band walks (or side lunges)</span><span class="reps">15 each direction</span></li>
+    <li><span>Wall sit</span><span class="reps">45 sec</span></li>
+  </ul>
+  <p style="color: var(--muted); font-size: 0.8rem; margin-top: 8px;">60 sec rest before round 2</p>
+</div>
+
+<!-- ROUTINES TAB -->
+<div id="tab-routines" class="tab-content">
+  <h2 style="margin-bottom: 16px;">Warmup & Recovery</h2>
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Pre-Run Warmup (every run — 5 min)</h3>
+      <ul>
+        <li>20 leg swings each leg (front-to-back)</li>
+        <li>20 leg swings each leg (side-to-side)</li>
+        <li>10 walking lunges</li>
+        <li>10 high knees + 10 butt kicks</li>
+        <li style="color: var(--orange);"><strong>Key sessions (Mon/Wed):</strong> add 1-1.5 mi easy jog before starting</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Post-Run (every run — 5 min)</h3>
+      <ul>
+        <li>Foam roll quads, IT band, calves, glutes — 5 min</li>
+        <li>Hip flexor stretch — 90 sec hold each side</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Daily Habits (Non-Negotiable)</h3>
+      <ul>
+        <li><span class="highlight">Sleep:</span> 7.5-8 hrs — #1 recovery tool</li>
+        <li><span class="highlight">Water:</span> 80-100 oz/day</li>
+        <li><span class="highlight">Foam roll:</span> 5 min post-run</li>
+        <li><span class="highlight">Hip flexor stretch:</span> 90 sec each side (counteracts desk sitting)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- CONTINGENCY TAB -->
+<div id="tab-contingency" class="tab-content">
+  <h2 style="margin-bottom: 16px;">If Things Go Wrong</h2>
+  <div class="info-grid">
+    <div class="info-card">
+      <h3>Training Issues</h3>
+      <ul>
+        <li><span class="highlight">Workout feels terrible:</span> Cut short. 3 good reps > 5 bad reps.</li>
+        <li><span class="highlight">Legs feel heavy/dead:</span> Take an extra rest day. Freshness > fitness.</li>
+        <li><span class="highlight">Minor ache:</span> Ice + foam roll + reduce next run. Skip if 2+ days.</li>
+        <li><span class="highlight">Sick:</span> No running with fever. Mild cold = easy runs only.</li>
+        <li><span class="highlight">Hungover Sunday:</span> Walk 30 min + foam roll + 100 oz water. Easy 3 mi only if okay by afternoon.</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>Race Day Issues</h3>
+      <ul>
+        <li><span class="highlight">Bad weather:</span> Adjust goal by 15-30 sec. Don't fight headwind/rain.</li>
+        <li><span class="highlight">Go out too fast mile 1:</span> Don't panic. Settle to 6:10-6:15 in mile 2, re-engage at 2.5.</li>
+        <li><span class="highlight">Side stitch:</span> Slow slightly, exhale forcefully on left foot strike, press on the stitch.</li>
+        <li><span class="highlight">Legs heavy early:</span> Stay at 6:10-6:15 through mile 2, then reassess. You often feel better after 10 min.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- GLOSSARY TAB -->
+<div id="tab-glossary" class="tab-content">
+  <h2 style="margin-bottom: 4px;">Running Glossary</h2>
+  <p style="color: var(--muted); font-size: 0.85rem; margin-bottom: 20px;">Plain-English explanations of every term in this plan. Bookmark this tab.</p>
+
+  <div class="info-grid" style="grid-template-columns: 1fr;">
+
+    <div class="info-card" style="border-color: var(--strava-orange);">
+      <h3>Workout Types</h3>
+      <ul>
+        <li><span class="highlight">Intervals / Repeats (e.g. "5×800m"):</span> Run a set distance fast, then jog slowly to recover, then repeat. "5×800m" means: run 800 meters hard (about 2 laps of a track), jog for 2 minutes to catch your breath, then do it again — 5 times total. These build your engine.</li>
+        <li style="margin-top:8px"><span class="highlight">Tempo run (e.g. "2.5 mi at 6:15"):</span> A sustained run at a "comfortably hard" pace — you can talk in short phrases but not full sentences. Faster than your easy pace, slower than a sprint. Builds endurance at speed.</li>
+        <li style="margin-top:8px"><span class="highlight">Easy run:</span> A relaxed jog where you could hold a full conversation. Should feel genuinely easy — not pushing at all. This is recovery and aerobic base. Most of your runs should feel like this.</li>
+        <li style="margin-top:8px"><span class="highlight">Strides (e.g. "6×100m strides"):</span> Short, smooth accelerations — NOT sprints. Find a flat stretch of about 100 meters (a football field). Gradually speed up to about 90% effort over the first half, hold it, then gradually slow down. Walk back to where you started. That's one stride. They teach your legs to move fast without the fatigue of a full workout. Think of them as "reminding your legs what fast feels like."</li>
+        <li style="margin-top:8px"><span class="highlight">Sharpener:</span> A very short, light speed session done a few days before the race. Just 2-3 short fast efforts to keep your legs feeling quick without creating any fatigue. Like revving the engine without driving anywhere.</li>
+      </ul>
+    </div>
+
+    <div class="info-card" style="border-color: var(--blue);">
+      <h3 style="color: var(--blue);">Distances</h3>
+      <ul>
+        <li><span class="highlight">100m:</span> The length of a football field (straightaway). Takes about 15-20 seconds.</li>
+        <li><span class="highlight">200m:</span> Half a lap around a standard track. Takes about 40-45 seconds at this plan's paces.</li>
+        <li><span class="highlight">400m:</span> One full lap around a standard track. Takes about 1:25-1:30 at this plan's paces.</li>
+        <li><span class="highlight">800m:</span> Two laps around a track (half a mile). Takes about 2:55-3:00 at this plan's paces.</li>
+        <li><span class="highlight">1000m (1K):</span> 2.5 laps around a track (0.62 miles). Takes about 3:40-3:45 at this plan's paces.</li>
+        <li><span class="highlight">5K:</span> 3.1 miles. Your race distance.</li>
+        <li style="margin-top:8px"><em>No track nearby?</em> Use your phone's GPS or a running watch. Or measure on Google Maps. A long block in a city grid is usually about 200m.</li>
+      </ul>
+    </div>
+
+    <div class="info-card" style="border-color: var(--green);">
+      <h3 style="color: var(--green);">Pace & Effort Terms</h3>
+      <ul>
+        <li><span class="highlight">Pace (e.g. "6:07/mi"):</span> How many minutes it takes you to run one mile. 6:07/mi means each mile takes 6 minutes and 7 seconds. Lower number = faster.</li>
+        <li><span class="highlight">Race pace:</span> The pace you plan to hold during the race. For sub-19, that's 6:07/mi.</li>
+        <li><span class="highlight">Recovery / jog recovery:</span> After a fast repeat, jog very slowly (or even walk) for the specified time. This lets your heart rate come down before the next hard effort. Don't skip it — the recovery is part of the workout.</li>
+        <li><span class="highlight">WU / CD:</span> Warmup / Cooldown. WU = easy jogging before the hard part to get blood flowing. CD = easy jogging after to bring your heart rate down gradually.</li>
+        <li><span class="highlight">Negative split:</span> Running the second half of a race faster than the first half. This is the goal — start controlled, finish strong.</li>
+        <li><span class="highlight">RPE (effort):</span> How hard it feels on a 1-10 scale. Easy run = 4-5. Tempo = 7. Intervals = 8-9. Race = 9-10.</li>
+      </ul>
+    </div>
+
+    <div class="info-card" style="border-color: var(--purple);">
+      <h3 style="color: var(--purple);">Recovery & Body Maintenance</h3>
+      <ul>
+        <li><span class="highlight">Foam rolling:</span> Using a foam cylinder to massage your muscles. Lay the roller on the ground, put the muscle on top of it, and slowly roll back and forth using your body weight. It hurts a bit (in a good way). Spend about 30-60 seconds on each muscle group: front of thighs (quads), outside of thighs (IT band), calves, and butt (glutes). A $20 foam roller from Amazon works fine.</li>
+        <li style="margin-top:8px"><span class="highlight">IT band:</span> A thick band of tissue that runs along the outside of your thigh from your hip to your knee. It gets tight from running. Foam roll the outside of your thigh.</li>
+        <li style="margin-top:8px"><span class="highlight">Hip flexor stretch:</span> The muscles at the front of your hip that get tight from sitting all day. To stretch: kneel on one knee (like you're proposing), push your hips forward until you feel a stretch in the front of the kneeling leg's hip. Hold 90 seconds each side.</li>
+        <li style="margin-top:8px"><span class="highlight">Taper:</span> Intentionally reducing your training volume in the 1-2 weeks before a race so your body can fully recover and arrive at race day fresh and fast. You'll feel restless and antsy — that means it's working. Trust the process.</li>
+        <li style="margin-top:8px"><span class="highlight">EPOC:</span> "Afterburn" — your body keeps burning extra calories for hours after a hard workout while it recovers. This is why key session days have higher calorie targets.</li>
+      </ul>
+    </div>
+
+    <div class="info-card" style="border-color: var(--strava-orange);">
+      <h3>Nutrition Terms</h3>
+      <ul>
+        <li><span class="highlight">BMR:</span> Basal Metabolic Rate — calories your body burns just being alive (breathing, heartbeat, etc.) even if you lay in bed all day.</li>
+        <li><span class="highlight">TDEE:</span> Total Daily Energy Expenditure — BMR plus the calories burned from daily activity (walking, working, etc.). This is your "maintenance" calories.</li>
+        <li><span class="highlight">Carbs / carb loading:</span> Carbohydrates are your body's preferred fuel for fast running. Pasta, rice, bread, bananas, oatmeal. "Carb loading" just means eating extra carbs the day or two before a race to make sure your fuel tank is full. For a 5K you don't need to go crazy — just have pasta for dinner.</li>
+        <li><span class="highlight">Glycogen:</span> Stored carbs in your muscles and liver. When you eat carbs, your body converts them to glycogen for fuel. You want these stores topped off on race day.</li>
+        <li><span class="highlight">Protein:</span> Repairs muscles after training. Chicken, fish, eggs, Greek yogurt, protein shakes. Aim for some protein at every meal.</li>
+        <li><span class="highlight">Macros:</span> Short for macronutrients — the three main categories of food: carbs, protein, and fat. The targets in this plan tell you roughly how many grams of each to aim for.</li>
+      </ul>
+    </div>
+
+    <div class="info-card">
+      <h3>How to Read Workout Notation</h3>
+      <ul>
+        <li><span class="highlight">"5×800m at 2:55-3:00 w/ 2:00 jog recovery"</span></li>
+        <li style="margin-left: 16px; list-style: none;">→ Run 800 meters (2 track laps) in 2 minutes 55 seconds to 3 minutes</li>
+        <li style="margin-left: 16px; list-style: none;">→ Then jog very slowly for 2 minutes</li>
+        <li style="margin-left: 16px; list-style: none;">→ Repeat 5 times total</li>
+        <li style="margin-left: 16px; list-style: none;">→ Do a 1.5 mile easy warmup jog before and 1 mile cooldown jog after</li>
+        <li style="margin-top:12px"><span class="highlight">"1mi WU > 1mi at 6:07 > 3:00 jog > 1mi at 6:07 > CD"</span></li>
+        <li style="margin-left: 16px; list-style: none;">→ Jog 1 mile easy (warmup)</li>
+        <li style="margin-left: 16px; list-style: none;">→ Run 1 mile in 6:07 (hard)</li>
+        <li style="margin-left: 16px; list-style: none;">→ Jog for 3 minutes (recovery)</li>
+        <li style="margin-left: 16px; list-style: none;">→ Run 1 mile in 6:07 again (hard)</li>
+        <li style="margin-left: 16px; list-style: none;">→ Jog 1 mile easy (cooldown)</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+const days = [
+  // WEEK 1
+  {week:"Week 1",day:"Mon",date:"9/7",type:"done",typeLabel:"Done",workout:"8 mi w/ tempo block",pace:"3-4 mi at 7:15 pace",miles:8.0,strength:false,cal:"3,000-3,200",food:"B: Oatmeal + banana + PB (500). L: Chicken burrito bowl (700). Post-run: Protein shake + banana (350). D: Big pasta + garlic bread (900). Snack: Trail mix (300).",notes:"Already completed"},
+  {week:"Week 1",day:"Tue",date:"9/8",type:"off",typeLabel:"OFF",workout:"Rest (today)",pace:"Walk / foam roll",miles:0,strength:false,cal:"2,500-2,600",food:"B: 3 eggs + 2 toast + avocado (550). L: Turkey sandwich + fruit (600). D: Chicken stir fry + rice (700). Snacks: Apple + PB (250) + protein bar (250). Pre-load carbs tonight for tomorrow's intervals.",notes:"Rest day"},
+  {week:"Week 1",day:"Wed",date:"9/9",type:"key",typeLabel:"Key Session",workout:"5×800m w/ 2:00 jog recovery",pace:"2:55-3:00 per 800m (5:50-6:00/mi)",miles:5.5,strength:false,cal:"3,000-3,200",food:"B: Oatmeal + banana + PB + honey (500). Pre-run: Bagel + honey (300). Post-run: Chocolate milk + banana (400). L: Salmon + quinoa + veggies (650). D: Pasta + meat sauce + bread (900). Snack: Yogurt (200).",notes:"Litmus test for sub-19 fitness"},
+  {week:"Week 1",day:"Thu",date:"9/10",type:"off",typeLabel:"OFF",workout:"Rest",pace:"",miles:0,strength:false,cal:"2,500-2,600",food:"B: Greek yogurt + granola + berries (450). L: Chicken burrito bowl (700). D: Steak + sweet potato + broccoli (700). Snacks: Trail mix (300) + apple (100).",notes:"Muscles repairing"},
+  {week:"Week 1",day:"Fri",date:"9/11",type:"easy",typeLabel:"Easy + Strength",workout:"4 mi easy + 6×100m strides",pace:"8:00-8:30/mi",miles:4.5,strength:true,cal:"2,700-2,900",food:"B: 3 eggs + toast + avocado (550). Pre-run: Banana (100). Post-run: Greek yogurt + granola (300). L: Turkey sandwich + salad (600). D: Chicken stir fry + rice (700). Snack: Protein bar (250).",notes:"Strength circuit ×2 rounds after run"},
+  {week:"Week 1",day:"Sat",date:"9/12",type:"off",typeLabel:"Optional",workout:"Easy 3 mi if time allows",pace:"8:00-8:30/mi",miles:"0-3",strength:false,cal:"2,500-2,700",food:"Eat normally. Banana before and snack after if running.",notes:"Busy weekend — skip if needed"},
+  {week:"Week 1",day:"Sun",date:"9/13",type:"off",typeLabel:"Optional",workout:"Easy 3-4 mi if time allows",pace:"8:15-8:45/mi",miles:"0-4",strength:false,cal:"2,500-2,800",food:"Eat normally. Carb-heavier dinner tonight (pasta/rice) to fuel Monday's intervals.",notes:"EAT CARBS AT DINNER for Monday"},
+
+  // WEEK 2
+  {week:"Week 2",day:"Mon",date:"9/14",type:"key",typeLabel:"Key Session",workout:"4×1000m w/ 2:30 jog recovery",pace:"3:40-3:45 per 1K (5:55/mi)",miles:5.5,strength:false,cal:"3,000-3,200",food:"B: Oatmeal + banana + PB + honey (500). Pre-run: Bagel + honey (300). Post-run: Chocolate milk + banana (400). L: Burrito bowl + rice (700). D: Big pasta + garlic bread (900). Snack: Trail mix (300).",notes:"VO2max session"},
+  {week:"Week 2",day:"Tue",date:"9/15",type:"off",typeLabel:"OFF",workout:"Rest",pace:"",miles:0,strength:false,cal:"2,500-2,600",food:"B: Greek yogurt + granola (450). L: Salmon + quinoa (650). D: Chicken stir fry + rice (700). Snacks: Apple + PB (250) + protein bar (250). Carb dinner for Wednesday.",notes:"Pre-load carbs for Wednesday"},
+  {week:"Week 2",day:"Wed",date:"9/16",type:"key",typeLabel:"⭐ Top Priority",workout:"2×1mi at 6:07 + 2×400m at 5:40",pace:"6:07/mi — exact race pace",miles:5.0,strength:false,cal:"3,000-3,200",food:"B: Oatmeal + banana + PB (500). Pre-run: Toast + honey (250). Post-run: Protein shake + banana (400). L: Chicken burrito bowl (700). D: Rice bowl + chicken + teriyaki (850). Snack: Yogurt (200).",notes:"MOST IMPORTANT WORKOUT OF THE PLAN"},
+  {week:"Week 2",day:"Thu",date:"9/17",type:"off",typeLabel:"OFF",workout:"Rest",pace:"",miles:0,strength:false,cal:"2,500-2,600",food:"B: 3 eggs + toast + avocado (550). L: Turkey sandwich + fruit (600). D: Steak + sweet potato + broccoli (700). Snacks: Trail mix (300) + protein bar (250).",notes:""},
+  {week:"Week 2",day:"Fri",date:"9/18",type:"easy",typeLabel:"Easy + Strength",workout:"5 mi easy + 6×100m strides",pace:"8:00-8:30/mi",miles:5.5,strength:true,cal:"2,800-3,000",food:"B: Oatmeal + banana + PB (500). Pre-run: Banana (100). Post-run: Greek yogurt + granola (300). L: Chicken burrito bowl (700). D: Pasta + meat sauce + salad (750). Snacks: Apple + PB (250) + protein bar (250).",notes:"Strength circuit ×2 rounds after run"},
+  {week:"Week 2",day:"Sat",date:"9/19",type:"off",typeLabel:"OFF",workout:"Unavailable",pace:"",miles:0,strength:false,cal:"2,500-2,600",food:"Eat normally — rest day calories. Don't skip meals.",notes:"Unavailable"},
+  {week:"Week 2",day:"Sun",date:"9/20",type:"off",typeLabel:"Flex",workout:"If okay: easy 3-4 mi. If hungover: walk + foam roll.",pace:"8:30-9:00/mi if running",miles:"0-4",strength:false,cal:"2,500-2,800",food:"If hungover: HYDRATE (100+ oz water + electrolytes). Bland carbs — toast, rice, bananas. If fine: normal + carb dinner for Monday.",notes:"Carb dinner for Monday"},
+
+  // WEEK 3
+  {week:"Week 3",day:"Mon",date:"9/21",type:"key",typeLabel:"Key Session",workout:"6×400m w/ 1:30 jog recovery",pace:"1:25-1:27 per 400m (5:40-5:50/mi)",miles:4.5,strength:false,cal:"3,000-3,200",food:"B: Oatmeal + banana + PB + honey (500). Pre-run: Bagel + honey (300). Post-run: Chocolate milk + banana (400). L: Salmon + quinoa + veggies (650). D: Big pasta + garlic bread (900). Snack: Trail mix (300).",notes:"Faster than race pace — building the kick"},
+  {week:"Week 3",day:"Tue",date:"9/22",type:"off",typeLabel:"OFF",workout:"Rest",pace:"",miles:0,strength:false,cal:"2,500-2,600",food:"B: Greek yogurt + granola (450). L: Turkey sandwich + fruit (600). D: Chicken stir fry + rice (700). Snacks: Apple + PB (250) + protein bar (250). Carb dinner for Wednesday.",notes:""},
+  {week:"Week 3",day:"Wed",date:"9/23",type:"key",typeLabel:"Last Hard Day",workout:"1mi at 6:00-6:05 + 4×200m at 5:30",pace:"Slightly faster than race pace",miles:4.0,strength:false,cal:"3,000-3,200",food:"B: Oatmeal + banana + PB (500). Pre-run: Toast + honey (250). Post-run: Protein shake + banana (400). L: Burrito bowl (700). D: Rice bowl + chicken + teriyaki (850). Snack: Yogurt (200).",notes:"LAST HARD WORKOUT — 10 days before race"},
+  {week:"Week 3",day:"Thu",date:"9/24",type:"off",typeLabel:"OFF",workout:"Rest",pace:"",miles:0,strength:false,cal:"2,500-2,600",food:"Normal rest day eating.",notes:""},
+  {week:"Week 3",day:"Fri",date:"9/25",type:"easy",typeLabel:"Easy",workout:"3.5 mi easy + 4×100m strides",pace:"8:00-8:30/mi",miles:3.5,strength:false,cal:"2,700-2,900",food:"Normal easy day eating. Light pre/post-run snacks.",notes:""},
+  {week:"Week 3",day:"Sat",date:"9/26",type:"easy",typeLabel:"Easy + Final Strength",workout:"3 mi easy + strength circuit",pace:"8:00-8:30/mi",miles:3.0,strength:true,cal:"2,700-2,900",food:"Normal easy day eating. Post-run: protein snack.",notes:"LAST strength session — 1 round only"},
+  {week:"Week 3",day:"Sun",date:"9/27",type:"easy",typeLabel:"Easy",workout:"4 mi easy",pace:"8:15-8:45/mi",miles:4.0,strength:false,cal:"2,700-2,900",food:"Normal eating. Carb dinner for Monday.",notes:"Easy from here on out"},
+
+  // RACE WEEK
+  {week:"Race Week",day:"Mon",date:"9/28",type:"easy",typeLabel:"Easy + Strides",workout:"3 mi easy + 4×100m strides",pace:"8:00-8:30/mi",miles:3.5,strength:false,cal:"2,700-2,900",food:"Normal eating. Stay hydrated. Nothing fried or heavy.",notes:"You'll feel restless — that's the taper working"},
+  {week:"Race Week",day:"Tue",date:"9/29",type:"off",typeLabel:"OFF",workout:"Rest — foam roll + walk",pace:"",miles:0,strength:false,cal:"2,500-2,600",food:"Normal rest day. Extra glass of water.",notes:""},
+  {week:"Race Week",day:"Wed",date:"9/30",type:"easy",typeLabel:"Sharpener",workout:"3×200m at 6:07 pace",pace:"Race pace touch — keeps legs awake",miles:3.5,strength:false,cal:"2,800-3,000",food:"Slightly bigger dinner — extra pasta/rice (+200 cal carbs).",notes:"Short and sharp — 30 min total"},
+  {week:"Race Week",day:"Thu",date:"10/1",type:"off",typeLabel:"OFF",workout:"Rest",pace:"",miles:0,strength:false,cal:"2,700-2,900",food:"Carb-focused dinner: pasta + bread. 800-1000 cal. Just fill glycogen.",notes:""},
+  {week:"Race Week",day:"Fri",date:"10/2",type:"off",typeLabel:"REST",workout:"Pre-race day — walk only",pace:"NO running",miles:0,strength:false,cal:"2,500-2,600",food:"Normal dinner, nothing heavy or new. Early bedtime. Water before bed.",notes:"Lay out clothes. Pin bib. Set 2 alarms."},
+  {week:"Race Week",day:"Sat",date:"10/3",type:"race",typeLabel:"🏁 RACE DAY",workout:"5K Race — Sub-19:00",pace:"6:07/mi",miles:3.1,strength:false,cal:"500-600 pre",food:"3 hrs before: Toast/bagel + banana + PB + coffee. NOTHING NEW.",notes:"SEE RACE DAY TAB"},
+];
+
+const weekMiles = {"Week 1":"18-21 mi","Week 2":"16-20 mi","Week 3":"19 mi","Race Week":"10 mi"};
+const dayOrder = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function buildCalendar() {
+  const container = document.getElementById('calendar-container');
+  let html = '';
+  let currentWeek = '';
+
+  // Group days by week
+  const weeks = {};
+  days.forEach(d => {
+    if (!weeks[d.week]) weeks[d.week] = [];
+    weeks[d.week].push(d);
+  });
+
+  for (const [weekName, weekDays] of Object.entries(weeks)) {
+    html += `<div class="week-label">${weekName} <span class="miles">${weekMiles[weekName]}</span></div>`;
+    html += '<div class="week-grid">';
+    // Headers
+    dayOrder.forEach(d => html += `<div class="day-header">${d}</div>`);
+    // Cards
+    dayOrder.forEach(dayName => {
+      const d = weekDays.find(x => x.day === dayName);
+      if (!d) { html += '<div></div>'; return; }
+
+      const cardClass = d.type === 'off' ? 'off' : d.type === 'done' ? 'done' : d.type;
+      const typeClass = d.type === 'key' ? 'key-type' : d.type === 'easy' ? 'easy-type' : d.type === 'race' ? 'race-type' : d.type === 'done' ? 'done-type' : 'off-type';
+      const icons = [];
+      if (d.strength) icons.push('💪');
+
+      html += `<div class="day-card ${cardClass}" onclick="openModal(${days.indexOf(d)})">
+        <div class="day-icons">${icons.join('')}</div>
+        <div class="day-date">${d.date}</div>
+        <div class="day-type ${typeClass}">${d.typeLabel}</div>
+        <div class="day-workout">${d.workout}</div>
+        ${d.pace ? `<div class="day-pace">${d.pace}</div>` : ''}
+        <div class="day-miles">${d.miles} mi</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function getHowTo(d) {
+  const steps = {
+    '9/9': `<ol style="padding-left:18px; font-size:0.9rem; line-height:1.8;">
+      <li><strong>Warmup jog:</strong> Run 1.5 miles at an easy, conversational pace (~10-12 min). This gets blood flowing to your legs.</li>
+      <li><strong>Do the dynamic warmup:</strong> Leg swings (20 each way), 10 walking lunges, 10 high knees + 10 butt kicks.</li>
+      <li><strong>Find your spot:</strong> Ideally a track (2 laps = 800m). No track? Use a GPS watch or measure 0.5 miles on a flat road/path.</li>
+      <li><strong>Rep 1:</strong> Run 800m (2 laps) hard. Target: 2:55-3:00. This should feel fast and controlled — hard breathing but not gasping. Check your time when you finish.</li>
+      <li><strong>Recovery:</strong> Jog VERY slowly (or walk) for 2 minutes. Don't rush this. Let your breathing come down.</li>
+      <li><strong>Reps 2-5:</strong> Repeat steps 4-5 four more times (5 total). Try to hit the same time each rep. If rep 5 is 5+ seconds slower than rep 1, you went out too fast.</li>
+      <li><strong>Cooldown jog:</strong> Run 1 mile easy. Walk if you need to. Stretch and foam roll when done.</li>
+    </ol>
+    <p style="color:var(--cyan); font-size:0.85rem; margin-top:8px;">💡 <strong>What it should feel like:</strong> Breathing hard during the 800s — can only say a few words. During the jog recovery, you should be able to talk again by the end of the 2 minutes.</p>`,
+
+    '9/11': `<ol style="padding-left:18px; font-size:0.9rem; line-height:1.8;">
+      <li><strong>Run 4 miles easy.</strong> This should feel relaxed — you could hold a conversation the entire time. 8:00-8:30/mi pace. If it feels hard, slow down.</li>
+      <li><strong>Strides (6 of them):</strong> Find a flat, straight stretch about 100m long (a football field, a long block, a parking lot).</li>
+      <li>Starting from a standstill, gradually accelerate over the first 50m until you're running fast (about 90% effort — fast but smooth, not an all-out sprint).</li>
+      <li>Hold that speed for a few seconds, then gradually slow down over the last 30m.</li>
+      <li>Walk back to where you started. That's ONE stride. Do 6 total.</li>
+      <li><strong>Then do the strength circuit</strong> (see Strength tab for exercise descriptions).</li>
+    </ol>
+    <p style="color:var(--cyan); font-size:0.85rem; margin-top:8px;">💡 <strong>Strides should feel fun and smooth</strong> — like you're flowing, not straining. Think "fast and relaxed" not "fast and tense."</p>`,
+
+    '9/14': `<ol style="padding-left:18px; font-size:0.9rem; line-height:1.8;">
+      <li><strong>Warmup jog:</strong> 1.5 miles easy + dynamic warmup (leg swings, lunges, high knees).</li>
+      <li><strong>Find your spot:</strong> Track ideal (2.5 laps = 1000m). Or measure 0.62 miles on GPS.</li>
+      <li><strong>Rep 1:</strong> Run 1000m (2.5 laps) in 3:40-3:45. This is hard — you'll be breathing heavy by the end.</li>
+      <li><strong>Recovery:</strong> Jog very slowly for 2:30 (two and a half minutes).</li>
+      <li><strong>Reps 2-4:</strong> Repeat 3 more times (4 total). Aim for consistent times — don't start too fast.</li>
+      <li><strong>Cooldown:</strong> 1 mile easy jog. Foam roll after.</li>
+    </ol>`,
+
+    '9/16': `<ol style="padding-left:18px; font-size:0.9rem; line-height:1.8;">
+      <li><strong>Warmup:</strong> Jog 1 mile easy + dynamic warmup.</li>
+      <li><strong>Mile 1 at race pace:</strong> Run exactly 1 mile in 6:07. Use a GPS watch or a track (4 laps). This is the pace you want to hold during the 5K. Memorize how it feels — your breathing, your leg turnover, your effort level.</li>
+      <li><strong>Recovery:</strong> Jog very slowly for 3 minutes.</li>
+      <li><strong>Mile 2 at race pace:</strong> Run another mile in 6:07. It should feel the same as the first one. If it feels significantly harder, your fitness isn't quite at sub-19 yet (that's okay — race adrenaline helps).</li>
+      <li><strong>Recovery:</strong> Jog slowly for 2 minutes.</li>
+      <li><strong>2×400m (fast finish practice):</strong> Run 1 lap of a track (or 0.25 miles) in about 1:24-1:25 — this is FASTER than race pace. This simulates the last-mile kick. Jog 1:30 between them.</li>
+      <li><strong>Cooldown:</strong> 1 mile easy jog.</li>
+    </ol>
+    <p style="color:var(--orange); font-size:0.85rem; margin-top:8px;">⭐ <strong>This is the most important workout.</strong> The purpose is to practice exactly what race pace feels like so it's automatic on Oct 3.</p>`,
+
+    '9/21': `<ol style="padding-left:18px; font-size:0.9rem; line-height:1.8;">
+      <li><strong>Warmup:</strong> 1.5 miles easy jog + dynamic warmup.</li>
+      <li><strong>Rep 1:</strong> Run 400m (1 track lap or 0.25 miles) in 1:25-1:27. This is faster than your 5K race pace — it should feel quick and powerful.</li>
+      <li><strong>Recovery:</strong> Jog slowly for 1:30.</li>
+      <li><strong>Reps 2-6:</strong> Repeat 5 more times (6 total). These are short and fast — they build your finishing kick for the last half mile of the race.</li>
+      <li><strong>Cooldown:</strong> 1 mile easy jog.</li>
+    </ol>
+    <p style="color:var(--cyan); font-size:0.85rem; margin-top:8px;">💡 <strong>400s should feel fast but controlled.</strong> You should finish each one thinking "I could do one more" — not completely gassed.</p>`,
+
+    '9/23': `<ol style="padding-left:18px; font-size:0.9rem; line-height:1.8;">
+      <li><strong>Warmup:</strong> 1 mile easy jog + dynamic warmup.</li>
+      <li><strong>1 mile at 6:00-6:05:</strong> This is slightly FASTER than race pace. It should feel hard but controlled. The purpose is to prove to yourself that you can run faster than 6:07 — so race pace feels easier by comparison.</li>
+      <li><strong>Recovery:</strong> 3 minutes easy jog.</li>
+      <li><strong>4×200m at 5:30 pace:</strong> Run half a track lap (or about 200m) in roughly 41 seconds — fast and smooth. Jog 1:30 between each.</li>
+      <li><strong>Cooldown:</strong> 1 mile easy jog.</li>
+    </ol>
+    <p style="color:var(--red); font-size:0.85rem; margin-top:8px;">🎯 <strong>This is your LAST hard workout.</strong> After today, everything is easy until race day. You should feel confident after this one.</p>`,
+
+    '9/30': `<ol style="padding-left:18px; font-size:0.9rem; line-height:1.8;">
+      <li><strong>Warmup:</strong> 2 miles easy jog.</li>
+      <li><strong>3×200m at race pace:</strong> Run 200m (half a track lap) in about 46 seconds — this is exactly race pace, nothing faster. Jog back slowly between each.</li>
+      <li><strong>Cooldown:</strong> 1 mile easy jog.</li>
+    </ol>
+    <p style="color:var(--cyan); font-size:0.85rem; margin-top:8px;">💡 <strong>This is NOT a workout.</strong> It's just keeping your legs awake. Should feel easy and short. Total time: about 30 minutes including warmup and cooldown. You should feel great afterward, not tired.</p>`,
+  };
+  return steps[d.date] || null;
+}
+
+function openModal(idx) {
+  const d = days[idx];
+  const typeClass = d.type === 'key' ? 'key-type' : d.type === 'easy' ? 'easy-type' : d.type === 'race' ? 'race-type' : 'off-type';
+  let html = `
+    <span class="cal-badge day-type ${typeClass}">${d.typeLabel}</span>
+    <h2>${d.day} ${d.date} — ${d.workout}</h2>
+    <p class="modal-date">${d.week} | ${d.miles} mi | ${d.cal} cal</p>
+  `;
+  if (d.pace) html += `<div class="modal-section"><h3>Pace</h3><p>${d.pace}</p></div>`;
+
+  // Add step-by-step instructions for workouts
+  const howTo = getHowTo(d);
+  if (howTo) html += `<div class="modal-section"><h3>Step-by-Step: How to Do This Workout</h3>${howTo}</div>`;
+
+  if (d.notes) html += `<div class="modal-section"><h3>Notes</h3><p>${d.notes}</p></div>`;
+  html += `<div class="modal-section"><h3>Nutrition (${d.cal} cal)</h3><p>${d.food}</p></div>`;
+  if (d.strength) html += `<div class="modal-section"><h3>Strength Circuit</h3><p>After your run, do these exercises back-to-back with no rest between them:<br>1. Single-leg squat to a bench or chair — 8 reps each leg (sit down slowly on one leg, stand back up)<br>2. Single-leg deadlift — 10 reps each leg (stand on one leg, lean forward reaching toward ground, keep back straight)<br>3. Single-leg calf raise — 15 reps each leg (stand on edge of a step, raise up on toes, lower slowly over 3 seconds)<br>4. Single-leg glute bridge — 12 reps each leg (lie on back, one foot on ground, push hips up)<br>5. Side walks with a resistance band at ankles — 15 steps each direction (or do side lunges if you don't have a band)<br>6. Wall sit — 45 seconds (back against wall, thighs parallel to ground, hold it)<br><br>${d.date === '9/26' ? 'Do this circuit ONE time through.' : 'Rest 60 seconds, then do the whole circuit a SECOND time.'}</p></div>`;
+
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`#tab-${name}`).classList.add('active');
+  event.target.classList.add('active');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+buildCalendar();
+</script>
+</div>
+</body>
+</html>
