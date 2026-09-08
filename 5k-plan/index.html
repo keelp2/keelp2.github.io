@@ -334,29 +334,96 @@
   }
 
   @media (max-width: 768px) {
-    .week-grid { grid-template-columns: 1fr; }
-    .day-card { min-height: auto; padding: 14px; }
-    .day-card.off { min-height: auto; }
-    .goal-banner { flex-direction: column; gap: 12px; padding: 16px; }
-    .goal-banner .goal-stat { width: 45%; }
-    .content-wrapper { padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
-    .top-bar { padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top)); }
-    .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; gap: 0; padding-bottom: 0; }
-    .tab { white-space: nowrap; padding: 10px 14px; font-size: 0.8rem; flex-shrink: 0; }
-    .day-workout { font-size: 0.85rem; }
-    .day-pace { font-size: 0.75rem; }
-    .day-type { font-size: 0.7rem; }
-    .modal { padding: 20px; margin: 12px; max-height: 90vh; border-radius: 16px; }
+    /* Compact list layout instead of grid */
+    .week-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .day-header { display: none; }
+    .day-card {
+      min-height: auto;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-radius: 6px;
+      border-left-width: 3px;
+    }
+    .day-card.off {
+      min-height: auto;
+      padding: 6px 14px;
+      opacity: 0.45;
+    }
+    .day-date {
+      min-width: 36px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0;
+      color: var(--text);
+    }
+    .day-type {
+      font-size: 0.6rem;
+      margin-bottom: 0;
+      min-width: 52px;
+      text-align: center;
+    }
+    .day-workout {
+      font-size: 0.82rem;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .day-pace { display: none; }
+    .day-miles {
+      font-size: 0.75rem;
+      margin-top: 0;
+      font-weight: 600;
+      min-width: 32px;
+      text-align: right;
+    }
+    .day-icons { position: static; }
+
+    /* Compact goal banner — horizontal row */
+    .goal-banner {
+      flex-direction: row;
+      gap: 0;
+      padding: 12px 8px;
+      justify-content: space-around;
+    }
+    .goal-stat .num { font-size: 1.2rem; }
+    .goal-stat .label { font-size: 0.6rem; }
+
+    /* General */
+    .content-wrapper { padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+    .top-bar { padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top)); }
+    .top-bar-logo { font-size: 1.1rem; }
+    .top-bar-subtitle { font-size: 0.7rem; }
+    h1 { font-size: 1.3rem; margin-bottom: 2px; }
+    .subtitle { font-size: 0.8rem; margin-bottom: 16px; }
+    .week-label { margin: 16px 0 6px; font-size: 0.8rem; }
+    .week-label .miles { font-size: 0.7rem; padding: 1px 6px; }
+
+    /* Tabs — scrollable row */
+    .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; gap: 0; padding-bottom: 0; margin-bottom: 16px; }
+    .tab { white-space: nowrap; padding: 8px 12px; font-size: 0.78rem; flex-shrink: 0; }
+
+    /* Modal — bottom sheet style */
+    .modal { padding: 20px; margin: 0; max-height: 88vh; border-radius: 16px 16px 0 0; width: 100%; max-width: 100%; }
     .modal-overlay { padding: 0; align-items: flex-end; }
-    .modal h2 { font-size: 1.1rem; }
-    .info-grid { grid-template-columns: 1fr; }
-    .pace-table { font-size: 0.8rem; }
-    .pace-table th, .pace-table td { padding: 8px 6px; }
-    .nutrition-table th, .nutrition-table td { padding: 8px 6px; font-size: 0.78rem; }
+    .modal h2 { font-size: 1.05rem; }
+
+    /* Tables & cards */
+    .info-grid { grid-template-columns: 1fr; gap: 10px; }
+    .info-card { padding: 14px; }
+    .info-card h3 { font-size: 0.75rem; }
+    .info-card li { font-size: 0.82rem; }
+    .pace-table { font-size: 0.78rem; }
+    .pace-table th, .pace-table td { padding: 6px 4px; }
+    .nutrition-table th, .nutrition-table td { padding: 6px 4px; font-size: 0.76rem; }
+    .exercise-list li { font-size: 0.82rem; padding: 6px 0; }
     .print-btn { display: none; }
-    h1 { font-size: 1.4rem; }
-    .subtitle { font-size: 0.82rem; }
-    .week-label { margin: 20px 0 10px; }
   }
 
   /* iOS-specific touch improvements */
