@@ -481,7 +481,7 @@
   <!-- ===== GROCERY TAB ===== -->
   <div id="tab-grocery" class="section">
     <div class="cost-banner">
-      <div class="value">~$95</div>
+      <div class="value">~$90</div>
       <div class="label">Weekly · Jewel-Osco · First trip add ~$55 for protein powder + supplements</div>
     </div>
 
@@ -618,35 +618,26 @@
       <div class="cat-header">
         <span class="cat-emoji">🧈</span>
         <span class="cat-title">Dairy &amp; Staples</span>
-        <span class="cat-count">~$19</span>
+        <span class="cat-count">~$8</span>
       </div>
       <ul class="grocery-items">
         <li class="grocery-item" onclick="toggleCheck(this)">
           <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
           <div class="item-details">
             <div class="item-name">Greek Yogurt 2%</div>
-            <div class="item-qty">7 tubs (7 oz each)</div>
-            <div class="item-desc">Fage Total 2% · 5–6 for smoothies + 1–2 evening snack</div>
+            <div class="item-qty">1 tub (32 oz)</div>
+            <div class="item-desc">Fage Total 2% · ~7 oz/day for smoothies + evening snack</div>
           </div>
-          <div class="item-price">$14</div>
-        </li>
-        <li class="grocery-item" onclick="toggleCheck(this)">
-          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
-          <div class="item-details">
-            <div class="item-name">Peanut Butter</div>
-            <div class="item-qty">1 jar (16 oz)</div>
-            <div class="item-desc">Jif or Skippy Natural · 2 tbsp/day → lasts ~2 weeks</div>
-          </div>
-          <div class="item-price">$5</div>
+          <div class="item-price">$8</div>
         </li>
       </ul>
     </div>
 
     <div class="grocery-category">
       <div class="cat-header">
-        <span class="cat-emoji">💪</span>
-        <span class="cat-title">Buy Once (lasts weeks)</span>
-        <span class="cat-count">~$55</span>
+        <span class="cat-emoji">🔄</span>
+        <span class="cat-title">Restock When Low</span>
+        <span class="cat-count">check pantry</span>
       </div>
       <ul class="grocery-items">
         <li class="grocery-item" onclick="toggleCheck(this)">
@@ -663,7 +654,7 @@
           <div class="item-details">
             <div class="item-name">Ground Flaxseed</div>
             <div class="item-qty">1 bag (16 oz)</div>
-            <div class="item-desc">Bob's Red Mill · 2 tbsp/day in oats · Lasts 3+ weeks · Omega-3, fiber</div>
+            <div class="item-desc">Bob's Red Mill · Lasts 3+ weeks · Omega-3, fiber</div>
           </div>
           <div class="item-price">$6</div>
         </li>
@@ -672,9 +663,36 @@
           <div class="item-details">
             <div class="item-name">Fish Oil</div>
             <div class="item-qty">1 bottle (60 ct)</div>
-            <div class="item-desc">Nature Made 1200mg · 1-2/day · Lasts 1-2 months · Joints + inflammation</div>
+            <div class="item-desc">Nature Made 1200mg · 1-2/day · Lasts 1-2 months</div>
           </div>
           <div class="item-price">$12</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Daily Multivitamin</div>
+            <div class="item-qty">1 bottle (90+ ct)</div>
+            <div class="item-desc">Nature Made or Kirkland · Lasts 3 months</div>
+          </div>
+          <div class="item-price">$10</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Olive Oil</div>
+            <div class="item-qty">1 bottle (16 oz)</div>
+            <div class="item-desc">For roasting sweet potatoes + veggies · Lasts 6+ weeks</div>
+          </div>
+          <div class="item-price">$6</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Peanut Butter</div>
+            <div class="item-qty">1 jar (16 oz)</div>
+            <div class="item-desc">Jif or Skippy Natural · Lasts ~2 weeks</div>
+          </div>
+          <div class="item-price">$5</div>
         </li>
       </ul>
     </div>
@@ -831,11 +849,11 @@
       document.querySelectorAll('.grocery-item').forEach((item, i) => {
         states.push(item.classList.contains('checked') ? 1 : 0);
       });
-      localStorage.setItem('mealprep-checklist-v4', JSON.stringify(states));
+      localStorage.setItem('mealprep-checklist-v5', JSON.stringify(states));
     }
 
     function loadChecklist() {
-      const saved = localStorage.getItem('mealprep-checklist-v4');
+      const saved = localStorage.getItem('mealprep-checklist-v5');
       if (!saved) return;
       const states = JSON.parse(saved);
       document.querySelectorAll('.grocery-item').forEach((item, i) => {
@@ -847,7 +865,7 @@
       document.querySelectorAll('.grocery-item').forEach(item => {
         item.classList.remove('checked');
       });
-      localStorage.removeItem('mealprep-checklist-v4');
+      localStorage.removeItem('mealprep-checklist-v5');
     }
 
     loadChecklist();
