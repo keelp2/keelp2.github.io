@@ -172,6 +172,45 @@
   .day-card.easy { border-left: 3px solid var(--green); }
   .day-card.race { border-left: 3px solid var(--strava-orange); background: var(--strava-orange-bg-strong); }
   .day-card.done { border-left: 3px solid var(--muted); opacity: 0.55; }
+  .day-card.completed { opacity: 0.55; }
+  .day-card.completed .day-workout { text-decoration: line-through; color: var(--muted); }
+  .day-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-size: 0.7rem;
+  }
+  .day-check:hover { border-color: var(--strava-orange); }
+  .day-check.checked {
+    background: var(--strava-orange);
+    border-color: var(--strava-orange);
+    color: white;
+  }
+  .modal-check-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: 2px solid var(--strava-orange);
+    background: transparent;
+    color: var(--strava-orange);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .modal-check-btn:hover, .modal-check-btn.checked {
+    background: var(--strava-orange);
+    color: white;
+  }
   .day-date { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
   .day-type {
     font-size: 0.65rem;
@@ -449,8 +488,8 @@
 <div class="goal-banner">
   <div class="goal-stat"><div class="num">18:59</div><div class="label">Target Time</div></div>
   <div class="goal-stat"><div class="num">6:07</div><div class="label">Race Pace /mi</div></div>
-  <div class="goal-stat"><div class="num">25</div><div class="label">Days to Race</div></div>
-  <div class="goal-stat"><div class="num">4</div><div class="label">Key Workouts</div></div>
+  <div class="goal-stat"><div class="num" id="days-to-race">25</div><div class="label">Days to Race</div></div>
+  <div class="goal-stat"><div class="num" id="completed-count">0/28</div><div class="label">Completed</div></div>
   <div class="goal-stat"><div class="num">3,100</div><div class="label">Cal on Hard Days</div></div>
 </div>
 
@@ -840,7 +879,12 @@ function buildCalendar() {
       const icons = [];
       if (d.strength) icons.push('💪');
 
-      html += `<div class="day-card ${cardClass}" onclick="openModal(${days.indexOf(d)})">
+      const idx = days.indexOf(d);
+      const isComplete = isCompleted(idx);
+      const completedClass = isComplete ? ' completed' : '';
+
+      html += `<div class="day-card ${cardClass}${completedClass}" onclick="openModal(${idx})">
+        <div class="day-check ${isComplete ? 'checked' : ''}" onclick="event.stopPropagation(); toggleComplete(${idx})">${isComplete ? '✓' : ''}</div>
         <div class="day-icons">${icons.join('')}</div>
         <div class="day-date">${d.date}</div>
         <div class="day-type ${typeClass}">${d.typeLabel}</div>
@@ -943,6 +987,10 @@ function openModal(idx) {
   html += `<div class="modal-section"><h3>Nutrition (${d.cal} cal)</h3><p>${d.food}</p></div>`;
   if (d.strength) html += `<div class="modal-section"><h3>Strength Circuit</h3><p>After your run, do these exercises back-to-back with no rest between them:<br>1. Single-leg squat to a bench or chair — 8 reps each leg (sit down slowly on one leg, stand back up)<br>2. Single-leg deadlift — 10 reps each leg (stand on one leg, lean forward reaching toward ground, keep back straight)<br>3. Single-leg calf raise — 15 reps each leg (stand on edge of a step, raise up on toes, lower slowly over 3 seconds)<br>4. Single-leg glute bridge — 12 reps each leg (lie on back, one foot on ground, push hips up)<br>5. Side walks with a resistance band at ankles — 15 steps each direction (or do side lunges if you don't have a band)<br>6. Wall sit — 45 seconds (back against wall, thighs parallel to ground, hold it)<br><br>${d.date === '9/26' ? 'Do this circuit ONE time through.' : 'Rest 60 seconds, then do the whole circuit a SECOND time.'}</p></div>`;
 
+  // Completion button
+  const isComplete = isCompleted(idx);
+  html += `<div class="modal-section"><button class="modal-check-btn ${isComplete ? 'checked' : ''}" onclick="toggleComplete(${idx}); openModal(${idx});">${isComplete ? '✓ Completed' : 'Mark as Done'}</button></div>`;
+
   document.getElementById('modal-content').innerHTML = html;
   document.getElementById('modal').classList.add('open');
 }
@@ -960,7 +1008,35 @@ function switchTab(name) {
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+// localStorage completion tracking
+function getCompletedSet() {
+  try { return new Set(JSON.parse(localStorage.getItem('5k_completed') || '[]')); }
+  catch { return new Set(); }
+}
+function isCompleted(idx) { return getCompletedSet().has(idx); }
+function toggleComplete(idx) {
+  const set = getCompletedSet();
+  if (set.has(idx)) set.delete(idx); else set.add(idx);
+  localStorage.setItem('5k_completed', JSON.stringify([...set]));
+  buildCalendar();
+  updateCounters();
+}
+function updateCounters() {
+  // Days to race
+  const race = new Date(2026, 9, 3); // Oct 3, 2026 (month is 0-indexed)
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diff = Math.ceil((race - today) / (1000*60*60*24));
+  const el = document.getElementById('days-to-race');
+  if (el) el.textContent = diff <= 0 ? '🏁' : diff;
+  // Completed count
+  const done = getCompletedSet().size;
+  const cel = document.getElementById('completed-count');
+  if (cel) cel.textContent = done + '/' + days.length;
+}
+
 buildCalendar();
+updateCounters();
 </script>
 </div>
 </body>
