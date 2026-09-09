@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f172a">
+  <title>Meal Prep Plan</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230f172a'/><rect x='3' y='3' width='58' height='58' rx='11' fill='none' stroke='%2322c55e' stroke-width='2.5'/><text x='32' y='42' font-family='system-ui,sans-serif' font-size='22' font-weight='800' fill='%2322c55e' text-anchor='middle' letter-spacing='-1'>MP</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #475569;
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+      --green: #22c55e;
+      --green-dim: #166534;
+      --blue: #3b82f6;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --purple: #a78bfa;
+      --radius: 16px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; }
+    body { min-height: 100dvh; padding-bottom: calc(72px + var(--safe-bottom)); }
+
+    /* Bottom nav */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--surface2);
+      display: flex; justify-content: space-around; align-items: center;
+      padding: 8px 0 calc(8px + var(--safe-bottom));
+      z-index: 100;
+    }
+    .nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: none; border: none; color: var(--text-dim); font-size: 10px; font-weight: 600;
+      padding: 6px 12px; cursor: pointer; transition: color 0.2s; font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn.active { color: var(--green); }
+    .nav-btn svg { width: 24px; height: 24px; }
+
+    /* Sections */
+    .section { display: none; padding: 20px 16px; max-width: 600px; margin: 0 auto; }
+    .section.active { display: block; }
+
+    /* Header */
+    .page-header {
+      text-align: center; padding: 24px 16px 16px;
+      max-width: 600px; margin: 0 auto;
+    }
+    .page-header h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+    .page-header p { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
+
+    /* Stats banner */
+    .stats-row {
+      display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .stats-row::-webkit-scrollbar { display: none; }
+    .stat-card {
+      flex: 1; min-width: 80px; background: var(--surface); border-radius: 12px;
+      padding: 12px 8px; text-align: center;
+    }
+    .stat-card .value { font-size: 22px; font-weight: 800; line-height: 1; }
+    .stat-card .label { font-size: 10px; font-weight: 600; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-cal .value { color: var(--green); }
+    .stat-pro .value { color: var(--blue); }
+    .stat-carb .value { color: var(--orange); }
+    .stat-fat .value { color: var(--purple); }
+
+    /* Meal cards */
+    .meal-card {
+      background: var(--surface); border-radius: var(--radius);
+      margin-bottom: 12px; overflow: hidden;
+      border: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .meal-card.expanded { border-color: var(--surface2); }
+    .meal-header {
+      display: flex; align-items: center; padding: 16px;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      gap: 12px;
+    }
+    .meal-emoji { font-size: 28px; flex-shrink: 0; }
+    .meal-info { flex: 1; }
+    .meal-name { font-size: 15px; font-weight: 700; }
+    .meal-subtitle { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+    .meal-macros {
+      display: flex; gap: 8px; margin-top: 6px;
+    }
+    .macro-pill {
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 6px; background: var(--bg);
+    }
+    .macro-cal { color: var(--green); }
+    .macro-pro { color: var(--blue); }
+    .chevron {
+      width: 20px; height: 20px; color: var(--text-dim);
+      transition: transform 0.3s; flex-shrink: 0;
+    }
+    .meal-card.expanded .chevron { transform: rotate(180deg); }
+    .meal-detail {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.35s ease;
+    }
+    .meal-card.expanded .meal-detail { max-height: 600px; }
+    .detail-inner { padding: 0 16px 16px; }
+    .detail-table { width: 100%; border-collapse: collapse; }
+    .detail-table th {
+      text-align: left; font-size: 10px; font-weight: 600; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 0;
+      border-bottom: 1px solid var(--surface2);
+    }
+    .detail-table th:nth-child(2),
+    .detail-table th:nth-child(3) { text-align: right; }
+    .detail-table td {
+      font-size: 13px; padding: 8px 0;
+      border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+    }
+    .detail-table td:nth-child(2),
+    .detail-table td:nth-child(3) { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .detail-table tr:last-child td { border-bottom: none; }
+    .detail-table .total-row td {
+      border-top: 2px solid var(--surface2); border-bottom: none;
+      font-weight: 700; padding-top: 10px;
+    }
+    .detail-table .total-row td:nth-child(2) { color: var(--green); }
+    .detail-table .total-row td:nth-child(3) { color: var(--blue); }
+
+    .prep-note {
+      background: var(--bg); border-radius: 10px; padding: 10px 12px;
+      font-size: 12px; color: var(--text-dim); margin-top: 12px;
+      line-height: 1.5;
+    }
+    .prep-note strong { color: var(--text); }
+
+    /* Grocery list */
+    .grocery-category {
+      margin-bottom: 16px;
+    }
+    .cat-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 0; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cat-emoji { font-size: 20px; }
+    .cat-title { font-size: 15px; font-weight: 700; flex: 1; }
+    .cat-count {
+      font-size: 11px; font-weight: 600; color: var(--text-dim);
+      background: var(--surface); padding: 2px 8px; border-radius: 8px;
+    }
+    .grocery-items { list-style: none; }
+    .grocery-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px; margin-bottom: 4px;
+      background: var(--surface); border-radius: 12px;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.3s;
+    }
+    .grocery-item.checked { opacity: 0.4; }
+    .grocery-item.checked .item-name { text-decoration: line-through; }
+    .check-circle {
+      width: 24px; height: 24px; border-radius: 50%;
+      border: 2px solid var(--surface2); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; margin-top: 1px;
+    }
+    .grocery-item.checked .check-circle {
+      background: var(--green); border-color: var(--green);
+    }
+    .check-circle svg { width: 14px; height: 14px; color: white; opacity: 0; transition: opacity 0.2s; }
+    .grocery-item.checked .check-circle svg { opacity: 1; }
+    .item-details { flex: 1; }
+    .item-name { font-size: 14px; font-weight: 600; }
+    .item-qty { font-size: 16px; font-weight: 800; color: var(--green); margin-top: 3px; }
+    .item-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+    .item-price {
+      font-size: 13px; font-weight: 700; color: var(--green);
+      flex-shrink: 0; margin-top: 2px;
+    }
+
+    /* Cook day */
+    .timeline { position: relative; padding-left: 28px; }
+    .timeline::before {
+      content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px;
+      width: 2px; background: var(--surface2); border-radius: 1px;
+    }
+    .timeline-step {
+      position: relative; margin-bottom: 16px;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .timeline-dot {
+      position: absolute; left: -22px; top: 16px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--green); border: 2px solid var(--bg);
+    }
+    .step-time { font-size: 11px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.5px; }
+    .step-title { font-size: 14px; font-weight: 700; margin-top: 4px; }
+    .step-desc { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
+
+    /* Quick ref */
+    .ref-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; margin-bottom: 12px;
+    }
+    .ref-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+    .ref-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+      font-size: 13px;
+    }
+    .ref-row:last-child { border-bottom: none; }
+    .ref-label { color: var(--text-dim); }
+    .ref-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* Reset button */
+    .reset-btn {
+      display: block; width: 100%; padding: 14px;
+      background: var(--surface); border: 1px solid var(--surface2);
+      border-radius: 12px; color: var(--text-dim); font-size: 13px;
+      font-weight: 600; font-family: inherit; cursor: pointer;
+      margin-top: 20px; -webkit-tap-highlight-color: transparent;
+    }
+    .reset-btn:active { background: var(--surface2); }
+
+    .cost-banner {
+      background: linear-gradient(135deg, var(--green-dim), #064e3b);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+      text-align: center;
+    }
+    .cost-banner .value { font-size: 32px; font-weight: 800; color: var(--green); }
+    .cost-banner .label { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+    /* Scroll spacer */
+    .spacer { height: 20px; }
+
+    /* Desktop styles */
+    @media (min-width: 768px) {
+      .page-header { padding: 40px 24px 20px; }
+      .page-header h1 { font-size: 32px; }
+      .page-header p { font-size: 15px; }
+      .section { max-width: 720px; padding: 24px; }
+      .stat-card { padding: 16px 12px; border-radius: 14px; }
+      .stat-card .value { font-size: 28px; }
+      .stat-card .label { font-size: 11px; }
+      .meal-card { border-radius: 18px; }
+      .meal-card:hover { border-color: var(--surface2); }
+      .meal-header { padding: 20px; }
+      .meal-emoji { font-size: 32px; }
+      .meal-name { font-size: 17px; }
+      .meal-subtitle { font-size: 13px; }
+      .macro-pill { font-size: 12px; padding: 3px 10px; }
+      .detail-table td, .detail-table th { font-size: 14px; }
+      .prep-note { font-size: 13px; }
+      .grocery-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .grocery-item { margin-bottom: 0; border-radius: 14px; }
+      .grocery-item:hover { background: var(--surface2); }
+      .cat-title { font-size: 17px; }
+      .item-name { font-size: 15px; }
+      .item-desc { font-size: 13px; }
+      .timeline-step { padding: 18px 20px; border-radius: 18px; }
+      .timeline-step:hover { background: var(--surface2); }
+      .step-title { font-size: 16px; }
+      .step-desc { font-size: 14px; }
+      .ref-card { padding: 20px; border-radius: 18px; }
+      .ref-card h3 { font-size: 16px; }
+      .ref-row { font-size: 14px; padding: 8px 0; }
+      .cost-banner { padding: 24px; border-radius: 18px; }
+      .cost-banner .value { font-size: 40px; }
+      .cost-banner .label { font-size: 14px; }
+      .bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-radius: 16px 16px 0 0; }
+      .nav-btn { font-size: 11px; padding: 8px 20px; }
+      .nav-btn:hover { color: var(--green); }
+      .nav-btn svg { width: 26px; height: 26px; }
+      .reset-btn { max-width: 300px; margin: 20px auto 0; }
+      .reset-btn:hover { background: var(--surface2); color: var(--text); }
+    }
+
+    @media (min-width: 1024px) {
+      .section { max-width: 800px; }
+      .grocery-items { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .stats-row { gap: 12px; }
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc; --surface: #ffffff; --surface2: #e2e8f0;
+        --border: #cbd5e1; --text: #0f172a; --text-dim: #64748b;
+        --green-dim: #dcfce7;
+      }
+      .bottom-nav { background: rgba(248, 250, 252, 0.92); }
+      .meal-card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+      .grocery-item { box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+      .timeline-step { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+      .timeline-dot { border-color: var(--bg); }
+      .cost-banner { background: linear-gradient(135deg, #dcfce7, #d1fae5); }
+      .cost-banner .value { color: #16a34a; }
+      .ref-card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+      .stat-card { box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>🥩 Meal Prep Plan</h1>
+    <p>2,520–2,660 cal · 208–228g protein · 38g fiber · Cut @ 6'3" 183 lbs</p>
+  </div>
+
+  <!-- ===== MEALS TAB ===== -->
+  <div id="tab-meals" class="section active">
+    <div class="stats-row">
+      <div class="stat-card stat-cal"><div class="value">2,660</div><div class="label">Calories</div></div>
+      <div class="stat-card stat-pro"><div class="value">228g</div><div class="label">Protein</div></div>
+      <div class="stat-card stat-carb"><div class="value">277g</div><div class="label">Carbs</div></div>
+      <div class="stat-card stat-fat"><div class="value">80g</div><div class="label">Fat</div></div>
+    </div>
+
+    <!-- Breakfast -->
+    <div class="meal-card" onclick="toggleMeal(this)">
+      <div class="meal-header">
+        <div class="meal-emoji">🥣</div>
+        <div class="meal-info">
+          <div class="meal-name">Overnight Oats</div>
+          <div class="meal-subtitle">PREMADE — Grab jar from fridge</div>
+          <div class="meal-macros">
+            <span class="macro-pill macro-cal">610 cal</span>
+            <span class="macro-pill macro-pro">41g P</span>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="meal-detail">
+        <div class="detail-inner">
+          <table class="detail-table">
+            <tr><th>Item</th><th>Cal</th><th>Protein</th></tr>
+            <tr><td>Oats, dry — 1 cup (80g)</td><td>300</td><td>10g</td></tr>
+            <tr><td>ON Whey — 1 scoop (31g)</td><td>120</td><td>24g</td></tr>
+            <tr><td>Peanut butter — 1 tbsp (16g)</td><td>95</td><td>3.5g</td></tr>
+            <tr><td>Mixed berries, frozen — ½ cup (75g)</td><td>35</td><td>0.5g</td></tr>
+            <tr><td>Ground flaxseed — 2 tbsp (14g)</td><td>60</td><td>3g</td></tr>
+            <tr class="total-row"><td>Total</td><td>610</td><td>41g</td></tr>
+          </table>
+          <div class="prep-note"><strong>Prep:</strong> Combine oats + whey + PB + flaxseed + water in mason jar. Top with frozen berries (they thaw overnight). Lid on, fridge. Grab and eat cold.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lunch -->
+    <div class="meal-card" onclick="toggleMeal(this)">
+      <div class="meal-header">
+        <div class="meal-emoji">🍗</div>
+        <div class="meal-info">
+          <div class="meal-name">Chicken Thigh Rice Bowl</div>
+          <div class="meal-subtitle">PREMADE — Reheat container · 2 min microwave</div>
+          <div class="meal-macros">
+            <span class="macro-pill macro-cal">736 cal</span>
+            <span class="macro-pill macro-pro">55g P</span>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="meal-detail">
+        <div class="detail-inner">
+          <table class="detail-table">
+            <tr><th>Item</th><th>Cal</th><th>Protein</th></tr>
+            <tr><td>Chicken thigh, B/S, cooked — 6 oz (170g)</td><td>355</td><td>44g</td></tr>
+            <tr><td>White rice, cooked — 1.5 cups (237g)</td><td>309</td><td>6g</td></tr>
+            <tr><td>Broccoli, cooked — 1 cup (156g)</td><td>55</td><td>4g</td></tr>
+            <tr><td>Baby spinach, raw — 1 cup (30g)</td><td>7</td><td>0.9g</td></tr>
+            <tr><td>Hot sauce</td><td>10</td><td>0g</td></tr>
+            <tr class="total-row"><td>Total</td><td>736</td><td>54.9g</td></tr>
+          </table>
+          <div class="prep-note"><strong>Seasoning:</strong> Salt, pepper, garlic powder, paprika. Sheet pan at 425°F for 25 min. Add raw spinach to container — no cooking needed.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snack -->
+    <div class="meal-card" onclick="toggleMeal(this)">
+      <div class="meal-header">
+        <div class="meal-emoji">🥤</div>
+        <div class="meal-info">
+          <div class="meal-name">Smoothie</div>
+          <div class="meal-subtitle">MAKE FRESH — Blender · 2 min</div>
+          <div class="meal-macros">
+            <span class="macro-pill macro-cal">390 cal</span>
+            <span class="macro-pill macro-pro">48g P</span>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="meal-detail">
+        <div class="detail-inner">
+          <table class="detail-table">
+            <tr><th>Item</th><th>Cal</th><th>Protein</th></tr>
+            <tr><td>Greek yogurt 2% (Fage) — 1 tub (7 oz)</td><td>140</td><td>20g</td></tr>
+            <tr><td>ON Whey — 1 scoop (31g)</td><td>120</td><td>24g</td></tr>
+            <tr><td>Frozen fruit — ½ cup (75g)</td><td>35</td><td>0.5g</td></tr>
+            <tr><td>Peanut butter — 1 tbsp (16g)</td><td>95</td><td>3.5g</td></tr>
+            <tr class="total-row"><td>Total</td><td>390</td><td>48g</td></tr>
+          </table>
+          <div class="prep-note"><strong>Tip:</strong> Blend yogurt + whey + frozen fruit + PB + splash of water. Use any frozen fruit you like — mango, strawberries, mixed berries all work.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dinner -->
+    <div class="meal-card" onclick="toggleMeal(this)">
+      <div class="meal-header">
+        <div class="meal-emoji">🍠</div>
+        <div class="meal-info">
+          <div class="meal-name">Turkey Sweet Potato Bowl</div>
+          <div class="meal-subtitle">PREMADE — Reheat container · 2 min microwave</div>
+          <div class="meal-macros">
+            <span class="macro-pill macro-cal">784 cal</span>
+            <span class="macro-pill macro-pro">64g P</span>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="meal-detail">
+        <div class="detail-inner">
+          <table class="detail-table">
+            <tr><th>Item</th><th>Cal</th><th>Protein</th></tr>
+            <tr><td>Ground turkey 93/7, cooked — 6 oz (170g)</td><td>289</td><td>48g</td></tr>
+            <tr><td>Sweet potato, baked — 2 medium (228g)</td><td>206</td><td>4.6g</td></tr>
+            <tr><td>White rice, cooked — ½ cup (79g)</td><td>103</td><td>2g</td></tr>
+            <tr><td>Frozen peas, cooked — 1 cup (160g)</td><td>125</td><td>8.3g</td></tr>
+            <tr><td>Baby spinach, raw — 1 cup (30g)</td><td>7</td><td>0.9g</td></tr>
+            <tr><td>Olive oil — 1 tsp + seasoning</td><td>54</td><td>0g</td></tr>
+            <tr class="total-row"><td>Total</td><td>784</td><td>63.8g</td></tr>
+          </table>
+          <div class="prep-note"><strong>Seasoning:</strong> Cumin + chili powder + garlic powder + paprika on turkey (or whatever you have). Roast sweet potatoes cubed at 425°F for 30 min. Add raw spinach to container.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Evening -->
+    <div class="meal-card" onclick="toggleMeal(this)">
+      <div class="meal-header">
+        <div class="meal-emoji">🍮</div>
+        <div class="meal-info">
+          <div class="meal-name">Greek Yogurt (optional)</div>
+          <div class="meal-subtitle">OPTIONAL — Grab from fridge if still hungry</div>
+          <div class="meal-macros">
+            <span class="macro-pill macro-cal">140 cal</span>
+            <span class="macro-pill macro-pro">20g P</span>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="meal-detail">
+        <div class="detail-inner">
+          <table class="detail-table">
+            <tr><th>Item</th><th>Cal</th><th>Protein</th></tr>
+            <tr><td>Greek yogurt 2% (Fage) — 1 tub (7 oz / 200g)</td><td>140</td><td>20g</td></tr>
+            <tr class="total-row"><td>Total</td><td>140</td><td>20g</td></tr>
+          </table>
+          <div class="prep-note"><strong>Bonus:</strong> Live cultures = probiotics for gut health. Take a Lactaid if needed. Add berries or honey if you want.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ===== GROCERY TAB ===== -->
+  <div id="tab-grocery" class="section">
+    <div class="cost-banner">
+      <div class="value">~$95</div>
+      <div class="label">Weekly · Jewel-Osco · First trip add ~$55 for protein powder + supplements</div>
+    </div>
+
+    <div class="grocery-category">
+      <div class="cat-header">
+        <span class="cat-emoji">🥩</span>
+        <span class="cat-title">Proteins</span>
+        <span class="cat-count">~$46</span>
+      </div>
+      <ul class="grocery-items">
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Chicken Thighs, B/S</div>
+            <div class="item-qty">4 lbs</div>
+            <div class="item-desc">→ ~3 lbs cooked → 8 servings of 6 oz</div>
+          </div>
+          <div class="item-price">$18</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Ground Turkey 93/7</div>
+            <div class="item-qty">3 lbs</div>
+            <div class="item-desc">→ ~2.4 lbs cooked → 6 servings of 6 oz</div>
+          </div>
+          <div class="item-price">$18</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Eggs, Large</div>
+            <div class="item-qty">1 dozen</div>
+            <div class="item-desc">Weekend breakfast backup</div>
+          </div>
+          <div class="item-price">$5</div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="grocery-category">
+      <div class="cat-header">
+        <span class="cat-emoji">🍚</span>
+        <span class="cat-title">Carbs</span>
+        <span class="cat-count">~$14</span>
+      </div>
+      <ul class="grocery-items">
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">White Rice, Long Grain</div>
+            <div class="item-qty">5 lb bag</div>
+            <div class="item-desc">Signature Select · 4 cups dry/wk → lasts ~3 weeks</div>
+          </div>
+          <div class="item-price">$6</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Sweet Potatoes</div>
+            <div class="item-qty">10 medium (~3.5 lbs)</div>
+            <div class="item-desc">2 per dinner × 5–6 dinners</div>
+          </div>
+          <div class="item-price">$7</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Old Fashioned Oats</div>
+            <div class="item-qty">42 oz canister</div>
+            <div class="item-desc">Quaker · 1 cup/day → lasts ~3 weeks</div>
+          </div>
+          <div class="item-price">$7</div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="grocery-category">
+      <div class="cat-header">
+        <span class="cat-emoji">🥦</span>
+        <span class="cat-title">Produce &amp; Frozen</span>
+        <span class="cat-count">~$24</span>
+      </div>
+      <ul class="grocery-items">
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Baby Spinach</div>
+            <div class="item-qty">2 bags (5 oz each)</div>
+            <div class="item-desc">1 cup raw in each lunch + dinner · Iron, folate, vitamin K</div>
+          </div>
+          <div class="item-price">$8</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Frozen Broccoli</div>
+            <div class="item-qty">2 bags (12 oz each)</div>
+            <div class="item-desc">5–6 lunches</div>
+          </div>
+          <div class="item-price">$5</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Frozen Peas</div>
+            <div class="item-qty">2 bags (12 oz each)</div>
+            <div class="item-desc">5–6 dinners · Extra protein + fiber</div>
+          </div>
+          <div class="item-price">$5</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Frozen Mixed Berries</div>
+            <div class="item-qty">1 bag (12 oz)</div>
+            <div class="item-desc">½ cup/day in oats · Antioxidants, vitamin C</div>
+          </div>
+          <div class="item-price">$4</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Frozen Fruit (for smoothies)</div>
+            <div class="item-qty">1 bag (12 oz)</div>
+            <div class="item-desc">Mango, strawberry, or mixed · ½ cup/day in smoothie</div>
+          </div>
+          <div class="item-price">$4</div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="grocery-category">
+      <div class="cat-header">
+        <span class="cat-emoji">🧈</span>
+        <span class="cat-title">Dairy &amp; Staples</span>
+        <span class="cat-count">~$19</span>
+      </div>
+      <ul class="grocery-items">
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Greek Yogurt 2%</div>
+            <div class="item-qty">7 tubs (7 oz each)</div>
+            <div class="item-desc">Fage Total 2% · 5–6 for smoothies + 1–2 evening snack</div>
+          </div>
+          <div class="item-price">$14</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Peanut Butter</div>
+            <div class="item-qty">1 jar (16 oz)</div>
+            <div class="item-desc">Jif or Skippy Natural · 2 tbsp/day → lasts ~2 weeks</div>
+          </div>
+          <div class="item-price">$5</div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="grocery-category">
+      <div class="cat-header">
+        <span class="cat-emoji">💪</span>
+        <span class="cat-title">Buy Once (lasts weeks)</span>
+        <span class="cat-count">~$55</span>
+      </div>
+      <ul class="grocery-items">
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Whey Protein Powder</div>
+            <div class="item-qty">5 lb tub (~73 scoops)</div>
+            <div class="item-desc">ON Gold Standard · Lasts ~6 weeks<br><em>Buy on Amazon or Costco</em></div>
+          </div>
+          <div class="item-price">$40</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Ground Flaxseed</div>
+            <div class="item-qty">1 bag (16 oz)</div>
+            <div class="item-desc">Bob's Red Mill · 2 tbsp/day in oats · Lasts 3+ weeks · Omega-3, fiber</div>
+          </div>
+          <div class="item-price">$6</div>
+        </li>
+        <li class="grocery-item" onclick="toggleCheck(this)">
+          <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <div class="item-details">
+            <div class="item-name">Fish Oil</div>
+            <div class="item-qty">1 bottle (60 ct)</div>
+            <div class="item-desc">Nature Made 1200mg · 1-2/day · Lasts 1-2 months · Joints + inflammation</div>
+          </div>
+          <div class="item-price">$12</div>
+        </li>
+      </ul>
+    </div>
+
+    <button class="reset-btn" onclick="resetChecklist()">Reset Checklist ↻</button>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ===== COOK TAB ===== -->
+  <div id="tab-cook" class="section">
+    <div class="ref-card" style="text-align:center; margin-bottom: 20px;">
+      <h3 style="margin-bottom:4px;">🗓️ Sunday Cook Day</h3>
+      <p style="font-size:13px; color:var(--text-dim);">~1 hour hands-on · Oven + Instant Pot + Rice Cooker</p>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">0:00 — Start</div>
+        <div class="step-title">Preheat oven to 425°F</div>
+        <div class="step-desc">Season 4 lbs chicken thighs (salt, pepper, garlic powder, paprika). Lay on sheet pan lined with foil. Start rice cooker with 4 cups dry rice + water.</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">0:05</div>
+        <div class="step-title">Prep sweet potatoes</div>
+        <div class="step-desc">Cube 10 sweet potatoes into 1-inch pieces. Toss with 1 tbsp olive oil + salt on second sheet pan.</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">0:10</div>
+        <div class="step-title">Everything in the oven</div>
+        <div class="step-desc">Chicken pan + sweet potato pan in oven. Set timer for 25 min. Start browning ground turkey on stovetop with cumin + chili powder + garlic powder.</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">0:25</div>
+        <div class="step-title">Turkey done</div>
+        <div class="step-desc">Transfer browned turkey to storage containers. Steam frozen broccoli + peas (microwave bags or stovetop).</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">0:35</div>
+        <div class="step-title">Oven done</div>
+        <div class="step-desc">Pull chicken + sweet potatoes. Check chicken internal temp (165°F). Let rest 5 min, then slice or shred. Rice should be finishing.</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">0:45</div>
+        <div class="step-title">Pack containers</div>
+        <div class="step-desc">Portion into 10 meal containers:<br>• 5 lunch: 6 oz chicken + 1.5 cups rice + broccoli + handful spinach<br>• 5 dinner: 6 oz turkey + 2 sweet potatoes + ½ cup rice + peas + handful spinach</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">0:55</div>
+        <div class="step-title">Make overnight oats</div>
+        <div class="step-desc">5 mason jars: 1 cup oats + 1 scoop whey + 1 tbsp PB + 2 tbsp flaxseed + water. Top with ½ cup frozen berries (they thaw overnight). Lid on, fridge.</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-dot"></div>
+        <div class="step-time">1:05</div>
+        <div class="step-title">Clean up. Done. ✅</div>
+        <div class="step-desc">~1 hour total. You now have 5–6 breakfasts, 5–6 lunches, 5–6 dinners ready to grab.</div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ===== REF TAB ===== -->
+  <div id="tab-ref" class="section">
+    <div class="ref-card">
+      <h3>📊 Daily Targets</h3>
+      <div class="ref-row"><span class="ref-label">TDEE (maintenance)</span><span class="ref-value">~3,100 cal</span></div>
+      <div class="ref-row"><span class="ref-label">Cut target</span><span class="ref-value" style="color:var(--green)">2,660 cal</span></div>
+      <div class="ref-row"><span class="ref-label">Deficit</span><span class="ref-value">~500 cal/day</span></div>
+      <div class="ref-row"><span class="ref-label">Expected loss</span><span class="ref-value">~1 lb/week</span></div>
+      <div class="ref-row"><span class="ref-label">Protein</span><span class="ref-value" style="color:var(--blue)">228g (1.25g/lb)</span></div>
+      <div class="ref-row"><span class="ref-label">Fiber</span><span class="ref-value">38g (above 30g min)</span></div>
+      <div class="ref-row"><span class="ref-label">Stats</span><span class="ref-value">6'3" · 183 lbs</span></div>
+      <div class="ref-row"><span class="ref-label">Activity</span><span class="ref-value">20 mi/wk run + lift 3x</span></div>
+    </div>
+
+    <div class="ref-card">
+      <h3>🔥 USDA Calorie Reference (cooked)</h3>
+      <div class="ref-row"><span class="ref-label">Chicken thigh B/S · 100g</span><span class="ref-value">209 cal · 26g P</span></div>
+      <div class="ref-row"><span class="ref-label">Chicken breast B/S · 100g</span><span class="ref-value">165 cal · 31g P</span></div>
+      <div class="ref-row"><span class="ref-label">Ground turkey 93/7 · 100g</span><span class="ref-value">170 cal · 28g P</span></div>
+      <div class="ref-row"><span class="ref-label">White rice · 1 cup (158g)</span><span class="ref-value">206 cal · 4g P</span></div>
+      <div class="ref-row"><span class="ref-label">Sweet potato · 1 med (114g)</span><span class="ref-value">103 cal · 2g P</span></div>
+      <div class="ref-row"><span class="ref-label">Broccoli · 1 cup (156g)</span><span class="ref-value">55 cal · 4g P</span></div>
+      <div class="ref-row"><span class="ref-label">Oats dry · 1 cup (80g)</span><span class="ref-value">300 cal · 10g P</span></div>
+      <div class="ref-row"><span class="ref-label">Egg, large</span><span class="ref-value">70 cal · 6g P</span></div>
+      <div class="ref-row"><span class="ref-label">ON Whey · 1 scoop (31g)</span><span class="ref-value">120 cal · 24g P</span></div>
+      <div class="ref-row"><span class="ref-label">PB · 1 tbsp (16g)</span><span class="ref-value">95 cal · 3.5g P</span></div>
+      <div class="ref-row"><span class="ref-label">Greek yogurt 2% · 7 oz tub</span><span class="ref-value">140 cal · 20g P</span></div>
+      <div class="ref-row"><span class="ref-label">Frozen peas · 1 cup (160g)</span><span class="ref-value">125 cal · 8.3g P</span></div>
+      <div class="ref-row"><span class="ref-label">Ground flaxseed · 2 tbsp (14g)</span><span class="ref-value">60 cal · 3g P</span></div>
+      <div class="ref-row"><span class="ref-label">Mixed berries · ½ cup (75g)</span><span class="ref-value">35 cal · 0.5g P</span></div>
+      <div class="ref-row"><span class="ref-label">Baby spinach · 1 cup (30g)</span><span class="ref-value">7 cal · 0.9g P</span></div>
+    </div>
+
+    <div class="ref-card">
+      <h3>⚡ Quick Rules</h3>
+      <div class="ref-row"><span class="ref-label">Running out by Thursday?</span><span class="ref-value">Add 1 more pack chicken</span></div>
+      <div class="ref-row"><span class="ref-label">Long run day fuel</span><span class="ref-value">+1 cup rice at lunch</span></div>
+      <div class="ref-row"><span class="ref-label">Emergency protein</span><span class="ref-value">Rotisserie chicken ($5)</span></div>
+      <div class="ref-row"><span class="ref-label">Containers needed</span><span class="ref-value">12+ (2-3 compartment)</span></div>
+      <div class="ref-row"><span class="ref-label">Protein powder</span><span class="ref-value">Non-negotiable at 228g/day</span></div>
+      <div class="ref-row"><span class="ref-label">Daily supplements</span><span class="ref-value">Fish oil + multivitamin</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('meals', this)" data-tab="meals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+      Meals
+    </button>
+    <button class="nav-btn" onclick="switchTab('grocery', this)" data-tab="grocery">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      Grocery
+    </button>
+    <button class="nav-btn" onclick="switchTab('cook', this)" data-tab="cook">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M6.34 6.34l2.83 2.83M2 12h4m-.34 5.66l2.83-2.83M12 18v4m5.66-2.34l-2.83-2.83M22 12h-4m.34-5.66l-2.83 2.83"/><circle cx="12" cy="12" r="4"/></svg>
+      Cook Day
+    </button>
+    <button class="nav-btn" onclick="switchTab('ref', this)" data-tab="ref">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      Reference
+    </button>
+  </nav>
+
+  <script>
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      btn.classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function toggleMeal(card) {
+      card.classList.toggle('expanded');
+    }
+
+    function toggleCheck(item) {
+      item.classList.toggle('checked');
+      saveChecklist();
+    }
+
+    function saveChecklist() {
+      const states = [];
+      document.querySelectorAll('.grocery-item').forEach((item, i) => {
+        states.push(item.classList.contains('checked') ? 1 : 0);
+      });
+      localStorage.setItem('mealprep-checklist-v4', JSON.stringify(states));
+    }
+
+    function loadChecklist() {
+      const saved = localStorage.getItem('mealprep-checklist-v4');
+      if (!saved) return;
+      const states = JSON.parse(saved);
+      document.querySelectorAll('.grocery-item').forEach((item, i) => {
+        if (states[i]) item.classList.add('checked');
+      });
+    }
+
+    function resetChecklist() {
+      document.querySelectorAll('.grocery-item').forEach(item => {
+        item.classList.remove('checked');
+      });
+      localStorage.removeItem('mealprep-checklist-v4');
+    }
+
+    loadChecklist();
+  </script>
+</body>
+</html>
