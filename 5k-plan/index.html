@@ -162,6 +162,9 @@
   .day-card.done { border-left: 3px solid var(--muted); opacity: 0.55; }
   .day-card.completed { opacity: 0.55; }
   .day-card.completed .day-workout { text-decoration: line-through; color: var(--muted); }
+  .day-card.today { border: 2px solid var(--strava-orange); box-shadow: 0 0 0 3px var(--strava-orange-bg), var(--shadow); }
+  .day-card.today .day-date { color: var(--strava-orange); font-weight: 800; }
+  .day-note-icon { font-size: 0.65rem; color: var(--strava-orange); }
   .day-check {
     width: 20px; height: 20px;
     border-radius: 50%;
@@ -199,6 +202,23 @@
     background: var(--strava-orange);
     color: white;
   }
+  .modal-notes-area {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--text);
+    background: var(--bg);
+    resize: vertical;
+    line-height: 1.5;
+  }
+  .modal-notes-area:focus { outline: none; border-color: var(--strava-orange); }
+  .modal-notes-area::placeholder { color: var(--muted); }
+  .notes-saved { font-size: 0.75rem; color: var(--green); margin-left: 8px; opacity: 0; transition: opacity 0.3s; }
+  .notes-saved.show { opacity: 1; }
   .day-date { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
   .day-type {
     font-size: 0.65rem;
@@ -863,11 +883,13 @@ function buildCalendar() {
       const idx = days.indexOf(d);
       const isComplete = isCompleted(idx);
       const completedClass = isComplete ? ' completed' : '';
+      const todayClass = isToday(d.date) ? ' today' : '';
+      const hasNotes = getNote(idx) ? '<span class="day-note-icon">📝</span>' : '';
 
-      html += `<div class="day-card ${cardClass}${completedClass}" onclick="openModal(${idx})">
+      html += `<div class="day-card ${cardClass}${completedClass}${todayClass}" onclick="openModal(${idx})">
         <div class="day-check ${isComplete ? 'checked' : ''}" onclick="event.stopPropagation(); toggleComplete(${idx})">${isComplete ? '✓' : ''}</div>
-        <div class="day-icons">${icons.join('')}</div>
-        <div class="day-date">${d.date}</div>
+        <div class="day-icons">${hasNotes}${icons.join('')}</div>
+        <div class="day-date">${isToday(d.date) ? '● TODAY' : d.date}</div>
         <div class="day-type ${typeClass}">${d.typeLabel}</div>
         <div class="day-workout">${d.workout}</div>
         ${d.pace ? `<div class="day-pace">${d.pace}</div>` : ''}
@@ -968,6 +990,11 @@ function openModal(idx) {
   html += `<div class="modal-section"><h3>Nutrition (${d.cal} cal)</h3><p>${d.food}</p></div>`;
   if (d.strength) html += `<div class="modal-section"><h3>Strength Circuit</h3><p>After your run, do these exercises back-to-back with no rest between them:<br>1. Single-leg squat to a bench or chair — 8 reps each leg (sit down slowly on one leg, stand back up)<br>2. Single-leg deadlift — 10 reps each leg (stand on one leg, lean forward reaching toward ground, keep back straight)<br>3. Single-leg calf raise — 15 reps each leg (stand on edge of a step, raise up on toes, lower slowly over 3 seconds)<br>4. Single-leg glute bridge — 12 reps each leg (lie on back, one foot on ground, push hips up)<br>5. Side walks with a resistance band at ankles — 15 steps each direction (or do side lunges if you don't have a band)<br>6. Wall sit — 45 seconds (back against wall, thighs parallel to ground, hold it)<br><br>${d.date === '9/26' ? 'Do this circuit ONE time through.' : 'Rest 60 seconds, then do the whole circuit a SECOND time.'}</p></div>`;
 
+  // Notes
+  const savedNote = getNote(idx);
+  html += `<div class="modal-section"><h3>My Notes <span class="notes-saved" id="notes-saved">Saved ✓</span></h3>
+    <textarea class="modal-notes-area" id="note-input" placeholder="Log your splits, how you felt, anything..." oninput="saveNote(${idx})">${savedNote || ''}</textarea></div>`;
+
   // Completion button
   const isComplete = isCompleted(idx);
   html += `<div class="modal-section"><button class="modal-check-btn ${isComplete ? 'checked' : ''}" onclick="toggleComplete(${idx}); openModal(${idx});">${isComplete ? '✓ Completed' : 'Mark as Done'}</button></div>`;
@@ -995,6 +1022,32 @@ function getCompletedSet() {
   catch { return new Set(); }
 }
 function isCompleted(idx) { return getCompletedSet().has(idx); }
+
+// Notes
+function getNote(idx) {
+  try { return JSON.parse(localStorage.getItem('5k_notes') || '{}')[idx] || ''; }
+  catch { return ''; }
+}
+let _noteSaveTimer = null;
+function saveNote(idx) {
+  clearTimeout(_noteSaveTimer);
+  _noteSaveTimer = setTimeout(() => {
+    const notes = JSON.parse(localStorage.getItem('5k_notes') || '{}');
+    const val = document.getElementById('note-input').value.trim();
+    if (val) notes[idx] = val; else delete notes[idx];
+    localStorage.setItem('5k_notes', JSON.stringify(notes));
+    const badge = document.getElementById('notes-saved');
+    if (badge) { badge.classList.add('show'); setTimeout(() => badge.classList.remove('show'), 1500); }
+    buildCalendar();
+  }, 500);
+}
+
+// Today detection
+function isToday(dateStr) {
+  const now = new Date();
+  const [m, d] = dateStr.split('/').map(Number);
+  return now.getMonth() + 1 === m && now.getDate() === d;
+}
 function toggleComplete(idx) {
   const set = getCompletedSet();
   if (set.has(idx)) set.delete(idx); else set.add(idx);
