@@ -702,59 +702,90 @@
   <div id="tab-cook" class="section">
     <div class="ref-card" style="text-align:center; margin-bottom: 20px;">
       <h3 style="margin-bottom:4px;">🗓️ Sunday Cook Day</h3>
-      <p style="font-size:13px; color:var(--text-dim);">~1 hour hands-on · Oven + Instant Pot + Rice Cooker</p>
+      <p style="font-size:13px; color:var(--text-dim);">~1 hour hands-on · Tap each step as you go</p>
     </div>
 
-    <div class="timeline">
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">0:00 — Start</div>
-        <div class="step-title">Preheat oven to 425°F</div>
-        <div class="step-desc">Season 4 lbs chicken thighs (salt, pepper, garlic powder, paprika). Lay on sheet pan lined with foil. Start rice cooker with 4 cups dry rice + water.</div>
-      </div>
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">0:05</div>
-        <div class="step-title">Prep sweet potatoes</div>
-        <div class="step-desc">Cube 12 sweet potatoes into 1-inch pieces. Toss with 1 tbsp olive oil + salt on second sheet pan.</div>
-      </div>
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">0:10</div>
-        <div class="step-title">Everything in the oven</div>
-        <div class="step-desc">Chicken pan + sweet potato pan in oven. Set timer for 25 min. Start browning ground turkey on stovetop with cumin + chili powder + garlic powder.</div>
-      </div>
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">0:25</div>
-        <div class="step-title">Turkey done</div>
-        <div class="step-desc">Transfer browned turkey to storage containers. Steam frozen broccoli + peas (microwave bags or stovetop).</div>
-      </div>
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">0:35</div>
-        <div class="step-title">Oven done</div>
-        <div class="step-desc">Pull chicken + sweet potatoes. Check chicken internal temp (165°F). Let rest 5 min, then slice or shred. Rice should be finishing.</div>
-      </div>
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">0:45</div>
-        <div class="step-title">Pack containers</div>
-        <div class="step-desc">Portion into 10–12 meal containers:<br>• 6 lunch: 6 oz chicken + 1.5 cups cooked rice + broccoli + handful spinach<br>• 6 dinner: 6 oz turkey + 2 sweet potatoes + ½ cup cooked rice + peas + handful spinach<br>(4 cups dry rice → ~12 cups cooked. Lunch gets 9 cups, dinner gets 3.)</div>
-      </div>
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">0:55</div>
-        <div class="step-title">Make overnight oats</div>
-        <div class="step-desc">5 mason jars: 1 cup oats + 1 scoop whey + 1 tbsp PB + 2 tbsp flaxseed + water. Top with ½ cup frozen berries (they thaw overnight). Lid on, fridge.</div>
-      </div>
-      <div class="timeline-step">
-        <div class="timeline-dot"></div>
-        <div class="step-time">1:05</div>
-        <div class="step-title">Clean up. Done. ✅</div>
-        <div class="step-desc">~1 hour total. You now have 5–6 breakfasts, 5–6 lunches, 5–6 dinners ready to grab.</div>
-      </div>
-    </div>
+    <ul class="grocery-items cook-checklist">
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Preheat oven to 425°F</div>
+          <div class="item-desc">Season 4 lbs chicken thighs (salt, pepper, garlic powder, paprika). Lay on foil-lined sheet pan.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Start rice cooker</div>
+          <div class="item-desc">4 cups dry rice + water. Press start, walk away.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Prep sweet potatoes</div>
+          <div class="item-desc">Cube 12 sweet potatoes (1-inch). Toss with olive oil + salt on second sheet pan.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Chicken + potatoes in oven</div>
+          <div class="item-desc">Both pans in. Set timer 25 min.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Brown ground turkey</div>
+          <div class="item-desc">3–4 lbs in skillet with cumin + chili powder + garlic powder. ~15 min.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Steam broccoli + peas</div>
+          <div class="item-desc">Microwave bags or stovetop. ~5 min.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Pull chicken + potatoes from oven</div>
+          <div class="item-desc">Chicken internal temp 165°F. Rest 5 min, slice or shred.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Pack lunch containers (×6)</div>
+          <div class="item-desc">6 oz chicken + 1.5 cups cooked rice + broccoli + handful spinach</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Pack dinner containers (×6)</div>
+          <div class="item-desc">6 oz turkey + 2 sweet potatoes + ½ cup cooked rice + peas + handful spinach</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Make overnight oats (×6 jars)</div>
+          <div class="item-desc">Each jar: 1 cup oats + 1 scoop whey + 1 tbsp PB + 2 tbsp flaxseed + water. Top with ½ cup frozen berries. Fridge.</div>
+        </div>
+      </li>
+      <li class="grocery-item cook-step" onclick="toggleCook(this)">
+        <div class="check-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <div class="item-details">
+          <div class="item-name">Clean up 🎉</div>
+          <div class="item-desc">Done. 6 breakfasts, 6 lunches, 6 dinners ready to grab.</div>
+        </div>
+      </li>
+    </ul>
+
+    <button class="reset-btn" onclick="resetCook()">Reset Cook Day ↻</button>
     <div class="spacer"></div>
   </div>
 
@@ -865,7 +896,37 @@
       localStorage.removeItem('mealprep-checklist-v5');
     }
 
+    function toggleCook(item) {
+      item.classList.toggle('checked');
+      saveCook();
+    }
+
+    function saveCook() {
+      const states = [];
+      document.querySelectorAll('.cook-step').forEach((item, i) => {
+        states.push(item.classList.contains('checked') ? 1 : 0);
+      });
+      localStorage.setItem('mealprep-cook-v1', JSON.stringify(states));
+    }
+
+    function loadCook() {
+      const saved = localStorage.getItem('mealprep-cook-v1');
+      if (!saved) return;
+      const states = JSON.parse(saved);
+      document.querySelectorAll('.cook-step').forEach((item, i) => {
+        if (states[i]) item.classList.add('checked');
+      });
+    }
+
+    function resetCook() {
+      document.querySelectorAll('.cook-step').forEach(item => {
+        item.classList.remove('checked');
+      });
+      localStorage.removeItem('mealprep-cook-v1');
+    }
+
     loadChecklist();
+    loadCook();
   </script>
 </body>
 </html>
