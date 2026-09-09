@@ -5,39 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#ffffff">
   <title>Meal Prep Plan</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230f172a'/><rect x='3' y='3' width='58' height='58' rx='11' fill='none' stroke='%2322c55e' stroke-width='2.5'/><text x='32' y='42' font-family='system-ui,sans-serif' font-size='22' font-weight='800' fill='%2322c55e' text-anchor='middle' letter-spacing='-1'>MP</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23ffffff'/><rect x='3' y='3' width='58' height='58' rx='11' fill='none' stroke='%233b82f6' stroke-width='2.5'/><text x='32' y='42' font-family='system-ui,sans-serif' font-size='22' font-weight='800' fill='%233b82f6' text-anchor='middle' letter-spacing='-1'>MP</text></svg>">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface2: #334155;
-      --border: #475569;
-      --text: #f1f5f9;
-      --text-dim: #94a3b8;
-      --green: #22c55e;
-      --green-dim: #166534;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-dim: #64748b;
+      --accent: #3b82f6;
+      --accent-dim: #dbeafe;
+      --accent-dark: #1d4ed8;
+      --green: #3b82f6;
+      --green-dim: #dbeafe;
       --blue: #3b82f6;
       --orange: #f59e0b;
       --red: #ef4444;
-      --purple: #a78bfa;
+      --purple: #7c3aed;
       --radius: 16px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     html { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; }
     body { min-height: 100dvh; padding-bottom: calc(72px + var(--safe-bottom)); }
+    ::selection { background: var(--accent-dim); color: var(--accent-dark); }
 
     /* Bottom nav */
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0;
-      background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid var(--surface2);
+      background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
       display: flex; justify-content: space-around; align-items: center;
       padding: 8px 0 calc(8px + var(--safe-bottom));
       z-index: 100;
@@ -48,7 +52,7 @@
       padding: 6px 12px; cursor: pointer; transition: color 0.2s; font-family: inherit;
       -webkit-tap-highlight-color: transparent;
     }
-    .nav-btn.active { color: var(--green); }
+    .nav-btn.active { color: var(--accent); }
     .nav-btn svg { width: 24px; height: 24px; }
 
     /* Sections */
@@ -69,25 +73,28 @@
       -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
     .stats-row::-webkit-scrollbar { display: none; }
+    .stat-card .value { font-size: 22px; font-weight: 800; line-height: 1; }
+    .stat-card .label { font-size: 10px; font-weight: 600; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .stat-card {
       flex: 1; min-width: 80px; background: var(--surface); border-radius: 12px;
       padding: 12px 8px; text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
-    .stat-card .value { font-size: 22px; font-weight: 800; line-height: 1; }
-    .stat-card .label { font-size: 10px; font-weight: 600; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-cal .value { color: var(--green); }
-    .stat-pro .value { color: var(--blue); }
+    .stat-cal .value { color: var(--accent-dark); }
+    .stat-pro .value { color: var(--purple); }
     .stat-carb .value { color: var(--orange); }
-    .stat-fat .value { color: var(--purple); }
+    .stat-fat .value { color: #0891b2; }
 
     /* Meal cards */
     .meal-card {
       background: var(--surface); border-radius: var(--radius);
       margin-bottom: 12px; overflow: hidden;
-      border: 1px solid transparent;
-      transition: border-color 0.2s;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+      transition: box-shadow 0.2s;
     }
-    .meal-card.expanded { border-color: var(--surface2); }
+    .meal-card.expanded { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .meal-header {
       display: flex; align-items: center; padding: 16px;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
@@ -102,10 +109,10 @@
     }
     .macro-pill {
       font-size: 11px; font-weight: 600; padding: 2px 8px;
-      border-radius: 6px; background: var(--bg);
+      border-radius: 6px; background: var(--surface2);
     }
-    .macro-cal { color: var(--green); }
-    .macro-pro { color: var(--blue); }
+    .macro-cal { color: var(--accent-dark); }
+    .macro-pro { color: var(--purple); }
     .chevron {
       width: 20px; height: 20px; color: var(--text-dim);
       transition: transform 0.3s; flex-shrink: 0;
@@ -127,20 +134,20 @@
     .detail-table th:nth-child(3) { text-align: right; }
     .detail-table td {
       font-size: 13px; padding: 8px 0;
-      border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+      border-bottom: 1px solid var(--border);
     }
     .detail-table td:nth-child(2),
     .detail-table td:nth-child(3) { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
     .detail-table tr:last-child td { border-bottom: none; }
     .detail-table .total-row td {
-      border-top: 2px solid var(--surface2); border-bottom: none;
+      border-top: 2px solid var(--border); border-bottom: none;
       font-weight: 700; padding-top: 10px;
     }
-    .detail-table .total-row td:nth-child(2) { color: var(--green); }
-    .detail-table .total-row td:nth-child(3) { color: var(--blue); }
+    .detail-table .total-row td:nth-child(2) { color: var(--accent-dark); }
+    .detail-table .total-row td:nth-child(3) { color: var(--purple); }
 
     .prep-note {
-      background: var(--bg); border-radius: 10px; padding: 10px 12px;
+      background: var(--surface2); border-radius: 10px; padding: 10px 12px;
       font-size: 12px; color: var(--text-dim); margin-top: 12px;
       line-height: 1.5;
     }
@@ -166,6 +173,8 @@
       display: flex; align-items: flex-start; gap: 12px;
       padding: 12px; margin-bottom: 4px;
       background: var(--surface); border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
       cursor: pointer; -webkit-tap-highlight-color: transparent;
       transition: opacity 0.3s;
     }
@@ -173,21 +182,21 @@
     .grocery-item.checked .item-name { text-decoration: line-through; }
     .check-circle {
       width: 24px; height: 24px; border-radius: 50%;
-      border: 2px solid var(--surface2); flex-shrink: 0;
+      border: 2px solid var(--border); flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       transition: all 0.2s; margin-top: 1px;
     }
     .grocery-item.checked .check-circle {
-      background: var(--green); border-color: var(--green);
+      background: var(--accent); border-color: var(--accent);
     }
     .check-circle svg { width: 14px; height: 14px; color: white; opacity: 0; transition: opacity 0.2s; }
     .grocery-item.checked .check-circle svg { opacity: 1; }
     .item-details { flex: 1; }
     .item-name { font-size: 14px; font-weight: 600; }
-    .item-qty { font-size: 16px; font-weight: 800; color: var(--green); margin-top: 3px; }
+    .item-qty { font-size: 16px; font-weight: 800; color: var(--accent); margin-top: 3px; }
     .item-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
     .item-price {
-      font-size: 13px; font-weight: 700; color: var(--green);
+      font-size: 13px; font-weight: 700; color: var(--text-dim);
       flex-shrink: 0; margin-top: 2px;
     }
 
@@ -195,19 +204,21 @@
     .timeline { position: relative; padding-left: 28px; }
     .timeline::before {
       content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px;
-      width: 2px; background: var(--surface2); border-radius: 1px;
+      width: 2px; background: var(--border); border-radius: 1px;
     }
     .timeline-step {
       position: relative; margin-bottom: 16px;
       background: var(--surface); border-radius: var(--radius);
       padding: 14px 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .timeline-dot {
       position: absolute; left: -22px; top: 16px;
       width: 12px; height: 12px; border-radius: 50%;
-      background: var(--green); border: 2px solid var(--bg);
+      background: var(--accent); border: 2px solid var(--bg);
     }
-    .step-time { font-size: 11px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.5px; }
+    .step-time { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
     .step-title { font-size: 14px; font-weight: 700; margin-top: 4px; }
     .step-desc { font-size: 13px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
 
@@ -215,11 +226,13 @@
     .ref-card {
       background: var(--surface); border-radius: var(--radius);
       padding: 16px; margin-bottom: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .ref-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
     .ref-row {
       display: flex; justify-content: space-between; padding: 6px 0;
-      border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+      border-bottom: 1px solid var(--border);
       font-size: 13px;
     }
     .ref-row:last-child { border-bottom: none; }
@@ -237,11 +250,11 @@
     .reset-btn:active { background: var(--surface2); }
 
     .cost-banner {
-      background: linear-gradient(135deg, var(--green-dim), #064e3b);
+      background: linear-gradient(135deg, var(--accent-dim), #bfdbfe);
       border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
       text-align: center;
     }
-    .cost-banner .value { font-size: 32px; font-weight: 800; color: var(--green); }
+    .cost-banner .value { font-size: 32px; font-weight: 800; color: var(--accent-dark); }
     .cost-banner .label { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
     /* Scroll spacer */
@@ -257,7 +270,7 @@
       .stat-card .value { font-size: 28px; }
       .stat-card .label { font-size: 11px; }
       .meal-card { border-radius: 18px; }
-      .meal-card:hover { border-color: var(--surface2); }
+      .meal-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
       .meal-header { padding: 20px; }
       .meal-emoji { font-size: 32px; }
       .meal-name { font-size: 17px; }
@@ -267,12 +280,12 @@
       .prep-note { font-size: 13px; }
       .grocery-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
       .grocery-item { margin-bottom: 0; border-radius: 14px; }
-      .grocery-item:hover { background: var(--surface2); }
+      .grocery-item:hover { background: var(--surface2); border-color: var(--accent); }
       .cat-title { font-size: 17px; }
       .item-name { font-size: 15px; }
       .item-desc { font-size: 13px; }
       .timeline-step { padding: 18px 20px; border-radius: 18px; }
-      .timeline-step:hover { background: var(--surface2); }
+      .timeline-step:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
       .step-title { font-size: 16px; }
       .step-desc { font-size: 14px; }
       .ref-card { padding: 20px; border-radius: 18px; }
@@ -283,7 +296,7 @@
       .cost-banner .label { font-size: 14px; }
       .bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-radius: 16px 16px 0 0; }
       .nav-btn { font-size: 11px; padding: 8px 20px; }
-      .nav-btn:hover { color: var(--green); }
+      .nav-btn:hover { color: var(--accent); }
       .nav-btn svg { width: 26px; height: 26px; }
       .reset-btn { max-width: 300px; margin: 20px auto 0; }
       .reset-btn:hover { background: var(--surface2); color: var(--text); }
@@ -295,22 +308,6 @@
       .stats-row { gap: 12px; }
     }
 
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f8fafc; --surface: #ffffff; --surface2: #e2e8f0;
-        --border: #cbd5e1; --text: #0f172a; --text-dim: #64748b;
-        --green-dim: #dcfce7;
-      }
-      .bottom-nav { background: rgba(248, 250, 252, 0.92); }
-      .meal-card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-      .grocery-item { box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-      .timeline-step { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-      .timeline-dot { border-color: var(--bg); }
-      .cost-banner { background: linear-gradient(135deg, #dcfce7, #d1fae5); }
-      .cost-banner .value { color: #16a34a; }
-      .ref-card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-      .stat-card { box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-    }
   </style>
 </head>
 <body>
