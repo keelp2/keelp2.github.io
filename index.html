@@ -345,7 +345,7 @@
 
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-    // Typewriter effect
+    // Typewriter effect → then reveal subtitle, blurb, and photo
     (function() {
       const el = document.querySelector('.typewriter');
       const text = el.dataset.text;
@@ -356,9 +356,23 @@
           i++;
           setTimeout(type, 60);
         } else {
+          // Typing done — fade in subtitle and blurb
+          document.querySelectorAll('.home-fade').forEach((el, idx) => {
+            setTimeout(() => el.classList.add('visible'), idx * 200);
+          });
+          // Stop cursor blink after a pause
           setTimeout(() => el.classList.add('done'), 2000);
         }
       }, 500);
+
+      // Photo fades in partway through typing
+      setTimeout(() => {
+        const photo = document.querySelector('.home-photo');
+        if (photo) {
+          photo.style.opacity = '1';
+          photo.style.transform = 'scale(1)';
+        }
+      }, 1200);
     })();
 
     // Bird easter egg
