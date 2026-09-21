@@ -36,7 +36,7 @@
   <section id="home">
     <div class="home-layout">
       <div class="home-text">
-        <h1 class="typewriter">Hi, my name is Peter Keel.</h1>
+        <h1 class="typewriter" data-text="Hi, my name is Peter Keel."></h1>
         <p class="home-subtitle home-fade">Data Engineering &middot; Analytics &middot; Automation</p>
         <p class="home-blurb home-fade">I build data pipelines, analytics tools, and automated systems. Currently a Market Data Systems Engineer at DRW in Chicago.</p>
       </div>
@@ -344,6 +344,22 @@
     }, { threshold: 0.08 });
 
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Typewriter effect
+    (function() {
+      const el = document.querySelector('.typewriter');
+      const text = el.dataset.text;
+      let i = 0;
+      setTimeout(function type() {
+        if (i <= text.length) {
+          el.textContent = text.slice(0, i);
+          i++;
+          setTimeout(type, 60);
+        } else {
+          setTimeout(() => el.classList.add('done'), 2000);
+        }
+      }, 500);
+    })();
 
     // Bird easter egg
     document.querySelector('.nav-bird').addEventListener('click', function() {
