@@ -8,8 +8,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: -apple-system, system-ui, 'Segoe UI', sans-serif;
             min-height: 100vh;
+            min-height: -webkit-fill-available;
             background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 50%, #e8eaf6 100%);
             display: flex;
             flex-direction: column;
@@ -42,12 +43,6 @@
             font-size: 8rem;
             line-height: 1;
             margin-bottom: 1rem;
-            user-select: none;
-            transition: transform 0.2s;
-        }
-
-        .cone-display:hover {
-            transform: scale(1.05);
         }
 
         .count {
@@ -55,11 +50,6 @@
             font-weight: 800;
             color: #4a148c;
             margin-bottom: 0.5rem;
-            transition: transform 0.15s;
-        }
-
-        .count.bump {
-            transform: scale(1.2);
         }
 
         .label {
