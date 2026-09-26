@@ -127,6 +127,8 @@
     .full { grid-column: 1 / -1; }
     .grid label { display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); }
     .grid label small { font-weight: 500; }
+    .grid .check { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-weight: 500; }
+    .grid .check input { display: inline; width: auto; margin: 0; }
     .grid input, .grid select, .grid textarea { display: block; width: 100%; margin-top: 4px; border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; background: var(--surface); color: var(--text); }
     textarea { min-height: 80px; resize: vertical; }
     .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
@@ -184,7 +186,7 @@
       <label>Format<select name="format">
         <option value="">—</option><option>In person</option><option>Online</option><option>Hybrid</option><option>In person or online</option>
       </select></label>
-      <label>Deadline<input type="date" name="deadline"></label>
+      <label>Deadline<input type="date" name="deadline"><span class="check"><input type="checkbox" name="deadlineEst" id="estBox"><label for="estBox">Estimated (not posted yet)</label></span></label>
       <label>Start<input name="start" placeholder="e.g. Autumn 2027"></label>
       <label>Application fee ($)<input type="number" name="fee" min="0" step="1"></label>
       <label>Cost<input name="cost" placeholder="e.g. ~$80k total"></label>
@@ -214,13 +216,31 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 5;
+  const SEED_REV = 6;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
     start: 'Autumn 2027 (online also Jan & Jun)',
     cost: '$7,862/course (2025–26)',
     notes: 'Online option: live classes weekday evenings 6–9pm; part-time can be 1 course/quarter (~3 yrs). Online also starts in Jan & Jun — last cycle deadlines were Nov 6 (Jan start) and Apr 30 (Jun start). Autumn Round 1 unconfirmed: sources say Dec 3 (then Jan 14, Mar 25) or Nov 2. Needs multivariable calc, linear algebra, probability, programming.',
+  };
+  // Deadline research, Sept 2026. deadlineEst = not posted yet, projected from last cycle.
+  // from = the starter value this replaces (so dates the user changed are left alone).
+  const DEADLINE_UPDATES = {
+    'seed-0': { from: '', deadline: '2026-12-01', deadlineEst: true,
+      notes: 'Part-time online via the Honors Cooperative Program (HCP) — same application and deadline as full-time; $1,575/unit × 45 units. 2027 deadline not posted: last year was Tue Dec 2, 2025, so expect ~Dec 1, 2026. Up to 3 recs, ideally 2 academic. No GRE.' },
+    'seed-1': { from: '', deadline: '2026-11-10', deadlineEst: true, start: 'Spring or Fall 2027 (rolling)',
+      notes: 'Online via CVN. Rolling admissions, but apply at least 10 weeks before the term: date shown is ~10 weeks before Spring 2027 classes (late Jan). For Fall 2027, apply by ~late June. Min 3.0 GPA; needs calc, linear algebra, probability. GRE optional.' },
+    'seed-3': { from: '2026-12-03', deadline: '2026-12-03', deadlineEst: false,
+      notes: 'Autumn 2027 rounds (confirmed): Dec 3 · Jan 14 · Mar 25 — recs and test scores due by the deadline too. Online program also starts in Jan & Jun: Jan 2027 deadline not posted (last year Nov 6, so ~Nov 5). Online classes weekday evenings 6–9pm; part-time can be 1 course/quarter (~3 yrs). Needs multivariable calc, linear algebra, probability, programming.' },
+    'seed-4': { from: '', deadline: '2026-10-13', deadlineEst: true,
+      notes: '2027 rounds not posted — date shown projects last year\'s R1 (Oct 14). Last year: R1 Oct 14 · R2 Jan 15 · R3 Mar 4 · R4 May 12 · R5 Jun 16. No fee; GMAT/GRE optional; optional extra essay.' },
+    'seed-5': { from: '2027-06-23', deadline: '2026-12-03', deadlineEst: true,
+      notes: 'Date shown is the scholarship priority deadline (last year Dec 4) — scholarships favor early applicants. Last year\'s later rounds: Mar 4, May 6. Final deadline Jun 23, 2027 (confirmed). One video required, a second is optional.' },
+    'seed-6': { from: '2027-03-15', deadline: '2027-03-15', deadlineEst: false,
+      notes: 'Fall 2027 (confirmed): priority review Feb 1, final Mar 15. Needs calc, linear algebra, prob/stats, programming. GRE optional. Fee $95 (verify).' },
+    'seed-7': { from: '', deadline: '', deadlineEst: false,
+      notes: 'Run by CS + Statistics & Data Sciences. Fall 2027 dates not posted — applications open ~Dec, priority deadline ~April, final ~May. Spring 2027 deadline (Sep 1) passed. Min 3.0 GPA.' },
   };
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
@@ -263,7 +283,10 @@
       reqs: r('Statement of purpose', 'Resume / CV', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://cdso.utexas.edu/msds',
       notes: 'Run by CS + Statistics & Data Sciences. Spring 2027 deadline (Sep 1) passed. Fall 2027 dates not posted yet (priority ~April, final ~May). Min 3.0 GPA.' },
-  ].map((a, i) => ({ id: 'seed-' + i, status: 'Researching', ...a }));
+  ].map((a, i) => {
+    const { from, ...upd } = DEADLINE_UPDATES['seed-' + i] || {};
+    return { id: 'seed-' + i, status: 'Researching', ...a, ...upd };
+  });
 
   let apps = load();
   save();
@@ -325,6 +348,14 @@
     // rev 5: FinMath online/part-time option
     const finmath = rev < 5 && list.find(x => x.id === 'seed-3');
     if (finmath) Object.assign(finmath, FINMATH_UPDATE);
+    // rev 6: deadline research
+    if (rev < 6) for (const [id, { from, ...upd }] of Object.entries(DEADLINE_UPDATES)) {
+      const a = list.find(x => x.id === id);
+      if (!a) continue;
+      const { deadline, deadlineEst, ...rest } = upd;
+      Object.assign(a, rest);
+      if ((a.deadline || '') === from) Object.assign(a, { deadline, deadlineEst });
+    }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
@@ -352,10 +383,10 @@
   function dueHtml(a) {
     if (!a.deadline) return `<div class="due none">${esc(a.start) === 'Rolling' ? 'Rolling' : 'TBD'}</div>`;
     const n = daysUntil(a.deadline);
-    if (!PRE_SUBMIT.has(a.status)) return `<div class="due none">${fmt(a.deadline)}</div>`;
+    if (!PRE_SUBMIT.has(a.status)) return `<div class="due none">${a.deadlineEst ? '~' : ''}${fmt(a.deadline)}</div>`;
     const cls = n < 0 ? 'late' : n <= 14 ? 'soon' : '';
     const rel = n < 0 ? `${-n}d ago` : n === 0 ? 'today' : `${n}d left`;
-    return `<div class="due ${cls}">${fmt(a.deadline)}<small>${rel}</small></div>`;
+    return `<div class="due ${cls}">${a.deadlineEst ? '~' : ''}${fmt(a.deadline)}<small>${rel}${a.deadlineEst ? ' · est.' : ''}</small></div>`;
   }
 
   function ring(done, all) {
@@ -381,7 +412,7 @@
       .sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
     $('summary').innerHTML = [
       `${apps.length} programs`, `${submitted} submitted`, `${admits} admits`,
-      next && `Next: <b>${esc(next.school)}</b> in ${daysUntil(next.deadline)}d`,
+      next && `Next: <b>${esc(next.school)}</b> in ${next.deadlineEst ? '~' : ''}${daysUntil(next.deadline)}d`,
     ].filter(Boolean).join(' · ');
 
     document.querySelector('.wrap').classList.toggle('wide', view === 'table');
@@ -395,7 +426,7 @@
     const [done, all] = progress(a);
     const facts = [
       a.start && `Start <b>${esc(a.start)}</b>`,
-      a.deadline && `Deadline <b>${fmt(a.deadline, true)}</b>`,
+      a.deadline && `Deadline <b>${a.deadlineEst ? '~' : ''}${fmt(a.deadline, true)}${a.deadlineEst ? ' (est.)' : ''}</b>`,
       feeText(a) && `Fee <b>${feeText(a)}</b>`,
       a.cost && `Cost <b>${esc(a.cost)}</b>`,
     ].filter(Boolean).join(' · ');
@@ -439,7 +470,7 @@
         return `<tr data-row="${a.id}">
           <td>${a.rank ? '#' + esc(a.rank) : '—'}</td>
           <td class="school"><b>${esc(a.school)}</b><span>${esc(a.program)}</span></td>
-          <td>${a.deadline ? fmt(a.deadline, true) : (a.start === 'Rolling' ? 'Rolling' : 'TBD')}</td>
+          <td>${a.deadline ? (a.deadlineEst ? '~' : '') + fmt(a.deadline, true) + (a.deadlineEst ? ' (est.)' : '') : (a.start === 'Rolling' ? 'Rolling' : 'TBD')}</td>
           <td>${esc(a.start)}</td>
           <td>${esc(a.format)}</td>
           <td>${feeText(a) || '—'}</td>
@@ -520,7 +551,8 @@
       : { status: 'Researching', reqs: r('Statement', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Pay fee', 'Submitted') };
     for (const el of form.elements) {
       if (!el.name) continue;
-      el.value = el.name === 'reqs' ? (a.reqs || []).map(q => q.t).join('\n') : (a[el.name] ?? '');
+      if (el.type === 'checkbox') el.checked = !!a[el.name];
+      else el.value = el.name === 'reqs' ? (a.reqs || []).map(q => q.t).join('\n') : (a[el.name] ?? '');
     }
     $('dlgTitle').textContent = id ? 'Edit program' : 'Add program';
     $('deleteBtn').hidden = !id;
@@ -530,6 +562,7 @@
   $('cancelBtn').onclick = () => $('dlg').close();
   $('form').addEventListener('submit', () => {
     const data = Object.fromEntries(new FormData($('form')));
+    data.deadlineEst = !!data.deadlineEst;
     const existing = editingId && apps.find(x => x.id === editingId);
     const wasDone = new Set((existing?.reqs || []).filter(q => q.done).map(q => q.t));
     data.reqs = data.reqs.split('\n').map(t => t.trim()).filter(Boolean).map(t => ({ t, done: wasDone.has(t) }));
