@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="robots" content="noindex">
+  <title>Grad Applications</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23ffffff'/><rect x='3' y='3' width='58' height='58' rx='11' fill='none' stroke='%234f46e5' stroke-width='2.5'/><text x='32' y='42' font-family='system-ui,sans-serif' font-size='22' font-weight='800' fill='%234f46e5' text-anchor='middle' letter-spacing='-1'>MS</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-dim: #64748b;
+      --accent: #4f46e5;
+      --accent-dim: #e0e7ff;
+      --green: #16a34a;
+      --green-dim: #dcfce7;
+      --orange: #d97706;
+      --orange-dim: #fef3c7;
+      --red: #dc2626;
+      --red-dim: #fee2e2;
+      --gray-dim: #e2e8f0;
+      --radius: 14px;
+    }
+
+    html { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; }
+    body { min-height: 100dvh; padding: 24px 16px 64px; }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    button, input, select, textarea { font-family: inherit; font-size: 15px; }
+
+    header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    header a.back { font-size: 13px; color: var(--text-dim); text-decoration: none; display: block; margin-bottom: 6px; }
+    h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+    .sub { color: var(--text-dim); font-size: 14px; margin-top: 2px; }
+
+    .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 9px 14px; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: var(--surface2); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.danger { color: var(--red); }
+    .btn.small { padding: 6px 10px; font-size: 13px; }
+
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+    .stat .n { font-size: 24px; font-weight: 800; }
+    .stat .l { font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .toolbar select { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface); }
+    .toolbar .spacer { flex: 1; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .card-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .card h3 { font-size: 17px; font-weight: 700; }
+    .card .prog { color: var(--text-dim); font-size: 14px; margin-top: 2px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--text-dim); margin-top: 10px; }
+    .meta b { color: var(--text); font-weight: 600; }
+    .meta a { color: var(--accent); }
+    .due-soon { color: var(--orange) !important; }
+    .overdue { color: var(--red) !important; }
+
+    .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+    .s-researching, .s-preparing { background: var(--gray-dim); color: #334155; }
+    .s-submitted, .s-interview { background: var(--accent-dim); color: var(--accent); }
+    .s-admitted, .s-committed { background: var(--green-dim); color: var(--green); }
+    .s-waitlisted { background: var(--orange-dim); color: var(--orange); }
+    .s-rejected, .s-declined, .s-withdrawn { background: var(--red-dim); color: var(--red); }
+
+    .checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; cursor: pointer; user-select: none; background: var(--surface); color: var(--text-dim); }
+    .chk.done { background: var(--green-dim); border-color: transparent; color: var(--green); }
+    .progress { height: 4px; background: var(--surface2); border-radius: 4px; margin-top: 12px; overflow: hidden; }
+    .progress > div { height: 100%; background: var(--green); }
+    .notes { font-size: 14px; margin-top: 10px; white-space: pre-wrap; color: #334155; }
+    .card-actions { display: flex; gap: 6px; margin-top: 12px; }
+
+    .empty { text-align: center; color: var(--text-dim); padding: 48px 16px; border: 2px dashed var(--border); border-radius: var(--radius); }
+
+    dialog { border: none; border-radius: 18px; padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; box-shadow: 0 20px 60px rgba(15,23,42,0.25); }
+    dialog::backdrop { background: rgba(15,23,42,0.45); }
+    dialog form { padding: 20px; }
+    dialog h2 { font-size: 19px; margin-bottom: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full { grid-column: 1 / -1; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); }
+    label input, label select, label textarea { display: block; width: 100%; margin-top: 4px; border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; background: var(--surface); color: var(--text); }
+    textarea { min-height: 80px; resize: vertical; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+    footer { margin-top: 28px; font-size: 12px; color: var(--text-dim); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    @media (max-width: 560px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <a class="back" href="../">&larr; keelp2.github.io</a>
+      <h1>Master's Applications</h1>
+      <p class="sub" id="nextUp"></p>
+    </div>
+    <button class="btn primary" id="addBtn">+ Add program</button>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <select id="filter" aria-label="Filter by status">
+      <option value="all">All statuses</option>
+      <option value="active">In progress</option>
+      <option value="decided">Decided</option>
+    </select>
+    <select id="sort" aria-label="Sort">
+      <option value="deadline">Sort: deadline</option>
+      <option value="school">Sort: school</option>
+      <option value="status">Sort: status</option>
+    </select>
+  </div>
+
+  <div id="list"></div>
+
+  <footer>
+    <span>Saved in this browser only.</span>
+    <span class="spacer"></span>
+    <button class="btn small" id="exportBtn">Export backup</button>
+    <button class="btn small" id="importBtn">Import backup</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </footer>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="form">
+    <h2 id="dlgTitle">Add program</h2>
+    <div class="grid">
+      <label class="full">School *<input name="school" required></label>
+      <label>Program<input name="program" placeholder="e.g. MS Computer Science"></label>
+      <label>Status<select name="status" id="statusSel"></select></label>
+      <label>Application deadline<input type="date" name="deadline"></label>
+      <label>Decision expected<input type="date" name="decisionDate"></label>
+      <label>Application fee ($)<input type="number" name="fee" min="0" step="1"></label>
+      <label>Est. tuition / total cost<input name="cost" placeholder="e.g. $60k"></label>
+      <label>Format<select name="format">
+        <option value="">—</option><option>In person</option><option>Online</option><option>Hybrid</option>
+      </select></label>
+      <label>Funding / scholarship<input name="funding" placeholder="e.g. 25% merit"></label>
+      <label class="full">Portal link<input type="url" name="link" placeholder="https://"></label>
+      <label class="full">Notes<textarea name="notes" placeholder="Contacts, essay prompts, login info hints, impressions…"></textarea></label>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn danger" id="deleteBtn" hidden>Delete</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const KEY = 'gradapps-v1';
+  const STATUSES = ['Researching', 'Preparing', 'Submitted', 'Interview', 'Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn'];
+  const DECIDED = new Set(['Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn']);
+  const CHECKLIST = [
+    ['sop', 'Statement'], ['resume', 'Resume'], ['transcripts', 'Transcripts'],
+    ['rec1', 'Rec 1'], ['rec2', 'Rec 2'], ['rec3', 'Rec 3'],
+    ['tests', 'GRE / tests'], ['fee', 'Fee paid'], ['submitted', 'Submitted'],
+  ];
+
+  let apps = load();
+  let editingId = null;
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(apps)); } catch {}
+  }
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const slug = s => s.toLowerCase();
+
+  function daysUntil(dateStr) {
+    if (!dateStr) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const d = new Date(dateStr + 'T00:00:00');
+    return Math.round((d - today) / 86400000);
+  }
+  function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function dueLabel(a) {
+    const n = daysUntil(a.deadline);
+    if (n === null) return '';
+    const submitted = a.checks?.submitted || !['Researching', 'Preparing'].includes(a.status);
+    if (submitted) return `<span>Deadline <b>${fmtDate(a.deadline)}</b></span>`;
+    let cls = '', txt;
+    if (n < 0) { cls = 'overdue'; txt = `${-n}d overdue`; }
+    else if (n === 0) { cls = 'overdue'; txt = 'due today'; }
+    else { cls = n <= 14 ? 'due-soon' : ''; txt = `${n}d left`; }
+    return `<span class="${cls}">Due <b class="${cls}">${fmtDate(a.deadline)}</b> · ${txt}</span>`;
+  }
+
+  function render() {
+    // Stats
+    const total = apps.length;
+    const submitted = apps.filter(a => !['Researching', 'Preparing'].includes(a.status)).length;
+    const admitted = apps.filter(a => a.status === 'Admitted' || a.status === 'Committed').length;
+    const fees = apps.reduce((s, a) => s + (Number(a.fee) || 0), 0);
+    $('stats').innerHTML = [
+      [total, 'Programs'], [submitted, 'Submitted'], [admitted, 'Admits'], ['$' + fees.toLocaleString(), 'Fees'],
+    ].map(([n, l]) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+    // Next deadline
+    const upcoming = apps
+      .filter(a => ['Researching', 'Preparing'].includes(a.status) && daysUntil(a.deadline) !== null && daysUntil(a.deadline) >= 0)
+      .sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
+    $('nextUp').textContent = upcoming
+      ? `Next deadline: ${upcoming.school} in ${daysUntil(upcoming.deadline)} day${daysUntil(upcoming.deadline) === 1 ? '' : 's'}`
+      : total ? 'No upcoming deadlines' : 'Track every program in one place';
+
+    // Filter + sort
+    const filter = $('filter').value;
+    let list = apps.filter(a =>
+      filter === 'all' ? true : filter === 'decided' ? DECIDED.has(a.status) : !DECIDED.has(a.status));
+    const sort = $('sort').value;
+    list.sort((a, b) => {
+      if (sort === 'school') return a.school.localeCompare(b.school);
+      if (sort === 'status') return STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status);
+      return (a.deadline || '9999').localeCompare(b.deadline || '9999');
+    });
+
+    if (!list.length) {
+      $('list').innerHTML = `<div class="empty">${total ? 'Nothing matches this filter.' : 'No programs yet. Click <b>+ Add program</b> to start.'}</div>`;
+      return;
+    }
+
+    $('list').innerHTML = list.map(a => {
+      const checks = a.checks || {};
+      const doneCount = CHECKLIST.filter(([k]) => checks[k]).length;
+      const pct = Math.round(doneCount / CHECKLIST.length * 100);
+      const meta = [
+        dueLabel(a),
+        a.decisionDate && `<span>Decision <b>${fmtDate(a.decisionDate)}</b></span>`,
+        a.fee && `<span>Fee <b>$${esc(a.fee)}</b></span>`,
+        a.cost && `<span>Cost <b>${esc(a.cost)}</b></span>`,
+        a.format && `<span><b>${esc(a.format)}</b></span>`,
+        a.funding && `<span>Funding <b>${esc(a.funding)}</b></span>`,
+        a.link && `<a href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">Portal ↗</a>`,
+      ].filter(Boolean).join('');
+      return `
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <h3>${esc(a.school)}</h3>
+              ${a.program ? `<div class="prog">${esc(a.program)}</div>` : ''}
+            </div>
+            <span class="pill s-${slug(a.status)}">${esc(a.status)}</span>
+          </div>
+          ${meta ? `<div class="meta">${meta}</div>` : ''}
+          <div class="checks">
+            ${CHECKLIST.map(([k, l]) => `<span class="chk ${checks[k] ? 'done' : ''}" data-id="${a.id}" data-k="${k}">${checks[k] ? '✓' : '○'} ${l}</span>`).join('')}
+          </div>
+          <div class="progress"><div style="width:${pct}%"></div></div>
+          ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
+          <div class="card-actions">
+            <button class="btn small" data-edit="${a.id}">Edit</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Checklist toggles + edit buttons
+  $('list').addEventListener('click', e => {
+    const chk = e.target.closest('.chk');
+    if (chk) {
+      const a = apps.find(x => x.id === chk.dataset.id);
+      a.checks = a.checks || {};
+      a.checks[chk.dataset.k] = !a.checks[chk.dataset.k];
+      if (chk.dataset.k === 'submitted' && a.checks.submitted && ['Researching', 'Preparing'].includes(a.status)) a.status = 'Submitted';
+      save(); render();
+      return;
+    }
+    const edit = e.target.closest('[data-edit]');
+    if (edit) openDialog(edit.dataset.edit);
+  });
+
+  // Dialog
+  $('statusSel').innerHTML = STATUSES.map(s => `<option>${s}</option>`).join('');
+  function openDialog(id = null) {
+    editingId = id;
+    const form = $('form');
+    form.reset();
+    const a = id ? apps.find(x => x.id === id) : { status: 'Researching' };
+    for (const el of form.elements) if (el.name) el.value = a[el.name] ?? '';
+    $('dlgTitle').textContent = id ? 'Edit program' : 'Add program';
+    $('deleteBtn').hidden = !id;
+    $('dlg').showModal();
+  }
+  $('addBtn').onclick = () => openDialog();
+  $('cancelBtn').onclick = () => $('dlg').close();
+  $('form').addEventListener('submit', () => {
+    const data = Object.fromEntries(new FormData($('form')));
+    if (editingId) Object.assign(apps.find(x => x.id === editingId), data);
+    else apps.push({ id: crypto.randomUUID?.() || String(Date.now()), checks: {}, ...data });
+    save(); render();
+  });
+  $('deleteBtn').onclick = () => {
+    const a = apps.find(x => x.id === editingId);
+    if (!confirm(`Delete ${a.school}?`)) return;
+    apps = apps.filter(x => x.id !== editingId);
+    save(); render(); $('dlg').close();
+  };
+
+  $('filter').onchange = render;
+  $('sort').onchange = render;
+
+  // Backup
+  $('exportBtn').onclick = () => {
+    const blob = new Blob([JSON.stringify(apps, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = Object.assign(document.createElement('a'), { href: url, download: `grad-apps-${new Date().toISOString().slice(0, 10)}.json` });
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  $('importBtn').onclick = () => $('importFile').click();
+  $('importFile').onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data)) throw new Error();
+      if (apps.length && !confirm(`Replace your ${apps.length} saved program(s) with ${data.length} from the backup?`)) return;
+      apps = data; save(); render();
+    } catch { alert('That file is not a valid backup.'); }
+    e.target.value = '';
+  };
+
+  render();
+</script>
+</body>
+</html>
