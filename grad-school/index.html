@@ -214,8 +214,14 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 4;
+  const SEED_REV = 5;
   const r = (...items) => items.map(t => ({ t, done: false }));
+  const FINMATH_UPDATE = {
+    format: 'In person or online',
+    start: 'Autumn 2027 (online also Jan & Jun)',
+    cost: '$7,862/course (2025–26)',
+    notes: 'Online option: live classes weekday evenings 6–9pm; part-time can be 1 course/quarter (~3 yrs). Online also starts in Jan & Jun — last cycle deadlines were Nov 6 (Jan start) and Apr 30 (Jun start). Autumn Round 1 unconfirmed: sources say Dec 3 (then Jan 14, Mar 25) or Nov 2. Needs multivariable calc, linear algebra, probability, programming.',
+  };
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
       deadline: '', start: 'Autumn 2027', fee: '125', cost: '~$71k online part-time',
@@ -232,11 +238,11 @@
       reqs: r('Statement of purpose', 'Short answer (≤300 words — verify)', 'Programming proficiency form', 'Resume', 'Transcripts', 'Professional rec 1', 'Professional rec 2', 'Pay fee', 'Submitted'),
       link: 'https://ischoolonline.berkeley.edu/data-science/',
       notes: 'Final deadline for the Jan 2027 start; rolling review. Also May & Sep starts. Expects Python/OOP and linear algebra. No GRE. Fee: sources say $135 or $200 — check (waivers possible).' },
-    { rank: 2, school: 'UChicago', program: 'MS Financial Mathematics', format: 'In person',
-      deadline: '2026-12-03', start: 'Autumn 2027', fee: '90', cost: '~$79k/yr',
+    { rank: 2, school: 'UChicago', program: 'MS Financial Mathematics', ...FINMATH_UPDATE,
+      deadline: '2026-12-03', fee: '90',
       reqs: r('Resume / CV', 'Short answer 1', 'Short answer 2', 'Short answer 3', 'Video statement 1', 'Video statement 2', 'Transcripts (unofficial OK)', 'Rec 1', 'Rec 2', 'Rec 3', 'GRE (check if required)', 'Pay fee', 'Submitted'),
       link: 'https://finmath.uchicago.edu/admissions/application-requirements/',
-      notes: 'Deadline unconfirmed — sources disagree: Round 1 Dec 3 (then Jan 14, Mar 25) or Nov 2 (then Feb 1). Check the site. Needs multivariable calc, linear algebra, probability, programming.' },
+      },
     { rank: 5, school: 'CMU Tepper', program: 'Part-Time MSBA', format: 'Online',
       deadline: '', start: 'Aug 2027', fee: '0', cost: '$718/unit',
       reqs: r('Phase 1 form', 'Resume', 'Unofficial transcripts', 'Phase 2 form', 'Essay (≤500 words)', 'Video essay (post-MSBA goals)', 'Professional rec', 'Submitted', 'Interview (by invite)'),
@@ -316,6 +322,9 @@
       a.reqs.push(...old.filter(o => !matched.has(o) && !seed.reqs.some(q => oldNorm(o.t).includes(norm(q.t)))));
       Object.assign(a, { format: seed.format, fee: seed.fee, cost: seed.cost, link: seed.link, notes: seed.notes });
     }
+    // rev 5: FinMath online/part-time option
+    const finmath = rev < 5 && list.find(x => x.id === 'seed-3');
+    if (finmath) Object.assign(finmath, FINMATH_UPDATE);
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
