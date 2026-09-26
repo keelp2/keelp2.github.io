@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="robots" content="noindex">
+  <title>Grad Applications</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23ffffff'/><rect x='3' y='3' width='58' height='58' rx='11' fill='none' stroke='%234f46e5' stroke-width='2.5'/><text x='32' y='42' font-family='system-ui,sans-serif' font-size='22' font-weight='800' fill='%234f46e5' text-anchor='middle' letter-spacing='-1'>MS</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-dim: #64748b;
+      --accent: #4f46e5;
+      --accent-dim: #e0e7ff;
+      --green: #16a34a;
+      --green-dim: #dcfce7;
+      --orange: #d97706;
+      --orange-dim: #fef3c7;
+      --red: #dc2626;
+      --red-dim: #fee2e2;
+      --gray-dim: #e2e8f0;
+      --radius: 14px;
+    }
+
+    html { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; }
+    body { min-height: 100dvh; padding: 24px 16px 64px; }
+    .wrap { max-width: 820px; margin: 0 auto; }
+    button, input, select, textarea { font-family: inherit; font-size: 15px; }
+
+    header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    header a.back { font-size: 13px; color: var(--text-dim); text-decoration: none; display: block; margin-bottom: 6px; }
+    h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+    .sub { color: var(--text-dim); font-size: 14px; margin-top: 2px; }
+
+    .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 10px; padding: 9px 14px; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: var(--surface2); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.danger { color: var(--red); }
+    .btn.small { padding: 6px 10px; font-size: 13px; }
+
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+    .stat .n { font-size: 24px; font-weight: 800; }
+    .stat .l { font-size: 12px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .toolbar select { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface); }
+    .toolbar .spacer { flex: 1; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+    .seg button { border: none; background: none; padding: 8px 14px; font-weight: 600; font-size: 14px; color: var(--text-dim); cursor: pointer; }
+    .seg button.on { background: var(--accent-dim); color: var(--accent); }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .card-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .card h3 { font-size: 17px; font-weight: 700; }
+    .card .prog { color: var(--text-dim); font-size: 14px; margin-top: 2px; }
+    .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 16px; margin-top: 12px; font-size: 13px; }
+    .facts .k { color: var(--text-dim); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+    .facts .v { font-weight: 600; margin-top: 1px; }
+    .facts .wide { grid-column: 1 / -1; }
+    .due-soon { color: var(--orange) !important; }
+    .overdue { color: var(--red) !important; }
+    .card a.portal { font-size: 13px; color: var(--accent); font-weight: 600; text-decoration: none; }
+
+    .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+    .s-researching, .s-preparing { background: var(--gray-dim); color: #334155; }
+    .s-submitted, .s-interview { background: var(--accent-dim); color: var(--accent); }
+    .s-admitted, .s-committed { background: var(--green-dim); color: var(--green); }
+    .s-waitlisted { background: var(--orange-dim); color: var(--orange); }
+    .s-rejected, .s-declined, .s-withdrawn { background: var(--red-dim); color: var(--red); }
+
+    .req-head { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.4px; }
+    .checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; cursor: pointer; user-select: none; background: var(--surface); color: #334155; }
+    .chk.done { background: var(--green-dim); border-color: transparent; color: var(--green); }
+    .progress { height: 4px; background: var(--surface2); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+    .progress > div { height: 100%; background: var(--green); }
+    .notes { font-size: 14px; margin-top: 12px; white-space: pre-wrap; color: #334155; background: var(--surface2); border-radius: 10px; padding: 10px 12px; line-height: 1.45; }
+    .card-actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+
+    .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-dim); background: var(--surface2); white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: var(--surface2); }
+    td.school { font-weight: 700; min-width: 140px; }
+    td.school span { display: block; font-weight: 500; color: var(--text-dim); }
+    td.cost { min-width: 160px; }
+
+    .empty { text-align: center; color: var(--text-dim); padding: 48px 16px; border: 2px dashed var(--border); border-radius: var(--radius); }
+
+    dialog { border: none; border-radius: 18px; padding: 0; width: min(580px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; box-shadow: 0 20px 60px rgba(15,23,42,0.25); }
+    dialog::backdrop { background: rgba(15,23,42,0.45); }
+    dialog form { padding: 20px; }
+    dialog h2 { font-size: 19px; margin-bottom: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .full { grid-column: 1 / -1; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); }
+    label small { font-weight: 500; }
+    label input, label select, label textarea { display: block; width: 100%; margin-top: 4px; border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; background: var(--surface); color: var(--text); }
+    textarea { min-height: 90px; resize: vertical; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+    footer { margin-top: 28px; font-size: 12px; color: var(--text-dim); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    @media (max-width: 560px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <a class="back" href="../">&larr; keelp2.github.io</a>
+      <h1>Master's Applications</h1>
+      <p class="sub" id="nextUp"></p>
+    </div>
+    <button class="btn primary" id="addBtn">+ Add program</button>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <div class="seg" id="viewSeg">
+      <button data-view="cards" class="on">Cards</button>
+      <button data-view="table">Compare</button>
+    </div>
+    <select id="filter" aria-label="Filter by status">
+      <option value="all">All statuses</option>
+      <option value="active">In progress</option>
+      <option value="decided">Decided</option>
+    </select>
+    <select id="sort" aria-label="Sort">
+      <option value="deadline">Sort: deadline</option>
+      <option value="school">Sort: school</option>
+      <option value="status">Sort: status</option>
+    </select>
+  </div>
+
+  <div id="list"></div>
+
+  <footer>
+    <span>Saved in this browser only. Details were pulled from program sites in Sept 2026 — confirm anything marked “verify”.</span>
+    <span class="spacer"></span>
+    <button class="btn small" id="exportBtn">Export backup</button>
+    <button class="btn small" id="importBtn">Import backup</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </footer>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="form">
+    <h2 id="dlgTitle">Add program</h2>
+    <div class="grid">
+      <label>School *<input name="school" required></label>
+      <label>Program<input name="program" placeholder="e.g. MS Computer Science"></label>
+      <label>Status<select name="status" id="statusSel"></select></label>
+      <label>Format<select name="format">
+        <option value="">—</option><option>In person</option><option>Online</option><option>Hybrid</option><option>In person or online</option>
+      </select></label>
+      <label>Application deadline<input type="date" name="deadline"></label>
+      <label>Start<input name="start" placeholder="e.g. Autumn 2027 (late Sep)"></label>
+      <label>Application fee ($)<input type="number" name="fee" min="0" step="1"></label>
+      <label>Decision expected<input type="date" name="decisionDate"></label>
+      <label class="full">Cost<input name="cost" placeholder="e.g. ~$82k total tuition"></label>
+      <label class="full">Funding / scholarship<input name="funding" placeholder="e.g. 25% merit"></label>
+      <label class="full">Requirements <small>(one per line — each becomes a checkbox)</small><textarea name="reqs" rows="6"></textarea></label>
+      <label class="full">Program link<input type="url" name="link" placeholder="https://"></label>
+      <label class="full">Notes<textarea name="notes" placeholder="Other deadline rounds, prerequisites, contacts, impressions…"></textarea></label>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn danger" id="deleteBtn" hidden>Delete</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const KEY = 'gradapps-v2';
+  const VIEW_KEY = 'gradapps-view';
+  const STATUSES = ['Researching', 'Preparing', 'Submitted', 'Interview', 'Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn'];
+  const DECIDED = new Set(['Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn']);
+  const PRE_SUBMIT = new Set(['Researching', 'Preparing']);
+
+  // Starter list, researched Sept 2026. Loaded only when nothing is saved yet.
+  const r = (...items) => items.map(t => ({ t, done: false }));
+  const SEED = [
+    {
+      school: 'Stanford', program: 'MS Computer Science', format: 'In person', status: 'Researching',
+      deadline: '', start: 'Autumn 2027 (late Sep)', fee: '125',
+      cost: '45 units, ~1.5–2 yrs at Stanford grad tuition (~$65k+/yr) — verify',
+      reqs: r('Statement of purpose (≤2 pages)', 'Resume / CV', 'Unofficial transcripts', 'Rec letter 1', 'Rec letter 2', 'Rec letter 3', 'Pay $125 fee', 'Submit'),
+      link: 'https://www.cs.stanford.edu/admissions/masters-admissions',
+      notes: 'Deadline for Autumn 2027 not confirmed yet — historically early December. Verify on the CS admissions page.\nGRE is not required and not considered.',
+    },
+    {
+      school: 'Columbia', program: 'MS Operations Research: Methods in Finance', format: 'Online', status: 'Researching',
+      deadline: '', start: 'Rolling — apply 4–6 weeks before the term you want', fee: '',
+      cost: '30 credits at Columbia Engineering per-credit rate — verify',
+      reqs: r('Personal / professional statement', 'Resume', 'Transcripts', 'Rec letter 1', 'Rec letter 2', 'Rec letter 3', 'GRE (optional)', 'Pay fee', 'Submit'),
+      link: 'https://www.engineering.columbia.edu/operations-research-methods-finance-ms-online',
+      notes: 'Offered part-time online through Columbia Video Network (CVN). Rolling admissions, no fixed deadline.\nPrereqs: probability, calculus, linear algebra. 30 credits within 5 years, 2.67 GPA minimum.',
+    },
+    {
+      school: 'UC Berkeley', program: 'Master of Information & Data Science (MIDS)', format: 'Online', status: 'Researching',
+      deadline: '2026-10-23', start: 'January 2027 (also May & September cohorts)', fee: '200',
+      cost: '~$82,226 total tuition (Fall 2026 starters) + $500 immersion + travel; UC SHIP health insurance unless waived',
+      reqs: r('Statement of purpose', 'Resume', 'Transcripts', 'Professional rec 1', 'Professional rec 2', 'Pay $200 fee (ask about waiver)', 'Submit'),
+      link: 'https://ischoolonline.berkeley.edu/data-science/',
+      notes: 'Deadline shown is the final deadline for the January 2027 cohort; rolling review, so earlier is better.\n27 units, 12–32 months depending on pace. GRE/GMAT not required.',
+    },
+    {
+      school: 'UChicago', program: 'MS Financial Mathematics', format: 'In person', status: 'Researching',
+      deadline: '2026-12-03', start: 'Autumn 2027', fee: '90',
+      cost: '~$78,620/yr tuition — verify total program cost',
+      reqs: r('Resume / CV', 'Short-answer statement 1', 'Short-answer statement 2', 'Short-answer statement 3', 'Video statement 1', 'Video statement 2', 'Transcripts', 'Rec letter 1', 'Rec letter 2', 'Rec letter 3', 'GRE (verify if needed)', 'Pay $90 fee', 'Submit'),
+      link: 'https://finmath.uchicago.edu/admissions/application-requirements/',
+      notes: 'Rounds: R1 Dec 3, 2026 · R2 Jan 14, 2027 · R3 Mar 25, 2027 (recs and verified test scores due by the deadline too).\nPrereqs: multivariable calc, linear algebra, probability, programming. An online version also exists.',
+    },
+    {
+      school: 'CMU Tepper', program: 'Part-Time Online MS Business Analytics', format: 'Online', status: 'Researching',
+      deadline: '', start: 'August 2027 (one start per year)', fee: '0',
+      cost: '$718/unit (2026–27) — total units to verify',
+      reqs: r('Phase 1 application (~5 min)', 'Phase 2 application (~30 min)', 'Essay (≤500 words)', 'Resume', 'Transcripts', 'Professional rec (verify count)', 'GMAT / GRE (optional)', 'Interview (by invitation)', 'Submit'),
+      link: 'https://www.cmu.edu/tepper/programs/master-business-analytics/part-time/apply',
+      notes: '2027 rounds not posted yet. Last cycle: R1 Oct 14 · R2 Jan 15 · R3 Mar 4 · R4 May 12 · R5 Jun 16. Expect a similar mid-October R1.\nNo application fee. Includes on-campus immersions in Pittsburgh.',
+    },
+    {
+      school: 'UChicago', program: 'MS in Applied Data Science', format: 'In person or online', status: 'Researching',
+      deadline: '2027-06-23', start: 'Autumn 2027 (full- or part-time)', fee: '90',
+      cost: '$6,384/course → ~$76.6k (12 courses) or ~$114.9k (18); $1,500 deposit if admitted',
+      reqs: r('Resume', 'Programming skills PDF (≤2 pages, R or Python)', 'Video responses', 'Unofficial transcripts', 'Rec letter 1 (manager/supervisor)', 'Rec letter 2', 'Pay $90 fee', 'Submit'),
+      link: 'https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/',
+      notes: 'Deadline shown is the FINAL deadline. Scholarships favor early applicants — last cycle the scholarship priority deadline was early December; check the 2027 date.\nPart-time: 2 courses/quarter, evenings or Saturdays.',
+    },
+    {
+      school: 'Georgia Tech', program: 'Online MS Analytics (OMSA)', format: 'Online', status: 'Researching',
+      deadline: '2027-03-15', start: 'Fall 2027 (August)', fee: '',
+      cost: '<$12k total (~$275/credit + ~$107/semester fee)',
+      reqs: r('Statement of purpose', 'Resume', 'Transcripts', 'Rec letter 1', 'Rec letter 2', 'Rec letter 3', 'GRE / GMAT (optional)', 'Pay fee', 'Submit'),
+      link: 'https://pe.gatech.edu/degrees/analytics',
+      notes: 'Fall 2027: priority review Feb 1, final Mar 15. (Spring 2027 deadlines have already passed.)\nMinimum 3.0 GPA. Application fee amount — verify.',
+    },
+  ].map((a, i) => ({ id: 'seed-' + i, decisionDate: '', funding: '', ...a }));
+
+  let apps = load();
+  let editingId = null;
+  let view = 'cards';
+  try { view = localStorage.getItem(VIEW_KEY) || 'cards'; } catch {}
+
+  function load() {
+    try {
+      const saved = localStorage.getItem(KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return structuredClone(SEED);
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(apps)); } catch {}
+  }
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function daysUntil(dateStr) {
+    if (!dateStr) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return Math.round((new Date(dateStr + 'T00:00:00') - today) / 86400000);
+  }
+  function fmtDate(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function deadlineHtml(a) {
+    if (!a.deadline) return '<span style="color:var(--text-dim)">Not set</span>';
+    const n = daysUntil(a.deadline);
+    if (!PRE_SUBMIT.has(a.status)) return fmtDate(a.deadline);
+    if (n < 0) return `<span class="overdue">${fmtDate(a.deadline)} · ${-n}d ago</span>`;
+    if (n === 0) return `<span class="overdue">${fmtDate(a.deadline)} · today</span>`;
+    return `<span class="${n <= 14 ? 'due-soon' : ''}">${fmtDate(a.deadline)} · ${n}d left</span>`;
+  }
+  const reqCount = a => [(a.reqs || []).filter(x => x.done).length, (a.reqs || []).length];
+
+  function render() {
+    const total = apps.length;
+    const submitted = apps.filter(a => !PRE_SUBMIT.has(a.status)).length;
+    const admitted = apps.filter(a => a.status === 'Admitted' || a.status === 'Committed').length;
+    const fees = apps.reduce((s, a) => s + (Number(a.fee) || 0), 0);
+    $('stats').innerHTML = [
+      [total, 'Programs'], [submitted, 'Submitted'], [admitted, 'Admits'], ['$' + fees.toLocaleString(), 'App fees'],
+    ].map(([n, l]) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+    const upcoming = apps
+      .filter(a => PRE_SUBMIT.has(a.status) && a.deadline && daysUntil(a.deadline) >= 0)
+      .sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
+    const n = upcoming && daysUntil(upcoming.deadline);
+    $('nextUp').textContent = upcoming
+      ? `Next deadline: ${upcoming.school} ${upcoming.program ? '(' + upcoming.program + ') ' : ''}${n === 0 ? 'today' : `in ${n} day${n === 1 ? '' : 's'}`}`
+      : total ? 'No upcoming deadlines' : 'Track every program in one place';
+
+    document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === view));
+
+    const filter = $('filter').value;
+    const list = apps.filter(a =>
+      filter === 'all' ? true : filter === 'decided' ? DECIDED.has(a.status) : !DECIDED.has(a.status));
+    const sort = $('sort').value;
+    list.sort((a, b) => {
+      if (sort === 'school') return (a.school + a.program).localeCompare(b.school + b.program);
+      if (sort === 'status') return STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status);
+      return (a.deadline || '9999').localeCompare(b.deadline || '9999');
+    });
+
+    if (!list.length) {
+      $('list').innerHTML = `<div class="empty">${total ? 'Nothing matches this filter.' : 'No programs yet. Click <b>+ Add program</b> to start.'}</div>`;
+      return;
+    }
+    $('list').innerHTML = view === 'table' ? renderTable(list) : list.map(renderCard).join('');
+  }
+
+  function renderCard(a) {
+    const [done, all] = reqCount(a);
+    const pct = all ? Math.round(done / all * 100) : 0;
+    const fact = (k, v, wide) => v ? `<div class="${wide ? 'wide' : ''}"><div class="k">${k}</div><div class="v">${v}</div></div>` : '';
+    return `
+      <div class="card">
+        <div class="card-top">
+          <div>
+            <h3>${esc(a.school)}</h3>
+            ${a.program ? `<div class="prog">${esc(a.program)}</div>` : ''}
+          </div>
+          <span class="pill s-${a.status.toLowerCase()}">${esc(a.status)}</span>
+        </div>
+        <div class="facts">
+          ${fact('Deadline', deadlineHtml(a))}
+          ${fact('Start', esc(a.start))}
+          ${fact('Format', esc(a.format))}
+          ${fact('App fee', a.fee !== '' && a.fee != null ? (Number(a.fee) ? '$' + esc(a.fee) : 'None') : '')}
+          ${fact('Decision', fmtDate(a.decisionDate))}
+          ${fact('Cost', esc(a.cost), true)}
+          ${fact('Funding', esc(a.funding), true)}
+        </div>
+        ${all ? `
+          <div class="req-head"><span>Requirements</span><span>${done}/${all}</span></div>
+          <div class="checks">
+            ${a.reqs.map((q, i) => `<span class="chk ${q.done ? 'done' : ''}" data-id="${a.id}" data-i="${i}">${q.done ? '✓' : '○'} ${esc(q.t)}</span>`).join('')}
+          </div>
+          <div class="progress"><div style="width:${pct}%"></div></div>` : ''}
+        ${a.notes ? `<div class="notes">${esc(a.notes)}</div>` : ''}
+        <div class="card-actions">
+          <button class="btn small" data-edit="${a.id}">Edit</button>
+          ${a.link ? `<a class="portal" href="${esc(a.link)}" target="_blank" rel="noopener noreferrer">Program page ↗</a>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function renderTable(list) {
+    return `<div class="table-wrap"><table>
+      <thead><tr><th>Program</th><th>Status</th><th>Deadline</th><th>Start</th><th>Format</th><th>Fee</th><th>Cost</th><th>Reqs</th></tr></thead>
+      <tbody>${list.map(a => {
+        const [done, all] = reqCount(a);
+        return `<tr data-edit="${a.id}">
+          <td class="school">${esc(a.school)}<span>${esc(a.program)}</span></td>
+          <td><span class="pill s-${a.status.toLowerCase()}">${esc(a.status)}</span></td>
+          <td>${deadlineHtml(a)}</td>
+          <td>${esc(a.start)}</td>
+          <td>${esc(a.format)}</td>
+          <td>${a.fee !== '' && a.fee != null ? (Number(a.fee) ? '$' + esc(a.fee) : 'None') : '—'}</td>
+          <td class="cost">${esc(a.cost)}</td>
+          <td>${all ? `${done}/${all}` : '—'}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  }
+
+  $('list').addEventListener('click', e => {
+    if (e.target.closest('a')) return;
+    const chk = e.target.closest('.chk');
+    if (chk) {
+      const q = apps.find(x => x.id === chk.dataset.id).reqs[chk.dataset.i];
+      q.done = !q.done;
+      save(); render();
+      return;
+    }
+    const edit = e.target.closest('[data-edit]');
+    if (edit) openDialog(edit.dataset.edit);
+  });
+
+  $('viewSeg').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    view = b.dataset.view;
+    try { localStorage.setItem(VIEW_KEY, view); } catch {}
+    render();
+  });
+
+  // Add / edit dialog
+  $('statusSel').innerHTML = STATUSES.map(s => `<option>${s}</option>`).join('');
+  function openDialog(id = null) {
+    editingId = id;
+    const form = $('form');
+    form.reset();
+    const a = id ? apps.find(x => x.id === id)
+      : { status: 'Researching', reqs: r('Statement of purpose', 'Resume', 'Transcripts', 'Rec letter 1', 'Rec letter 2', 'Pay fee', 'Submit') };
+    for (const el of form.elements) {
+      if (!el.name) continue;
+      el.value = el.name === 'reqs' ? (a.reqs || []).map(q => q.t).join('\n') : (a[el.name] ?? '');
+    }
+    $('dlgTitle').textContent = id ? 'Edit program' : 'Add program';
+    $('deleteBtn').hidden = !id;
+    $('dlg').showModal();
+  }
+  $('addBtn').onclick = () => openDialog();
+  $('cancelBtn').onclick = () => $('dlg').close();
+  $('form').addEventListener('submit', () => {
+    const data = Object.fromEntries(new FormData($('form')));
+    const existing = editingId && apps.find(x => x.id === editingId);
+    // Keep checked state for requirement lines that didn't change
+    const wasDone = new Set((existing?.reqs || []).filter(q => q.done).map(q => q.t));
+    data.reqs = data.reqs.split('\n').map(t => t.trim()).filter(Boolean).map(t => ({ t, done: wasDone.has(t) }));
+    if (existing) Object.assign(existing, data);
+    else apps.push({ id: crypto.randomUUID?.() || String(Date.now()), ...data });
+    save(); render();
+  });
+  $('deleteBtn').onclick = () => {
+    const a = apps.find(x => x.id === editingId);
+    if (!confirm(`Delete ${a.school} ${a.program}?`)) return;
+    apps = apps.filter(x => x.id !== editingId);
+    save(); render(); $('dlg').close();
+  };
+
+  $('filter').onchange = render;
+  $('sort').onchange = render;
+
+  // Backup
+  $('exportBtn').onclick = () => {
+    const blob = new Blob([JSON.stringify(apps, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = Object.assign(document.createElement('a'), { href: url, download: `grad-apps-${new Date().toISOString().slice(0, 10)}.json` });
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  $('importBtn').onclick = () => $('importFile').click();
+  $('importFile').onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Array.isArray(data)) throw new Error();
+      if (apps.length && !confirm(`Replace your ${apps.length} saved program(s) with ${data.length} from the backup?`)) return;
+      apps = data; save(); render();
+    } catch { alert('That file is not a valid backup.'); }
+    e.target.value = '';
+  };
+
+  render();
+</script>
+</body>
+</html>
