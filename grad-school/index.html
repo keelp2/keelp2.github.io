@@ -69,6 +69,7 @@
     .ring.full span { color: var(--green); }
     .name { flex: 1; min-width: 0; }
     .name b { display: block; font-size: 15px; font-weight: 700; }
+    .rank { font-style: normal; font-size: 12px; font-weight: 700; color: var(--accent); margin-right: 2px; }
     .name span { display: block; font-size: 13px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .due { font-size: 13px; font-weight: 600; text-align: right; white-space: nowrap; }
     .due small { display: block; font-size: 12px; font-weight: 500; color: var(--text-dim); }
@@ -156,6 +157,10 @@
       <button data-view="list" class="on">Checklist</button>
       <button data-view="table">Compare</button>
     </div>
+    <div class="seg" id="sortSeg">
+      <button data-sort="deadline" class="on">By deadline</button>
+      <button data-sort="rank">By rank</button>
+    </div>
   </div>
 
   <div id="main"></div>
@@ -183,6 +188,7 @@
       <label>Start<input name="start" placeholder="e.g. Autumn 2027"></label>
       <label>Application fee ($)<input type="number" name="fee" min="0" step="1"></label>
       <label>Cost<input name="cost" placeholder="e.g. ~$80k total"></label>
+      <label>Rank <small>(your preference, 1 = top)</small><input type="number" name="rank" min="1" step="1"></label>
       <label class="full">Checklist <small>(one item per line)</small><textarea name="reqs" rows="6"></textarea></label>
       <label class="full">Program link<input type="url" name="link" placeholder="https://"></label>
       <label class="full">Note<textarea name="notes" rows="2"></textarea></label>
@@ -201,51 +207,52 @@
   const OLD_KEY = 'gradapps-v2';
   const VIEW_KEY = 'gradapps-view';
   const REV_KEY = 'gradapps-seedrev';
+  const SORT_KEY = 'gradapps-sort';
   const STATUSES = ['Researching', 'Preparing', 'Submitted', 'Interview', 'Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn'];
   const DECIDED = new Set(['Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn']);
   const PRE_SUBMIT = new Set(['Researching', 'Preparing']);
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 3;
+  const SEED_REV = 4;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const SEED = [
-    { school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
+    { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
       deadline: '', start: 'Autumn 2027', fee: '125', cost: '~$71k online part-time',
       reqs: r('Statement of purpose (≤2 pages)', 'Resume / CV', 'Transcripts (upload official e-copies)', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://www.cs.stanford.edu/admissions/masters-admissions',
       notes: 'Part-time online via the Honors Cooperative Program (HCP) — same application and deadline as full-time; $1,575/unit × 45 units. Deadline not posted yet (usually early–mid Dec). Up to 3 recs, ideally 2 academic. No GRE.' },
-    { school: 'Columbia', program: 'MS OR: Methods in Finance', format: 'Online',
+    { rank: 3, school: 'Columbia', program: 'MS OR: Methods in Finance', format: 'Online',
       deadline: '', start: 'Rolling', fee: '85', cost: '30 credits (verify rate)',
       reqs: r('Personal statement (250–1,000 words)', 'Resume', 'Unofficial transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://www.cvn.columbia.edu/program/columbia-university-operations-research-methods-finance-masters-degree-masters-science',
       notes: 'Online via CVN. Rolling — apply at least 2 months before the term (e.g. by July for fall). Min 3.0 GPA; needs calc, linear algebra, probability. GRE optional.' },
-    { school: 'UC Berkeley', program: 'MIDS', format: 'Online',
+    { rank: 4, school: 'UC Berkeley', program: 'MIDS', format: 'Online',
       deadline: '2026-10-23', start: 'Jan 2027', fee: '', cost: '~$82k total',
       reqs: r('Statement of purpose', 'Short answer (≤300 words — verify)', 'Programming proficiency form', 'Resume', 'Transcripts', 'Professional rec 1', 'Professional rec 2', 'Pay fee', 'Submitted'),
       link: 'https://ischoolonline.berkeley.edu/data-science/',
       notes: 'Final deadline for the Jan 2027 start; rolling review. Also May & Sep starts. Expects Python/OOP and linear algebra. No GRE. Fee: sources say $135 or $200 — check (waivers possible).' },
-    { school: 'UChicago', program: 'MS Financial Mathematics', format: 'In person',
+    { rank: 2, school: 'UChicago', program: 'MS Financial Mathematics', format: 'In person',
       deadline: '2026-12-03', start: 'Autumn 2027', fee: '90', cost: '~$79k/yr',
       reqs: r('Resume / CV', 'Short answer 1', 'Short answer 2', 'Short answer 3', 'Video statement 1', 'Video statement 2', 'Transcripts (unofficial OK)', 'Rec 1', 'Rec 2', 'Rec 3', 'GRE (check if required)', 'Pay fee', 'Submitted'),
       link: 'https://finmath.uchicago.edu/admissions/application-requirements/',
       notes: 'Deadline unconfirmed — sources disagree: Round 1 Dec 3 (then Jan 14, Mar 25) or Nov 2 (then Feb 1). Check the site. Needs multivariable calc, linear algebra, probability, programming.' },
-    { school: 'CMU Tepper', program: 'Part-Time MSBA', format: 'Online',
+    { rank: 5, school: 'CMU Tepper', program: 'Part-Time MSBA', format: 'Online',
       deadline: '', start: 'Aug 2027', fee: '0', cost: '$718/unit',
       reqs: r('Phase 1 form', 'Resume', 'Unofficial transcripts', 'Phase 2 form', 'Essay (≤500 words)', 'Video essay (post-MSBA goals)', 'Professional rec', 'Submitted', 'Interview (by invite)'),
       link: 'https://www.cmu.edu/tepper/programs/master-business-analytics/part-time/apply',
       notes: '2027 rounds not posted (last year R1 was Oct 14). No fee; GMAT/GRE optional; optional extra essay.' },
-    { school: 'UChicago', program: 'MS Applied Data Science', format: 'In person or online',
+    { rank: 6, school: 'UChicago', program: 'MS Applied Data Science', format: 'In person or online',
       deadline: '2027-06-23', start: 'Autumn 2027', fee: '90', cost: '~$77k (12 courses)',
       reqs: r('Candidate statement', 'Resume', 'Programming sample (PDF, ≤2 pages)', 'Video response', 'Unofficial transcripts', 'Rec 1 (manager)', 'Rec 2', 'Pay fee', 'Submitted'),
       link: 'https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/',
       notes: 'Final deadline. Scholarship priority is earlier (~early Dec) — check. One video required, a second is optional.' },
-    { school: 'Georgia Tech', program: 'OMSA', format: 'Online',
+    { rank: 7, school: 'Georgia Tech', program: 'OMSA', format: 'Online',
       deadline: '2027-03-15', start: 'Aug 2027', fee: '95', cost: '<$12k total',
       reqs: r('Statement of purpose / essays', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://pe.gatech.edu/degrees/analytics',
       notes: 'Priority review Feb 1. Needs calc, linear algebra, prob/stats, programming. GRE optional. Fee $95 (verify).' },
-    { school: 'UT Austin', program: 'MS Data Science (online)', format: 'Online',
+    { rank: 8, school: 'UT Austin', program: 'MS Data Science (online)', format: 'Online',
       deadline: '', start: 'Aug 2027', fee: '65', cost: '$10k total',
       reqs: r('Statement of purpose', 'Resume / CV', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://cdso.utexas.edu/msds',
@@ -256,6 +263,8 @@
   save();
   let editingId = null;
   let view = 'list';
+  let sortBy = 'deadline';
+  try { sortBy = localStorage.getItem(SORT_KEY) || 'deadline'; } catch {}
   const open = new Set();
   try { view = localStorage.getItem(VIEW_KEY) || 'list'; } catch {}
 
@@ -290,7 +299,7 @@
     const RENAMED = { 'phase 1 app': 'phase 1 form', 'phase 2 app': 'phase 2 form', 'coding sample': 'programming sample',
       'video responses': 'video response', 'short answers': 'short answer 1', 'video statements': 'video statement 1', 'rec': 'professional rec' };
     const oldNorm = t => RENAMED[norm(t)] || norm(t);
-    for (const seed of SEED) {
+    for (const seed of rev < 3 ? SEED : []) {
       const a = list.find(x => x.id === seed.id);
       if (!a) {
         if (seed.id === 'seed-7' && rev < 2) list.push(structuredClone(seed));
@@ -306,6 +315,11 @@
       // Keep items the user added themselves
       a.reqs.push(...old.filter(o => !matched.has(o) && !seed.reqs.some(q => oldNorm(o.t).includes(norm(q.t)))));
       Object.assign(a, { format: seed.format, fee: seed.fee, cost: seed.cost, link: seed.link, notes: seed.notes });
+    }
+    // rev 4: starting prestige rank
+    for (const seed of SEED) {
+      const a = list.find(x => x.id === seed.id);
+      if (a && a.rank == null) a.rank = seed.rank;
     }
     return list;
   }
@@ -347,6 +361,7 @@
   function sorted() {
     return [...apps].sort((a, b) =>
       (DECIDED.has(a.status) - DECIDED.has(b.status)) ||
+      (sortBy === 'rank' ? (+a.rank || 99) - (+b.rank || 99) : 0) ||
       (a.deadline || '9999').localeCompare(b.deadline || '9999'));
   }
 
@@ -361,6 +376,7 @@
     ].filter(Boolean).join(' · ');
 
     document.querySelector('.wrap').classList.toggle('wide', view === 'table');
+    document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('on', b.dataset.sort === sortBy));
     document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === view));
     if (!apps.length) { $('main').innerHTML = `<div class="list"><div class="empty">No programs yet — click <b>+ Add program</b>.</div></div>`; return; }
     $('main').innerHTML = view === 'table' ? renderTable() : `<div class="list">${sorted().map(renderProg).join('')}</div>`;
@@ -378,7 +394,7 @@
       <div class="prog ${open.has(a.id) ? 'open' : ''} ${DECIDED.has(a.status) ? 'decided' : ''}" data-id="${a.id}">
         <div class="row" data-toggle>
           ${ring(done, all)}
-          <div class="name"><b>${esc(a.school)}</b><span>${esc(a.program)}${a.format ? ' · ' + esc(a.format) : ''}</span></div>
+          <div class="name"><b>${a.rank ? `<i class="rank">#${esc(a.rank)}</i> ` : ''}${esc(a.school)}</b><span>${esc(a.program)}${a.format ? ' · ' + esc(a.format) : ''}</span></div>
           <span class="pill s-${a.status.toLowerCase()}">${esc(a.status)}</span>
           ${dueHtml(a)}
           <span class="chev">›</span>
@@ -408,10 +424,11 @@
 
   function renderTable() {
     return `<div class="table-wrap"><table>
-      <thead><tr><th>Program</th><th>Deadline</th><th>Start</th><th>Format</th><th>Fee</th><th>Cost</th><th>Done</th><th>Status</th></tr></thead>
+      <thead><tr><th>Rank</th><th>Program</th><th>Deadline</th><th>Start</th><th>Format</th><th>Fee</th><th>Cost</th><th>Done</th><th>Status</th></tr></thead>
       <tbody>${sorted().map(a => {
         const [done, all] = progress(a);
         return `<tr data-row="${a.id}">
+          <td>${a.rank ? '#' + esc(a.rank) : '—'}</td>
           <td class="school"><b>${esc(a.school)}</b><span>${esc(a.program)}</span></td>
           <td>${a.deadline ? fmt(a.deadline, true) : (a.start === 'Rolling' ? 'Rolling' : 'TBD')}</td>
           <td>${esc(a.start)}</td>
@@ -466,6 +483,14 @@
     a.reqs.push({ t, done: false });
     save(); render();
     document.querySelector(`[data-id="${a.id}"] [data-add]`)?.focus();
+  });
+
+  $('sortSeg').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    sortBy = b.dataset.sort;
+    try { localStorage.setItem(SORT_KEY, sortBy); } catch {}
+    render();
   });
 
   $('viewSeg').addEventListener('click', e => {
