@@ -200,18 +200,32 @@
   const KEY = 'gradapps-v3';
   const OLD_KEY = 'gradapps-v2';
   const VIEW_KEY = 'gradapps-view';
+  const REV_KEY = 'gradapps-seedrev';
   const STATUSES = ['Researching', 'Preparing', 'Submitted', 'Interview', 'Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn'];
   const DECIDED = new Set(['Admitted', 'Waitlisted', 'Rejected', 'Committed', 'Declined', 'Withdrawn']);
   const PRE_SUBMIT = new Set(['Researching', 'Preparing']);
 
   // Starter list, researched Sept 2026. Loaded only when nothing is saved yet.
   const r = (...items) => items.map(t => ({ t, done: false }));
+  // Added/changed after the first release; patched into already-saved lists by load()
+  const SEED_REV = 2;
+  const STANFORD_UPDATE = {
+    format: 'In person or online',
+    cost: '~$71k online part-time',
+    notes: 'Part-time online via the Honors Cooperative Program (HCP) — same application and deadline as full-time, $1,575/unit × 45 units. Deadline not posted yet, usually early Dec. No GRE.',
+  };
+  const UT_AUSTIN = {
+    school: 'UT Austin', program: 'MS Data Science (online)', format: 'Online',
+    deadline: '', start: 'Aug 2027', fee: '', cost: '$10k total',
+    reqs: r('Statement of purpose', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
+    link: 'https://cdso.utexas.edu/msds',
+    notes: 'Run by CS + Statistics & Data Sciences. Spring 2027 deadline (Sep 1) passed. Fall 2027 apps open ~Dec; priority deadline ~April, final ~May — dates not posted yet. Min 3.0 GPA.',
+  };
   const SEED = [
-    { school: 'Stanford', program: 'MS Computer Science', format: 'In person',
-      deadline: '', start: 'Autumn 2027', fee: '125', cost: '~$65k+/yr (verify)',
+    { school: 'Stanford', program: 'MS Computer Science', ...STANFORD_UPDATE,
+      deadline: '', start: 'Autumn 2027', fee: '125',
       reqs: r('Statement (≤2 pages)', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
-      link: 'https://www.cs.stanford.edu/admissions/masters-admissions',
-      notes: 'Deadline not posted yet — usually early Dec. No GRE.' },
+      link: 'https://www.cs.stanford.edu/admissions/masters-admissions' },
     { school: 'Columbia', program: 'MS OR: Methods in Finance', format: 'Online',
       deadline: '', start: 'Rolling', fee: '', cost: '30 credits (verify rate)',
       reqs: r('Statement', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
@@ -242,9 +256,11 @@
       reqs: r('Statement', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://pe.gatech.edu/degrees/analytics',
       notes: 'Priority review Feb 1. GRE optional.' },
+    UT_AUSTIN,
   ].map((a, i) => ({ id: 'seed-' + i, status: 'Researching', ...a }));
 
   let apps = load();
+  save();
   let editingId = null;
   let view = 'list';
   const open = new Set();
@@ -253,7 +269,7 @@
   function load() {
     try {
       const saved = localStorage.getItem(KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) return patchSeed(JSON.parse(saved));
       // Carry over status and ticked items from the previous version of the page
       const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
       if (Array.isArray(old)) {
@@ -271,7 +287,18 @@
     } catch {}
     return structuredClone(SEED);
   }
+  function patchSeed(list) {
+    let rev = 1;
+    try { rev = +localStorage.getItem(REV_KEY) || 1; } catch {}
+    if (rev < 2) {
+      const stanford = list.find(a => a.id === 'seed-0');
+      if (stanford && stanford.format === 'In person') Object.assign(stanford, STANFORD_UPDATE);
+      if (!list.some(a => a.id === 'seed-7')) list.push(structuredClone(SEED[7]));
+    }
+    return list;
+  }
   function save() {
+    try { localStorage.setItem(REV_KEY, SEED_REV); } catch {}
     try { localStorage.setItem(KEY, JSON.stringify(apps)); } catch {}
   }
 
