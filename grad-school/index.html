@@ -26,6 +26,9 @@
       --green-dim: #dcfce7;
       --orange: #d97706;
       --orange-dim: #fef3c7;
+      --yellow: #a16207;
+      --yellow-dim: #fef9c3;
+      --yellow-line: #facc15;
       --red: #dc2626;
       --red-dim: #fee2e2;
       --gray-dim: #e2e8f0;
@@ -61,6 +64,9 @@
     .prog { border-bottom: 1px solid var(--border); }
     .prog:last-child { border-bottom: none; }
     .prog.decided .row { opacity: 0.6; }
+    .prog.preparing .row, .prog.preparing .body { box-shadow: inset 4px 0 0 var(--yellow-line); }
+    .prog.preparing .row { background: #fffdf2; }
+    .prog.preparing .row:hover { background: var(--yellow-dim); }
     .row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; user-select: none; }
     .row:hover { background: var(--surface2); }
     .ring { flex: none; width: 34px; height: 34px; position: relative; }
@@ -80,7 +86,8 @@
     .prog.open .chev { transform: rotate(90deg); }
 
     .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
-    .s-researching, .s-preparing { background: var(--gray-dim); color: #334155; }
+    .s-researching { background: var(--gray-dim); color: #334155; }
+    .s-preparing { background: var(--yellow-dim); color: var(--yellow); }
     .s-submitted, .s-interview { background: var(--accent-dim); color: var(--accent); }
     .s-admitted, .s-committed { background: var(--green-dim); color: var(--green); }
     .s-waitlisted { background: var(--orange-dim); color: var(--orange); }
@@ -526,7 +533,7 @@
       a.cost && `Cost <b>${esc(a.cost)}</b>`,
     ].filter(Boolean).join(' · ');
     return `
-      <div class="prog ${open.has(a.id) ? 'open' : ''} ${DECIDED.has(a.status) ? 'decided' : ''}" data-id="${a.id}">
+      <div class="prog ${open.has(a.id) ? 'open' : ''} ${DECIDED.has(a.status) ? 'decided' : ''} ${a.status === 'Preparing' ? 'preparing' : ''}" data-id="${a.id}">
         <div class="row" data-toggle>
           ${ring(done, all)}
           <div class="name"><b>${a.rank ? `<i class="rank">#${esc(a.rank)}</i> ` : ''}${esc(a.school)}</b><span>${esc(a.program)}${a.format ? ' · ' + esc(a.format) : ''}${a.review ? ' · ' + esc(a.review) : ''}</span></div>
