@@ -216,7 +216,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 9;
+  const SEED_REV = 10;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -246,9 +246,9 @@
   const ONLINE_UPDATES = {
     'seed-0': { format: 'Online (HCP)' },
     'seed-3': { format: 'Online', start: 'Jan or Jun 2027', from: ['2026-12-03', ''], deadline: '2026-11-05', deadlineEst: true,
-      notes: 'Online program: live classes weekday evenings 6–9pm; online starts are Jan and Jun. Jan 2027 deadline not posted — last year Nov 6, so ~Nov 5 (est.); Jun 2027 start ~late Apr (last year Apr 30). Part-time can be 1 course/quarter (~3 yrs). 1,250 units (12.5 courses) at $7,862/course (2025–26 rate). Needs multivariable calc, linear algebra, probability, programming.' },
+      notes: 'Online program: live classes weekday evenings 6–9pm; online starts are Jan and Jun. Jan 2027 deadline not posted — last year Nov 6, so ~Nov 5 (est.); Jun 2027 start ~late Apr (last year Apr 30). Part-time can be 1 course/quarter (~3 yrs). Recs: 2 required, 3 strongly recommended for FinMath; clicking “Send to Recommender” in the portal emails them a link right away, and they see whether you waived your right to view the letter. 1,250 units (12.5 courses) at $7,862/course (2025–26 rate). Needs multivariable calc, linear algebra, probability, programming.' },
     'seed-5': { format: 'Online', start: 'Autumn 2027', from: ['2026-11-09', '2026-12-03', ''], deadline: '2027-06-23', deadlineEst: false,
-      notes: 'Online program (official): one final deadline, Jun 23, 2027, with rolling decisions — applying earlier gets an earlier answer. Starts Autumn 2027; part-time is 2 courses/quarter with live evening/Saturday classes. $6,384/course (2025–26 rate; rises 3–7%/yr); $1,500 deposit if admitted. One video required, a second is optional. Online info session Sep 28, 5–6pm CT.' },
+      notes: 'Online program (official): one final deadline, Jun 23, 2027, with rolling decisions — applying earlier gets an earlier answer. Starts Autumn 2027; part-time is 2 courses/quarter with live evening/Saturday classes. $6,384/course (2025–26 rate; rises 3–7%/yr); $1,500 deposit if admitted. One video required, a second is optional. Recs: 2 required (extra letters welcome); clicking “Send to Recommender” in the portal emails them a link right away. Online info session Sep 28, 5–6pm CT.' },
     'seed-7': { cost: '$10k + fees', from: [''], deadline: '2027-03-15', deadlineEst: false,
       notes: 'Fall 2027 (official): application opens Dec 15; priority deadline Mar 15, final Apr 15. Applying is a two-step process — submit the UT Austin application before the priority deadline so materials are processed in time. Run by Statistics & Data Science + Computer Science. 10 courses: gateway Principles of Data Science; core Data Structures & Algorithms, Machine Learning, Probability & Inference, Regression & Predictive Modeling; 2 stats electives + 3 ML/AI electives (e.g. Deep Learning, NLP, Optimization, Reinforcement Learning, Causal Inference). $10,000 + fees. No GRE. Min 3.0 GPA.' },
   };
@@ -270,7 +270,7 @@
       notes: 'Final deadline for the Jan 2027 start; rolling review. Also May & Sep starts. 27 units at $2,850/unit (Fall 2026), ~$82k with campus fees; health insurance extra unless waived. Expects Python/OOP and linear algebra. No GRE. Fee $135 (waivers possible).' },
     { rank: 2, school: 'UChicago', program: 'MS Financial Mathematics', ...FINMATH_UPDATE,
       deadline: '2026-12-03', fee: '90',
-      reqs: r('Resume / CV', 'Short answer 1', 'Short answer 2', 'Short answer 3', 'Video statement 1', 'Video statement 2', 'Transcripts (unofficial OK)', 'Rec 1', 'Rec 2', 'Rec 3', 'GRE (check if required)', 'Pay fee', 'Submitted'),
+      reqs: r('Resume / CV', 'Short answer 1', 'Short answer 2', 'Short answer 3', 'Video statement 1', 'Video statement 2', 'Transcripts (unofficial OK)', 'Decide: waive right to see letters', 'Send recommender requests (portal)', 'Rec 1', 'Rec 2', 'Rec 3 (strongly recommended)', 'GRE (check if required)', 'Pay fee', 'Submitted'),
       link: 'https://finmath.uchicago.edu/admissions/application-requirements/',
       },
     { rank: 5, school: 'CMU Tepper', program: 'Part-Time MSBA', format: 'Online',
@@ -280,7 +280,7 @@
       notes: '2027 rounds not posted (last year R1 was Oct 14). No fee; GMAT/GRE optional; optional extra essay.' },
     { rank: 6, school: 'UChicago', program: 'MS Applied Data Science', format: 'In person or online',
       deadline: '2027-06-23', start: 'Autumn 2027', fee: '90', cost: '~$77k (12 courses)',
-      reqs: r('Candidate statement', 'Resume', 'Programming sample (PDF, ≤2 pages)', 'Video response', 'Unofficial transcripts', 'Rec 1 (manager)', 'Rec 2', 'Pay fee', 'Submitted'),
+      reqs: r('Candidate statement', 'Resume', 'Programming sample (PDF, ≤2 pages)', 'Video response', 'Unofficial transcripts', 'Decide: waive right to see letters', 'Send recommender requests (portal)', 'Rec 1 (manager)', 'Rec 2', 'Pay fee', 'Submitted'),
       link: 'https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/',
       notes: 'Final deadline. Scholarship priority is earlier (~early Dec) — check. One video required, a second is optional.' },
     { rank: 7, school: 'Georgia Tech', program: 'OMSA', format: 'Online',
@@ -339,21 +339,25 @@
     const RENAMED = { 'phase 1 app': 'phase 1 form', 'phase 2 app': 'phase 2 form', 'coding sample': 'programming sample',
       'video responses': 'video response', 'short answers': 'short answer 1', 'video statements': 'video statement 1', 'rec': 'professional rec' };
     const oldNorm = t => RENAMED[norm(t)] || norm(t);
+    // Replace a program's checklist with the starter one, keeping ticks on matching items
+    function mergeReqs(a, reqs) {
+      const old = a.reqs || [];
+      const matched = new Set();
+      a.reqs = reqs.map(q => {
+        const hit = old.find(o => !matched.has(o) && (norm(q.t) === oldNorm(o.t) || norm(q.t).includes(oldNorm(o.t))));
+        if (hit) matched.add(hit);
+        return { t: q.t, done: !!hit?.done };
+      });
+      // Keep items the user added themselves
+      a.reqs.push(...old.filter(o => !matched.has(o) && !reqs.some(q => oldNorm(o.t).includes(norm(q.t)))));
+    }
     for (const seed of rev < 3 ? SEED : []) {
       const a = list.find(x => x.id === seed.id);
       if (!a) {
         if (seed.id === 'seed-7' && rev < 2) list.push(structuredClone(seed));
         continue;
       }
-      const old = a.reqs || [];
-      const matched = new Set();
-      a.reqs = seed.reqs.map(q => {
-        const hit = old.find(o => !matched.has(o) && (norm(q.t) === oldNorm(o.t) || norm(q.t).includes(oldNorm(o.t))));
-        if (hit) matched.add(hit);
-        return { t: q.t, done: !!hit?.done };
-      });
-      // Keep items the user added themselves
-      a.reqs.push(...old.filter(o => !matched.has(o) && !seed.reqs.some(q => oldNorm(o.t).includes(norm(q.t)))));
+      mergeReqs(a, seed.reqs);
       Object.assign(a, { format: seed.format, fee: seed.fee, cost: seed.cost, link: seed.link, notes: seed.notes });
     }
     // rev 5: FinMath online/part-time option
@@ -385,6 +389,11 @@
       if (!a) continue;
       Object.assign(a, rest);
       if (deadline !== undefined && from.includes(a.deadline || '')) Object.assign(a, { deadline, deadlineEst });
+    }
+    // rev 10: UChicago recommendation steps
+    if (rev < 10) for (const id of ['seed-3', 'seed-5']) {
+      const a = list.find(x => x.id === id), seed = SEED.find(x => x.id === id);
+      if (a) { mergeReqs(a, seed.reqs); a.notes = seed.notes; }
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
