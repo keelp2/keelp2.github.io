@@ -216,7 +216,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 7;
+  const SEED_REV = 8;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -235,8 +235,8 @@
       notes: 'Autumn 2027 rounds (confirmed): Dec 3 · Jan 14 · Mar 25 — recs and test scores due by the deadline too. Online program also starts in Jan & Jun: Jan 2027 deadline not posted (last year Nov 6, so ~Nov 5). 1,250 units (12.5 courses) at $7,862/course (2025–26 rate). Online classes weekday evenings 6–9pm; part-time can be 1 course/quarter (~3 yrs). Needs multivariable calc, linear algebra, probability, programming.' },
     'seed-4': { from: '', deadline: '2026-10-13', deadlineEst: true,
       notes: '2027 rounds not posted — date shown projects last year\'s R1 (Oct 14). Last year: R1 Oct 14 · R2 Jan 15 · R3 Mar 4 · R4 May 12 · R5 Jun 16. ~20 months, 108 units at $718/unit (2026–27). No fee; GMAT/GRE optional; optional extra essay.' },
-    'seed-5': { from: '2027-06-23', deadline: '2026-12-03', deadlineEst: true,
-      notes: 'Date shown is the scholarship priority deadline (last year Dec 4) — scholarships favor early applicants. Last year\'s later rounds: Mar 4, May 6. Final deadline Jun 23, 2027 (confirmed). $6,384/course (2025–26 rate; rises 3–7%/yr); $1,500 deposit if admitted. One video required, a second is optional.' },
+    'seed-5': { from: '2027-06-23', deadline: '2026-11-09', deadlineEst: false,
+      notes: 'In-person deadlines (official): Nov 9 (1st priority) · Dec 7 (2nd) · Mar 4 · May 6 · final Jun 23, 2027 — decisions ~1–2 months after each; priority rounds matter for scholarships. Online program: single final deadline Jun 23, 2027, rolling decisions. All tracks start in Autumn. $6,384/course (2025–26 rate; rises 3–7%/yr); $1,500 deposit if admitted. One video required, a second is optional. Info sessions: online program Sep 28, in-person Oct 22 (5–6pm CT).' },
     'seed-6': { from: '2027-03-15', deadline: '2027-03-15', deadlineEst: false,
       notes: 'Fall 2027 (confirmed): priority review Feb 1, final Mar 15. 36 credits at $343/credit for out-of-state US students (~$12.3k) plus an online learning fee each semester ($212–$531). Needs calc, linear algebra, prob/stats, programming. GRE optional. Fee $95.' },
     'seed-7': { from: '', deadline: '', deadlineEst: false,
@@ -360,6 +360,13 @@
     if (rev < 7) for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
       if (a) Object.assign(a, { cost: seed.cost, fee: seed.fee, notes: seed.notes });
+    }
+    // rev 8: official MS-ADS deadlines (replaces the Dec 3 estimate unless the user changed it)
+    const ads = rev < 8 && list.find(x => x.id === 'seed-5');
+    if (ads) {
+      const seed = SEED.find(x => x.id === 'seed-5');
+      ads.notes = seed.notes;
+      if (['2026-12-03', '2027-06-23', ''].includes(ads.deadline || '')) Object.assign(ads, { deadline: seed.deadline, deadlineEst: false });
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
