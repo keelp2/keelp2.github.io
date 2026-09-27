@@ -216,7 +216,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 8;
+  const SEED_REV = 9;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -241,6 +241,16 @@
       notes: 'Fall 2027 (confirmed): priority review Feb 1, final Mar 15. 36 credits at $343/credit for out-of-state US students (~$12.3k) plus an online learning fee each semester ($212–$531). Needs calc, linear algebra, prob/stats, programming. GRE optional. Fee $95.' },
     'seed-7': { from: '', deadline: '', deadlineEst: false,
       notes: 'Run by CS + Statistics & Data Sciences. Fall 2027 dates not posted — applications open ~Dec, priority deadline ~April, final ~May. Spring 2027 deadline (Sep 1) passed. 30 credits (10 courses) at $1,000/course. No GRE. Min 3.0 GPA.' },
+  };
+  // Online-only (user can only do online programs). from = starter deadlines this may replace.
+  const ONLINE_UPDATES = {
+    'seed-0': { format: 'Online (HCP)' },
+    'seed-3': { format: 'Online', start: 'Jan or Jun 2027', from: ['2026-12-03', ''], deadline: '2026-11-05', deadlineEst: true,
+      notes: 'Online program: live classes weekday evenings 6–9pm; online starts are Jan and Jun. Jan 2027 deadline not posted — last year Nov 6, so ~Nov 5 (est.); Jun 2027 start ~late Apr (last year Apr 30). Part-time can be 1 course/quarter (~3 yrs). 1,250 units (12.5 courses) at $7,862/course (2025–26 rate). Needs multivariable calc, linear algebra, probability, programming.' },
+    'seed-5': { format: 'Online', start: 'Autumn 2027', from: ['2026-11-09', '2026-12-03', ''], deadline: '2027-06-23', deadlineEst: false,
+      notes: 'Online program (official): one final deadline, Jun 23, 2027, with rolling decisions — applying earlier gets an earlier answer. Starts Autumn 2027; part-time is 2 courses/quarter with live evening/Saturday classes. $6,384/course (2025–26 rate; rises 3–7%/yr); $1,500 deposit if admitted. One video required, a second is optional. Online info session Sep 28, 5–6pm CT.' },
+    'seed-7': { cost: '$10k + fees', from: [''], deadline: '2027-03-15', deadlineEst: false,
+      notes: 'Fall 2027 (official): application opens Dec 15; priority deadline Mar 15, final Apr 15. Applying is a two-step process — submit the UT Austin application before the priority deadline so materials are processed in time. Run by Statistics & Data Science + Computer Science. 10 courses: gateway Principles of Data Science; core Data Structures & Algorithms, Machine Learning, Probability & Inference, Regression & Predictive Modeling; 2 stats electives + 3 ML/AI electives (e.g. Deep Learning, NLP, Optimization, Reinforcement Learning, Causal Inference). $10,000 + fees. No GRE. Min 3.0 GPA.' },
   };
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
@@ -285,7 +295,8 @@
       notes: 'Run by CS + Statistics & Data Sciences. Spring 2027 deadline (Sep 1) passed. Fall 2027 dates not posted yet (priority ~April, final ~May). Min 3.0 GPA.' },
   ].map((a, i) => {
     const { from, ...upd } = DEADLINE_UPDATES['seed-' + i] || {};
-    return { id: 'seed-' + i, status: 'Researching', ...a, ...upd };
+    const { from: _, ...onl } = ONLINE_UPDATES['seed-' + i] || {};
+    return { id: 'seed-' + i, status: 'Researching', ...a, ...upd, ...onl };
   });
 
   let apps = load();
@@ -367,6 +378,13 @@
       const seed = SEED.find(x => x.id === 'seed-5');
       ads.notes = seed.notes;
       if (['2026-12-03', '2027-06-23', ''].includes(ads.deadline || '')) Object.assign(ads, { deadline: seed.deadline, deadlineEst: false });
+    }
+    // rev 9: switch to online versions + official UT Austin dates
+    if (rev < 9) for (const [id, { from, deadline, deadlineEst, ...rest }] of Object.entries(ONLINE_UPDATES)) {
+      const a = list.find(x => x.id === id);
+      if (!a) continue;
+      Object.assign(a, rest);
+      if (deadline !== undefined && from.includes(a.deadline || '')) Object.assign(a, { deadline, deadlineEst });
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
