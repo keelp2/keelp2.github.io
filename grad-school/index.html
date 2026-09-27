@@ -216,7 +216,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 13;
+  const SEED_REV = 14;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -230,7 +230,7 @@
     'seed-0': { from: '', deadline: '2026-12-01', deadlineEst: true,
       notes: 'Part-time online via the Honors Cooperative Program (HCP): same application and deadline as full-time, but you must be employed. For CS, only the AI, Information Management & Analytics, and Systems specializations can be done fully online. $1,575/unit × 45 units ≈ $70,875. 2027 deadline not posted: last year was Tue Dec 2, 2025, so expect ~Dec 1, 2026. Recs: 3 required (optional 4th as a backup); at least one from a professor strongly recommended. Letters must be written and submitted solely by the recommender — you must tell them this. No GRE.' },
     'seed-1': { from: '', deadline: '2026-11-10', deadlineEst: true, start: 'Spring or Fall 2027 (rolling)',
-      notes: 'Online via CVN. Rolling admissions, but apply at least 10 weeks before the term: date shown is ~10 weeks before Spring 2027 classes (late Jan). For Fall 2027, apply by ~late June. $2,822/credit + $395/course (2026–27). Min 3.0 GPA; needs calc, linear algebra, probability. GRE optional.' },
+      notes: 'Fully online via CVN, rolling admissions. Program page says apply no later than 4–6 weeks before the semester (~early Dec for Spring 2027); the CVN FAQ says 10 weeks — date shown (~Nov 10) is the safer target. For Fall 2027, apply by ~late June. Needs probability, calculus, linear algebra and a programming course (C recommended); try the prerequisite questions on the program page. First 3 courses (optimization, probability & statistics, stochastic models) need B- or better to continue. 30 credits: 7 core + 3 electives (e.g. risk management, fixed income, vol smile, credit). $2,822/credit + $395/course (2026–27). Min 3.0 GPA. GRE optional.' },
     'seed-3': { from: '2026-12-03', deadline: '2026-12-03', deadlineEst: false,
       notes: 'Autumn 2027 rounds (confirmed): Dec 3 · Jan 14 · Mar 25 — recs and test scores due by the deadline too. Online program also starts in Jan & Jun: Jan 2027 deadline not posted (last year Nov 6, so ~Nov 5). 1,250 units (12.5 courses) at $7,862/course (2025–26 rate). Online classes weekday evenings 6–9pm; part-time can be 1 course/quarter (~3 yrs). Needs multivariable calc, linear algebra, probability, programming.' },
     'seed-4': { from: '', deadline: '2026-10-14', deadlineEst: false,
@@ -260,7 +260,7 @@
       notes: 'Part-time online via the Honors Cooperative Program (HCP) — same application and deadline as full-time; $1,575/unit × 45 units. Deadline not posted yet (usually early–mid Dec). Up to 3 recs, ideally 2 academic. No GRE.' },
     { rank: 3, school: 'Columbia', program: 'MS OR: Methods in Finance', format: 'Online',
       deadline: '', start: 'Rolling', fee: '85', cost: '~$89k (10 courses)',
-      reqs: r('Personal statement (250–1,000 words)', 'Resume', 'Unofficial transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
+      reqs: r('Self-check: prerequisite questions', 'Personal statement (250–1,000 words)', 'Resume', 'Unofficial transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://www.cvn.columbia.edu/program/columbia-university-operations-research-methods-finance-masters-degree-masters-science',
       notes: 'Online via CVN. Rolling — apply at least 2 months before the term (e.g. by July for fall). Min 3.0 GPA; needs calc, linear algebra, probability. GRE optional.' },
     { rank: 4, school: 'UC Berkeley', program: 'MIDS', format: 'Online',
@@ -391,8 +391,8 @@
       Object.assign(a, rest);
       if (deadline !== undefined && from.includes(a.deadline || '')) Object.assign(a, { deadline, deadlineEst });
     }
-    // rev 10: UChicago recommendation steps; rev 11: Berkeley supervisor rec; rev 12: Stanford recs
-    if (rev < 12) for (const id of [...(rev < 10 ? ['seed-3', 'seed-5'] : []), ...(rev < 11 ? ['seed-2'] : []), 'seed-0']) {
+    // rev 10: UChicago recommendation steps; rev 11: Berkeley supervisor rec; rev 12: Stanford recs; rev 14: Columbia prereqs
+    if (rev < 14) for (const id of [...(rev < 10 ? ['seed-3', 'seed-5'] : []), ...(rev < 11 ? ['seed-2'] : []), ...(rev < 12 ? ['seed-0'] : []), 'seed-1']) {
       const a = list.find(x => x.id === id), seed = SEED.find(x => x.id === id);
       if (a) { mergeReqs(a, seed.reqs); a.notes = seed.notes; }
     }
