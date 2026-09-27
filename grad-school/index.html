@@ -216,7 +216,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 14;
+  const SEED_REV = 15;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -233,8 +233,8 @@
       notes: 'Fully online via CVN, rolling admissions. Program page says apply no later than 4–6 weeks before the semester (~early Dec for Spring 2027); the CVN FAQ says 10 weeks — date shown (~Nov 10) is the safer target. For Fall 2027, apply by ~late June. Needs probability, calculus, linear algebra and a programming course (C recommended); try the prerequisite questions on the program page. First 3 courses (optimization, probability & statistics, stochastic models) need B- or better to continue. 30 credits: 7 core + 3 electives (e.g. risk management, fixed income, vol smile, credit). $2,822/credit + $395/course (2026–27). Min 3.0 GPA. GRE optional.' },
     'seed-3': { from: '2026-12-03', deadline: '2026-12-03', deadlineEst: false,
       notes: 'Autumn 2027 rounds (confirmed): Dec 3 · Jan 14 · Mar 25 — recs and test scores due by the deadline too. Online program also starts in Jan & Jun: Jan 2027 deadline not posted (last year Nov 6, so ~Nov 5). 1,250 units (12.5 courses) at $7,862/course (2025–26 rate). Online classes weekday evenings 6–9pm; part-time can be 1 course/quarter (~3 yrs). Needs multivariable calc, linear algebra, probability, programming.' },
-    'seed-4': { from: '', deadline: '2026-10-14', deadlineEst: false,
-      notes: 'Rounds (official): R1 Oct 14, 2026 · R2 Jan 13, 2027 · R3 Mar 3 · R4 May 5 · R5 rolling — all for the Aug 2027 start. Two-step application: Phase 1 takes minutes and you hear back within 10 business days. ~20 months, 108 units at $718/unit (2026–27). On-campus BaseCamp + capstone; Analytics Immersion optional. No fee; GMAT/GRE optional; optional extra essay.' },
+    'seed-4': { from: '', deadline: '2027-01-13', deadlineEst: false,
+      notes: 'Targeting Round 2 (Jan 13). Rounds (official): R1 Oct 14, 2026 · R2 Jan 13, 2027 · R3 Mar 3 · R4 May 5 · R5 rolling — all for the Aug 2027 start. Two-step application: Phase 1 takes minutes and you hear back within 10 business days. ~20 months, 108 units at $718/unit (2026–27). On-campus BaseCamp + capstone; Analytics Immersion optional. No fee; GMAT/GRE optional; optional extra essay.' },
     'seed-5': { from: '2027-06-23', deadline: '2026-11-09', deadlineEst: false,
       notes: 'In-person deadlines (official): Nov 9 (1st priority) · Dec 7 (2nd) · Mar 4 · May 6 · final Jun 23, 2027 — decisions ~1–2 months after each; priority rounds matter for scholarships. Online program: single final deadline Jun 23, 2027, rolling decisions. All tracks start in Autumn. $6,384/course (2025–26 rate; rises 3–7%/yr); $1,500 deposit if admitted. One video required, a second is optional. Info sessions: online program Sep 28, in-person Oct 22 (5–6pm CT).' },
     'seed-6': { from: '2027-03-15', deadline: '2027-03-15', deadlineEst: false,
@@ -402,6 +402,12 @@
       const seed = SEED.find(x => x.id === 'seed-4');
       tepper.notes = seed.notes;
       if (['2026-10-13', ''].includes(tepper.deadline || '')) Object.assign(tepper, { deadline: seed.deadline, deadlineEst: false });
+    }
+    // rev 15: aim for Tepper Round 2
+    const tepper2 = rev < 15 && list.find(x => x.id === 'seed-4');
+    if (tepper2) {
+      tepper2.notes = SEED.find(x => x.id === 'seed-4').notes;
+      if (['2026-10-14', '2026-10-13', ''].includes(tepper2.deadline || '')) Object.assign(tepper2, { deadline: '2027-01-13', deadlineEst: false });
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
