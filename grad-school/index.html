@@ -216,7 +216,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 15;
+  const SEED_REV = 16;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -283,16 +283,21 @@
       reqs: r('Candidate statement', 'Resume', 'Programming sample (PDF, ≤2 pages)', 'Video response', 'Unofficial transcripts', 'Decide: waive right to see letters', 'Send recommender requests (portal)', 'Rec 1 (manager)', 'Rec 2', 'Pay fee', 'Submitted'),
       link: 'https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/',
       notes: 'Final deadline. Scholarship priority is earlier (~early Dec) — check. One video required, a second is optional.' },
-    { rank: 7, school: 'Georgia Tech', program: 'OMSA', format: 'Online',
+    { rank: 8, school: 'Georgia Tech', program: 'OMSA', format: 'Online',
       deadline: '2027-03-15', start: 'Aug 2027', fee: '95', cost: '~$12–15k total',
       reqs: r('Statement of purpose / essays', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://pe.gatech.edu/degrees/analytics',
       notes: 'Priority review Feb 1. Needs calc, linear algebra, prob/stats, programming. GRE optional. Fee $95 (verify).' },
-    { rank: 8, school: 'UT Austin', program: 'MS Data Science (online)', format: 'Online',
+    { rank: 9, school: 'UT Austin', program: 'MS Data Science (online)', format: 'Online',
       deadline: '', start: 'Aug 2027', fee: '65', cost: '$10k total',
       reqs: r('Statement of purpose', 'Resume / CV', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://cdso.utexas.edu/msds',
       notes: 'Run by CS + Statistics & Data Sciences. Spring 2027 deadline (Sep 1) passed. Fall 2027 dates not posted yet (priority ~April, final ~May). Min 3.0 GPA.' },
+    { rank: 7, school: 'Northwestern', program: 'MS Data Science (online)', format: 'Online',
+      deadline: '2027-01-15', deadlineEst: false, start: 'Spring quarter 2027 (late Mar)', fee: '', cost: '~$63k (12 courses)',
+      reqs: r('Statement of purpose (300 words)', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Pay fee', 'Submitted'),
+      link: 'https://sps.northwestern.edu/masters/data-science/',
+      notes: 'School of Professional Studies, part-time online; start any quarter. Deadlines (official): Winter quarter (early Jan) Oct 15 · Spring quarter (late Mar) Jan 15 · Summer Apr 15 · Fall Jul 15; decisions ~4 weeks after. 12 courses at $5,098 + $135 tech fee each (2026–27). 2 recs (academic/professional). GRE not required. Specializations include AI, analytics & modeling, data engineering.' },
   ].map((a, i) => {
     const { from, ...upd } = DEADLINE_UPDATES['seed-' + i] || {};
     const { from: _, ...onl } = ONLINE_UPDATES['seed-' + i] || {};
@@ -402,6 +407,13 @@
       const seed = SEED.find(x => x.id === 'seed-4');
       tepper.notes = seed.notes;
       if (['2026-10-13', ''].includes(tepper.deadline || '')) Object.assign(tepper, { deadline: seed.deadline, deadlineEst: false });
+    }
+    // rev 16: add Northwestern; shift default ranks of GT and UT down one
+    if (rev < 16 && !list.some(x => x.id === 'seed-8')) {
+      list.push(structuredClone(SEED.find(x => x.id === 'seed-8')));
+      const gt = list.find(x => x.id === 'seed-6'), ut = list.find(x => x.id === 'seed-7');
+      if (gt && +gt.rank === 7) gt.rank = 8;
+      if (ut && +ut.rank === 8) ut.rank = 9;
     }
     // rev 15: aim for Tepper Round 2
     const tepper2 = rev < 15 && list.find(x => x.id === 'seed-4');
