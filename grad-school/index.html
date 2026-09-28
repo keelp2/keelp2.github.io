@@ -224,7 +224,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 20;
+  const SEED_REV = 21;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -291,6 +291,23 @@
     if (ask) ask.done = true; else a.reqs.unshift({ t: ASK_RECS, done: true });
     if (a.status === 'Researching') a.status = 'Preparing';
   }
+  // Verified rec rules + deadline caveats (Sept 28); Adam Loy as the academic letter
+  const REV21 = {
+    'seed-10': { notes: 'Penn Engineering (Ivy), fully online; switch between part- and full-time any semester. Spring 2027 deadline Oct 19 (official); reviewed as applications arrive. Scholarship deadline (Aug 3) has passed. Recs (official): 2 required, optional 3rd as a backup; must be people who evaluated you (supervisors, managers, professors), not colleagues or friends (2+ such letters = rejected). Penn emails recommenders an upload link. $3,859/course.' },
+    'seed-1': { rename: ['Rec 3: TBD (required)', 'Rec 3: Adam (professor) — needed by ~Nov 10'], add: 'Ask Adam for an academic letter (by ~Nov 1)', notes: 'Rolling, but decisions come ~10 weeks after your LAST letter arrives and spring classes start Jan 19, 2027, so all 3 letters should be in by ~Nov 10. Recs (official): 3 required; professors you took courses with and day-to-day supervisors are ideal. Fully online via CVN. 30 credits: 7 core + 3 electives (e.g. risk management, fixed income, vol smile, credit). First 3 courses need B- or better to continue. $2,822/credit + $395/course (2026–27). Min 3.0 GPA; needs probability, calculus, linear algebra and a programming course (C recommended); try the prerequisite questions. GRE optional.' },
+    'seed-3': { rename: ['Rec 3: TBD (strongly recommended)', 'Rec 3: Adam (professor, strongly recommended)'], add: 'Confirm Jan 2027 online deadline with admissions', notes: '⚠ Jan 2027 online deadline NOT confirmed: last year\'s January-start deadline was Nov 6 (so ~Nov 5 is an estimate); some sources list Dec 3 / Jan 14 / Mar 25 rounds, which may be for the autumn start. Confirm with admissions. Recs (official): 2 required, 3 strongly recommended for FinMath; recommender type not specified, so include at least one professor. Online: live classes weekday evenings 6–9pm; starts Jan & Jun; offers go out on a rolling basis with no advantage to earlier rounds. Part-time can be 1 course/quarter (~3 yrs). 1,250 units (12.5 courses) at $7,862/course (2025–26). Needs multivariable calc, linear algebra, probability, programming.' },
+  };
+  function applyRev21(a) {
+    const u = REV21[a.id];
+    if (!u) return;
+    a.reqs = a.reqs || [];
+    if (u.rename) for (const x of a.reqs) if (x.t === u.rename[0]) x.t = u.rename[1];
+    if (u.add && !a.reqs.some(x => x.t === u.add)) {
+      const i = a.reqs.findIndex(x => x.t.startsWith('Ask recommenders'));
+      a.reqs.splice(i + 1, 0, { t: u.add, done: false });
+    }
+    a.notes = u.notes;
+  }
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
       deadline: '', start: 'Autumn 2027', fee: '125', cost: '~$71k online part-time',
@@ -353,6 +370,7 @@
     return { id: 'seed-' + i, status: 'Researching', review: REVIEW['seed-' + i], ...a, ...upd, ...onl };
   });
   SEED.forEach(applyRecs);
+  SEED.forEach(applyRev21);
 
   let apps = load();
   save();
@@ -493,6 +511,8 @@
     if (rev < 18) for (const a of list) if (REVIEW[a.id] && !a.review) a.review = REVIEW[a.id];
     // rev 20: recommenders lined up for Penn, Berkeley, UChicago FinMath, Columbia
     if (rev < 20) list.forEach(applyRecs);
+    // rev 21: verified rec rules, Columbia letter timing, FinMath deadline caveat
+    if (rev < 21) list.forEach(applyRev21);
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
