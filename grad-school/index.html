@@ -109,6 +109,19 @@
     .info { margin-top: 12px; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
     .info b { color: var(--text); font-weight: 600; }
     .info .note { margin-top: 4px; }
+    .recbox { margin-top: 14px; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    .recbox-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.4px; }
+    .recbox-head .ok { text-transform: none; letter-spacing: 0; color: var(--green); font-weight: 600; }
+    .recbox ul.rules { margin: 8px 0 0 18px; font-size: 13px; color: #334155; line-height: 1.5; }
+    .recbox .note { margin-top: 6px; font-size: 13px; color: var(--orange); }
+    .recpeople { margin-top: 10px; display: grid; gap: 6px; }
+    .recperson { display: flex; align-items: center; gap: 8px; font-size: 14px; flex-wrap: wrap; }
+    .recperson b { font-weight: 600; }
+    .recperson span { color: var(--text-dim); font-size: 13px; flex: 1; min-width: 120px; }
+    .recperson select { border: 1px solid var(--border); border-radius: 8px; padding: 3px 6px; font-size: 13px; background: var(--surface); }
+    .recperson select.st-submitted { background: var(--green-dim); color: var(--green); border-color: transparent; }
+    .recperson select.st-registered { background: var(--accent-dim); color: var(--accent); border-color: transparent; }
+    .recperson select.st-agreed { background: var(--yellow-dim); color: var(--yellow); border-color: transparent; }
     .actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
     .actions select { border: 1px solid var(--border); border-radius: 8px; padding: 5px 8px; font-size: 13px; background: var(--surface); }
     .actions a { font-size: 13px; color: var(--accent); font-weight: 600; text-decoration: none; }
@@ -224,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 23;
+  const SEED_REV = 24;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -309,6 +322,34 @@
     }
     a.notes = u.notes;
   }
+  // Recommendation letter rules as shown in each application portal (shared Sept 28) + who's writing
+  const REC_STATUSES = ['Not asked', 'Asked', 'Agreed', 'Registered in portal', 'Submitted'];
+  const P = (name, role, status) => ({ name, role, status });
+  const RECS = {
+    'seed-10': { confirmed: true, rules: [
+        '2 required, 3 maximum (3rd is optional).',
+        'From people who evaluated your work, academically or professionally, and were above you on the org chart. Not coworkers, people you managed, or friends.',
+        'Letters: in English, on official letterhead, signed, 500–1,500 words.',
+        'Application isn\'t reviewed until 2 letters are in; all letters due by the application deadline (Oct 26). Recommenders can submit before you submit.',
+        'Waiver: you can waive your right to view letters if enrolled.'],
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor · optional 3rd', 'Not asked')] },
+    'seed-2': { confirmed: true, rules: [
+        '2 required.',
+        'Strongly prefer one from your current direct supervisor. If you don\'t use them, explain why in the optional statement.'],
+      people: [P('Daan', 'Current direct supervisor', 'Agreed'), P('Dan', 'Former manager', 'Agreed')] },
+    'seed-3': { confirmed: true, rules: [
+        '2 required; 3 strongly recommended for Financial Mathematics. Additional letters welcome.',
+        'No specific recommender type listed.',
+        '“Send to Recommender” emails them a link right away; they see whether you waived your right to view the letter.'],
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor · optional backup', 'Not asked')] },
+    'seed-1': { confirmed: true, rules: [
+        '3 required.',
+        'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
+        'Columbia contacts recommenders once you enter their info. You must have no involvement in drafting or submitting letters.',
+        'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.'],
+      note: 'Columbia leans academic: Adam + Laura + Daan (two faculty) may be stronger than Adam + Daan + Dan.',
+      people: [P('Adam Loy', 'Professor', 'Not asked'), P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Laura Chihara', 'Professor · alternative to Dan', 'Not asked')] },
+  };
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
       deadline: '', start: 'Autumn 2027', fee: '125', cost: '~$71k online part-time',
@@ -372,6 +413,7 @@
   });
   SEED.forEach(applyRecs);
   SEED.forEach(applyRev21);
+  SEED.forEach(a => { if (RECS[a.id]) a.recs = structuredClone(RECS[a.id]); });
   Object.assign(SEED.find(x => x.id === 'seed-10'), REV22_PENN);
 
   let apps = load();
@@ -525,6 +567,8 @@
       Object.assign(penn2, rest);
       if (['2026-10-19', '2026-10-26', ''].includes(penn2.deadline || '')) Object.assign(penn2, { deadline, deadlineEst });
     }
+    // rev 24: recommendation letter rules + recommender tracking
+    if (rev < 24) for (const a of list) if (RECS[a.id] && !a.recs) a.recs = structuredClone(RECS[a.id]);
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
@@ -618,6 +662,7 @@
               </li>`).join('')}
           </ul>
           <input class="add-item" placeholder="+ Add item" data-add>
+          ${renderRecs(a)}
           <div class="info">
             ${facts}
             ${a.notes ? `<div class="note">${esc(a.notes)}</div>` : ''}
@@ -629,6 +674,23 @@
           </div>
         </div>
       </div>`;
+  }
+
+  function renderRecs(a) {
+    if (!a.recs) return '';
+    const r = a.recs;
+    const cls = s => s === 'Submitted' ? 'st-submitted' : s === 'Registered in portal' ? 'st-registered' : s === 'Agreed' ? 'st-agreed' : '';
+    return `<div class="recbox">
+      <div class="recbox-head"><span>Recommendation letters</span>${r.confirmed ? '<span class="ok">✓ Confirmed in application</span>' : ''}</div>
+      <ul class="rules">${r.rules.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      ${r.note ? `<div class="note">${esc(r.note)}</div>` : ''}
+      <div class="recpeople">${r.people.map((p, i) => `
+        <div class="recperson"><b>${esc(p.name)}</b><span>${esc(p.role)}</span>
+          <select class="${cls(p.status)}" data-recstatus="${i}" aria-label="${esc(p.name)} status">
+            ${REC_STATUSES.map(s => `<option ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
+          </select></div>`).join('')}
+      </div>
+    </div>`;
   }
 
   function renderTable() {
@@ -678,6 +740,8 @@
       // Ticking items nudges status forward: first tick → Preparing, "Submitted" → Submitted
       if (q.done && /^submitted$/i.test(q.t) && PRE_SUBMIT.has(a.status)) a.status = 'Submitted';
       else if (q.done && a.status === 'Researching') a.status = 'Preparing';
+    } else if (e.target.dataset.recstatus != null) {
+      a.recs.people[+e.target.dataset.recstatus].status = e.target.value;
     } else if (e.target.dataset.status != null) {
       a.status = e.target.value;
     }
