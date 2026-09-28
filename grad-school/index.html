@@ -237,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 24;
+  const SEED_REV = 25;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -347,8 +347,8 @@
         'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
         'Columbia contacts recommenders once you enter their info. You must have no involvement in drafting or submitting letters.',
         'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.'],
-      note: 'Columbia leans academic: Adam + Laura + Daan (two faculty) may be stronger than Adam + Daan + Dan.',
-      people: [P('Adam Loy', 'Professor', 'Not asked'), P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Laura Chihara', 'Professor · alternative to Dan', 'Not asked')] },
+      note: 'Plan: Adam + Laura + Dan (two faculty + strongest work letter). If Laura can\'t, use Adam + Dan + Daan.',
+      people: [P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor', 'Not asked'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · fallback if Laura can\'t', 'Agreed')] },
   };
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
@@ -569,6 +569,13 @@
     }
     // rev 24: recommendation letter rules + recommender tracking
     if (rev < 24) for (const a of list) if (RECS[a.id] && !a.recs) a.recs = structuredClone(RECS[a.id]);
+    // rev 25: Columbia plan is Adam + Laura + Dan; keep statuses the user set
+    const col = rev < 25 && list.find(x => x.id === 'seed-1');
+    if (col && col.recs) {
+      const prev = Object.fromEntries(col.recs.people.map(x => [x.name, x.status]));
+      col.recs = structuredClone(RECS['seed-1']);
+      for (const x of col.recs.people) if (prev[x.name]) x.status = prev[x.name];
+    }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
