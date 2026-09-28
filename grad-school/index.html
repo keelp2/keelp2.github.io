@@ -237,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 25;
+  const SEED_REV = 26;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -331,17 +331,19 @@
         'From people who evaluated your work, academically or professionally, and were above you on the org chart. Not coworkers, people you managed, or friends.',
         'Letters: in English, on official letterhead, signed, 500–1,500 words.',
         'Application isn\'t reviewed until 2 letters are in; all letters due by the application deadline (Oct 26). Recommenders can submit before you submit.',
-        'Waiver: you can waive your right to view letters if enrolled.'],
-      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor · optional 3rd', 'Not asked')] },
+        'Waiver: you can waive your right to view letters if enrolled.',
+        'Penn FAQ: no preference for academic vs. professional; letters should name the Penn program and not be reused from another program.'],
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor · 3rd letter (max 3)', 'Not asked')] },
     'seed-2': { confirmed: true, rules: [
         '2 required.',
-        'Strongly prefer one from your current direct supervisor. If you don\'t use them, explain why in the optional statement.'],
+        'Strongly prefer one from your current direct supervisor. If you don\'t use them, explain why in the optional statement.',
+        'Professional letters expected; an academic recommender (e.g. thesis advisor) only if you have little work experience. No professor letter needed.'],
       people: [P('Daan', 'Current direct supervisor', 'Agreed'), P('Dan', 'Former manager', 'Agreed')] },
     'seed-3': { confirmed: true, rules: [
         '2 required; 3 strongly recommended for Financial Mathematics. Additional letters welcome.',
         'No specific recommender type listed.',
         '“Send to Recommender” emails them a link right away; they see whether you waived your right to view the letter.'],
-      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor · optional backup', 'Not asked')] },
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor · 4th letter (extras welcome)', 'Not asked')] },
     'seed-1': { confirmed: true, rules: [
         '3 required.',
         'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
@@ -575,6 +577,14 @@
       const prev = Object.fromEntries(col.recs.people.map(x => [x.name, x.status]));
       col.recs = structuredClone(RECS['seed-1']);
       for (const x of col.recs.people) if (prev[x.name]) x.status = prev[x.name];
+    }
+    // rev 26: Penn/Berkeley letter guidance; refresh rec boxes, keep statuses the user set
+    if (rev < 26) for (const id of ['seed-10', 'seed-2', 'seed-3']) {
+      const a = list.find(x => x.id === id);
+      if (!a || !a.recs) continue;
+      const prev = Object.fromEntries(a.recs.people.map(x => [x.name, x.status]));
+      a.recs = structuredClone(RECS[id]);
+      for (const x of a.recs.people) if (prev[x.name]) x.status = prev[x.name];
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
