@@ -224,7 +224,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 18;
+  const SEED_REV = 19;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -262,6 +262,7 @@
   };
   // How each program reviews applications (verified Sept 2026)
   const REVIEW = {
+    'seed-10': 'Rolling, firm deadline',
     'seed-0': 'Fixed deadline',
     'seed-1': 'Rolling',
     'seed-2': 'Rolling, firm deadline',
@@ -294,36 +295,41 @@
       reqs: r('Resume / CV', 'Short answer 1', 'Short answer 2', 'Short answer 3', 'Video statement 1', 'Video statement 2', 'Transcripts (unofficial OK)', 'Decide: waive right to see letters', 'Send recommender requests (portal)', 'Rec 1', 'Rec 2', 'Rec 3 (strongly recommended)', 'GRE (check if required)', 'Pay fee', 'Submitted'),
       link: 'https://finmath.uchicago.edu/admissions/application-requirements/',
       },
-    { rank: 6, school: 'CMU Tepper', program: 'Part-Time MSBA', format: 'Online',
+    { rank: 7, school: 'CMU Tepper', program: 'Part-Time MSBA', format: 'Online',
       deadline: '', start: 'Aug 2027', fee: '0', cost: '~$78k (108 units)',
       reqs: r('Phase 1 form', 'Resume', 'Unofficial transcripts', 'Phase 2 form', 'Essay (≤500 words)', 'Video essay (post-MSBA goals)', 'Professional rec', 'Submitted', 'Interview (by invite)'),
       link: 'https://www.cmu.edu/tepper/programs/master-business-analytics/part-time/apply',
       notes: '2027 rounds not posted (last year R1 was Oct 14). No fee; GMAT/GRE optional; optional extra essay.' },
-    { rank: 7, school: 'UChicago', program: 'MS Applied Data Science', format: 'In person or online',
+    { rank: 8, school: 'UChicago', program: 'MS Applied Data Science', format: 'In person or online',
       deadline: '2027-06-23', start: 'Autumn 2027', fee: '90', cost: '~$77k (12 courses)',
       reqs: r('Candidate statement', 'Resume', 'Programming sample (PDF, ≤2 pages)', 'Video response', 'Unofficial transcripts', 'Decide: waive right to see letters', 'Send recommender requests (portal)', 'Rec 1 (manager)', 'Rec 2', 'Pay fee', 'Submitted'),
       link: 'https://datascience.uchicago.edu/education/masters-programs/ms-in-applied-data-science/how-to-apply/',
       notes: 'Final deadline. Scholarship priority is earlier (~early Dec) — check. One video required, a second is optional.' },
-    { rank: 9, school: 'Georgia Tech', program: 'OMSA', format: 'Online',
+    { rank: 10, school: 'Georgia Tech', program: 'OMSA', format: 'Online',
       deadline: '2027-03-15', start: 'Aug 2027', fee: '95', cost: '~$12–15k total',
       reqs: r('Statement of purpose / essays', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://pe.gatech.edu/degrees/analytics',
       notes: 'Priority review Feb 1. Needs calc, linear algebra, prob/stats, programming. GRE optional. Fee $95 (verify).' },
-    { rank: 10, school: 'UT Austin', program: 'MS Data Science (online)', format: 'Online',
+    { rank: 11, school: 'UT Austin', program: 'MS Data Science (online)', format: 'Online',
       deadline: '', start: 'Aug 2027', fee: '65', cost: '$10k total',
       reqs: r('Statement of purpose', 'Resume / CV', 'Transcripts', 'Rec 1', 'Rec 2', 'Rec 3', 'Pay fee', 'Submitted'),
       link: 'https://cdso.utexas.edu/msds',
       notes: 'Run by CS + Statistics & Data Sciences. Spring 2027 deadline (Sep 1) passed. Fall 2027 dates not posted yet (priority ~April, final ~May). Min 3.0 GPA.' },
-    { rank: 8, school: 'Northwestern', program: 'MS Data Science (online)', format: 'Online',
+    { rank: 9, school: 'Northwestern', program: 'MS Data Science (online)', format: 'Online',
       deadline: '2027-01-15', deadlineEst: false, start: 'Spring quarter 2027 (late Mar)', fee: '', cost: '~$63k (12 courses)',
       reqs: r('Statement of purpose (300 words)', 'Resume', 'Transcripts', 'Rec 1', 'Rec 2', 'Pay fee', 'Submitted'),
       link: 'https://sps.northwestern.edu/masters/data-science/',
       notes: 'School of Professional Studies, part-time online; start any quarter. Deadlines (official): Winter quarter (early Jan) Oct 15 · Spring quarter (late Mar) Jan 15 · Summer Apr 15 · Fall Jul 15; decisions ~4 weeks after. 12 courses at $5,098 + $135 tech fee each (2026–27). 2 recs (academic/professional). GRE not required. Specializations include AI, analytics & modeling, data engineering.' },
-    { rank: 5, school: 'UIUC', program: 'Master of Computer Science (online)', format: 'Online',
+    { rank: 6, school: 'UIUC', program: 'Master of Computer Science (online)', format: 'Online',
       deadline: '2026-10-30', deadlineEst: false, start: 'Spring 2027 (mid-Jan)', fee: '', cost: '~$20k (IL resident) / ~$25k',
       reqs: r('Statement of purpose', 'Resume', 'Transcripts', 'Optional: rec letter(s)', 'Pay fee', 'Submitted'),
       link: 'https://siebelschool.illinois.edu/academics/graduate/professional-mcs/online-master-computer-science',
       notes: 'Spring 2027 deadline Oct 30 (official). 32 credit hours (8 courses), 1–5 years at your own pace; optional data science track (MCS-DS: ML, data mining, visualization, cloud). $620/credit Illinois resident (~$19.8k) or $777/credit non-resident (~$24.9k). Min 3.2 GPA. No GRE. Rec letters not required but considered — useful to justify experience in place of any missing CS coursework.' },
+    { rank: 5, school: 'Penn', program: 'MSE in Data Science (online)', format: 'Online', status: 'Preparing',
+      deadline: '2026-10-19', deadlineEst: false, start: 'Jan 2027', fee: '', cost: '$3,859/course',
+      reqs: r('Personal statement (1,000–1,500 words)', 'Resume (1–2 pages)', 'Transcripts', 'Rec 1', 'Rec 2', 'Pay fee', 'Submitted'),
+      link: 'https://online.seas.upenn.edu/degrees/mse-ds-online/',
+      notes: 'Penn Engineering (Ivy), fully online; switch between part- and full-time any semester. Spring 2027 deadline Oct 19 (official); applications reviewed as they arrive — earlier means an earlier decision. Scholarship deadline (Aug 3) has passed. Penn emails your 2 recommenders an upload link. $3,859/course (total course count to verify).' },
   ].map((a, i) => {
     const { from, ...upd } = DEADLINE_UPDATES['seed-' + i] || {};
     const { from: _, ...onl } = ONLINE_UPDATES['seed-' + i] || {};
@@ -445,6 +451,15 @@
     if (rev < 17 && !list.some(x => x.id === 'seed-9')) {
       list.push(structuredClone(SEED.find(x => x.id === 'seed-9')));
       const prevDefault = { 'seed-4': 5, 'seed-5': 6, 'seed-8': 7, 'seed-6': 8, 'seed-7': 9 };
+      for (const [id, r0] of Object.entries(prevDefault)) {
+        const a = list.find(x => x.id === id);
+        if (a && +a.rank === r0) a.rank = r0 + 1;
+      }
+    }
+    // rev 19: add Penn at #5; shift programs still on their previous default ranks down one
+    if (rev < 19 && !list.some(x => x.id === 'seed-10')) {
+      list.push(structuredClone(SEED.find(x => x.id === 'seed-10')));
+      const prevDefault = { 'seed-9': 5, 'seed-4': 6, 'seed-5': 7, 'seed-8': 8, 'seed-6': 9, 'seed-7': 10 };
       for (const [id, r0] of Object.entries(prevDefault)) {
         const a = list.find(x => x.id === id);
         if (a && +a.rank === r0) a.rank = r0 + 1;
