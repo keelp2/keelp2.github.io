@@ -224,7 +224,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 21;
+  const SEED_REV = 22;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -297,6 +297,7 @@
     'seed-1': { rename: ['Rec 3: TBD (required)', 'Rec 3: Adam (professor) — needed by ~Nov 10'], add: 'Ask Adam for an academic letter (by ~Nov 1)', notes: 'Rolling, but decisions come ~10 weeks after your LAST letter arrives and spring classes start Jan 19, 2027, so all 3 letters should be in by ~Nov 10. Recs (official): 3 required; professors you took courses with and day-to-day supervisors are ideal. Fully online via CVN. 30 credits: 7 core + 3 electives (e.g. risk management, fixed income, vol smile, credit). First 3 courses need B- or better to continue. $2,822/credit + $395/course (2026–27). Min 3.0 GPA; needs probability, calculus, linear algebra and a programming course (C recommended); try the prerequisite questions. GRE optional.' },
     'seed-3': { rename: ['Rec 3: TBD (strongly recommended)', 'Rec 3: Adam (professor, strongly recommended)'], add: 'Confirm Jan 2027 online deadline with admissions', notes: '⚠ Jan 2027 online deadline NOT confirmed: last year\'s January-start deadline was Nov 6 (so ~Nov 5 is an estimate); some sources list Dec 3 / Jan 14 / Mar 25 rounds, which may be for the autumn start. Confirm with admissions. Recs (official): 2 required, 3 strongly recommended for FinMath; recommender type not specified, so include at least one professor. Online: live classes weekday evenings 6–9pm; starts Jan & Jun; offers go out on a rolling basis with no advantage to earlier rounds. Part-time can be 1 course/quarter (~3 yrs). 1,250 units (12.5 courses) at $7,862/course (2025–26). Needs multivariable calc, linear algebra, probability, programming.' },
   };
+  const REV22_PENN = { cost: '~$38.6k (10 courses)', fee: '95', notes: 'Penn Engineering (Ivy), fully online and asynchronous (no required live sessions); switch between part- and full-time any semester. 10 course units: 3 foundational, 4 core, 2 technical electives, 1 open elective → ~$38.6k at $3,859/course. Spring 2027: deadline shown as Oct 19 from earlier research, but Penn\'s sister program (MAS-CS) lists a final deadline of Oct 26 with rolling decisions until Nov 24 — confirm on the MSE-DS tab of Penn\'s Application Requirements page. Scholarship deadline (Aug 3) passed. Application fee likely $95 (verify). Recs (official): 2 required, optional 3rd; supervisors/managers/professors, not colleagues or friends. Alternative: Penn MAS-CS Online (formerly MCIT) is built for people without a CS background.' };
   function applyRev21(a) {
     const u = REV21[a.id];
     if (!u) return;
@@ -371,6 +372,7 @@
   });
   SEED.forEach(applyRecs);
   SEED.forEach(applyRev21);
+  Object.assign(SEED.find(x => x.id === 'seed-10'), REV22_PENN);
 
   let apps = load();
   save();
@@ -513,6 +515,9 @@
     if (rev < 20) list.forEach(applyRecs);
     // rev 21: verified rec rules, Columbia letter timing, FinMath deadline caveat
     if (rev < 21) list.forEach(applyRev21);
+    // rev 22: Penn MSE-DS details (course structure, cost, deadline caveat)
+    const penn = rev < 22 && list.find(x => x.id === 'seed-10');
+    if (penn) Object.assign(penn, REV22_PENN);
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
