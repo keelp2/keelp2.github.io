@@ -224,7 +224,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 22;
+  const SEED_REV = 23;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -297,7 +297,7 @@
     'seed-1': { rename: ['Rec 3: TBD (required)', 'Rec 3: Adam (professor) — needed by ~Nov 10'], add: 'Ask Adam for an academic letter (by ~Nov 1)', notes: 'Rolling, but decisions come ~10 weeks after your LAST letter arrives and spring classes start Jan 19, 2027, so all 3 letters should be in by ~Nov 10. Recs (official): 3 required; professors you took courses with and day-to-day supervisors are ideal. Fully online via CVN. 30 credits: 7 core + 3 electives (e.g. risk management, fixed income, vol smile, credit). First 3 courses need B- or better to continue. $2,822/credit + $395/course (2026–27). Min 3.0 GPA; needs probability, calculus, linear algebra and a programming course (C recommended); try the prerequisite questions. GRE optional.' },
     'seed-3': { rename: ['Rec 3: TBD (strongly recommended)', 'Rec 3: Adam (professor, strongly recommended)'], add: 'Confirm Jan 2027 online deadline with admissions', notes: '⚠ Jan 2027 online deadline NOT confirmed: last year\'s January-start deadline was Nov 6 (so ~Nov 5 is an estimate); some sources list Dec 3 / Jan 14 / Mar 25 rounds, which may be for the autumn start. Confirm with admissions. Recs (official): 2 required, 3 strongly recommended for FinMath; recommender type not specified, so include at least one professor. Online: live classes weekday evenings 6–9pm; starts Jan & Jun; offers go out on a rolling basis with no advantage to earlier rounds. Part-time can be 1 course/quarter (~3 yrs). 1,250 units (12.5 courses) at $7,862/course (2025–26). Needs multivariable calc, linear algebra, probability, programming.' },
   };
-  const REV22_PENN = { cost: '~$38.6k (10 courses)', fee: '95', notes: 'Penn Engineering (Ivy), fully online and asynchronous (no required live sessions); switch between part- and full-time any semester. 10 course units: 3 foundational, 4 core, 2 technical electives, 1 open elective → ~$38.6k at $3,859/course. Spring 2027: deadline shown as Oct 19 from earlier research, but Penn\'s sister program (MAS-CS) lists a final deadline of Oct 26 with rolling decisions until Nov 24 — confirm on the MSE-DS tab of Penn\'s Application Requirements page. Scholarship deadline (Aug 3) passed. Application fee likely $95 (verify). Recs (official): 2 required, optional 3rd; supervisors/managers/professors, not colleagues or friends. Alternative: Penn MAS-CS Online (formerly MCIT) is built for people without a CS background.' };
+  const REV22_PENN = { deadline: '2026-10-26', deadlineEst: false, cost: '~$38.6k (10 courses)', fee: '95', notes: 'Penn Engineering (Ivy), fully online and asynchronous (no required live sessions); switch between part- and full-time any semester. 10 course units: 3 foundational, 4 core, 2 technical electives, 1 open elective → ~$38.6k at $3,859/course. Spring 2027 (confirmed): final deadline Oct 26, 2026; decisions released on a rolling basis (apply early for an earlier answer); classes start January 2027. Scholarship deadline (Aug 3) passed. Application fee likely $95 (verify). Recs (official): 2 required, optional 3rd; supervisors/managers/professors, not colleagues or friends. Alternative: Penn MAS-CS Online (formerly MCIT) is built for people without a CS background.' };
   function applyRev21(a) {
     const u = REV21[a.id];
     if (!u) return;
@@ -361,7 +361,7 @@
       link: 'https://siebelschool.illinois.edu/academics/graduate/professional-mcs/online-master-computer-science',
       notes: 'Spring 2027 deadline Oct 30 (official). 32 credit hours (8 courses), 1–5 years at your own pace; optional data science track (MCS-DS: ML, data mining, visualization, cloud). $620/credit Illinois resident (~$19.8k) or $777/credit non-resident (~$24.9k). Min 3.2 GPA. No GRE. Rec letters not required but considered — useful to justify experience in place of any missing CS coursework.' },
     { rank: 5, school: 'Penn', program: 'MSE in Data Science (online)', format: 'Online', status: 'Preparing',
-      deadline: '2026-10-19', deadlineEst: false, start: 'Jan 2027', fee: '', cost: '$3,859/course',
+      deadline: '2026-10-26', deadlineEst: false, start: 'Jan 2027', fee: '', cost: '$3,859/course',
       reqs: r('Personal statement (1,000–1,500 words)', 'Resume (1–2 pages)', 'Transcripts', 'Rec 1', 'Rec 2', 'Pay fee', 'Submitted'),
       link: 'https://online.seas.upenn.edu/degrees/mse-ds-online/',
       notes: 'Penn Engineering (Ivy), fully online; switch between part- and full-time any semester. Spring 2027 deadline Oct 19 (official); applications reviewed as they arrive — earlier means an earlier decision. Scholarship deadline (Aug 3) has passed. Penn emails your 2 recommenders an upload link. $3,859/course (total course count to verify).' },
@@ -518,6 +518,13 @@
     // rev 22: Penn MSE-DS details (course structure, cost, deadline caveat)
     const penn = rev < 22 && list.find(x => x.id === 'seed-10');
     if (penn) Object.assign(penn, REV22_PENN);
+    // rev 23: Penn deadline confirmed Oct 26 (replaces Oct 19 unless the user changed it)
+    const penn2 = rev < 23 && list.find(x => x.id === 'seed-10');
+    if (penn2) {
+      const { deadline, deadlineEst, ...rest } = REV22_PENN;
+      Object.assign(penn2, rest);
+      if (['2026-10-19', '2026-10-26', ''].includes(penn2.deadline || '')) Object.assign(penn2, { deadline, deadlineEst });
+    }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
