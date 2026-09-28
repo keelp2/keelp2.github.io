@@ -224,7 +224,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 19;
+  const SEED_REV = 20;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -274,6 +274,23 @@
     'seed-8': 'Quarterly batches',
     'seed-9': 'Fixed deadline',
   };
+  // Recommenders lined up (Sept 28): Daan (current manager) and Dan (former manager) said yes
+  const ASK_RECS = 'Ask recommenders — Daan & Dan said yes, details sent (letters by Oct 17)';
+  const REC_UPDATES = {
+    'seed-2': { 'Rec 1: current direct supervisor': 'Rec 1: Daan (direct supervisor)', 'Rec 2 (professional)': 'Rec 2: Dan' },
+    'seed-3': { 'Rec 1': 'Rec 1: Daan', 'Rec 2': 'Rec 2: Dan', 'Rec 3 (strongly recommended)': 'Rec 3: TBD (strongly recommended)' },
+    'seed-1': { 'Rec 1': 'Rec 1: Daan', 'Rec 2': 'Rec 2: Dan', 'Rec 3': 'Rec 3: TBD (required)' },
+    'seed-10': { 'Rec 1': 'Rec 1: Daan', 'Rec 2': 'Rec 2: Dan' },
+  };
+  function applyRecs(a) {
+    const names = REC_UPDATES[a.id];
+    if (!names) return;
+    a.reqs = a.reqs || [];
+    for (const q of a.reqs) if (names[q.t]) q.t = names[q.t];
+    const ask = a.reqs.find(q => q.t === ASK_RECS);
+    if (ask) ask.done = true; else a.reqs.unshift({ t: ASK_RECS, done: true });
+    if (a.status === 'Researching') a.status = 'Preparing';
+  }
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
       deadline: '', start: 'Autumn 2027', fee: '125', cost: '~$71k online part-time',
@@ -335,6 +352,7 @@
     const { from: _, ...onl } = ONLINE_UPDATES['seed-' + i] || {};
     return { id: 'seed-' + i, status: 'Researching', review: REVIEW['seed-' + i], ...a, ...upd, ...onl };
   });
+  SEED.forEach(applyRecs);
 
   let apps = load();
   save();
@@ -473,6 +491,8 @@
     }
     // rev 18: admissions review type
     if (rev < 18) for (const a of list) if (REVIEW[a.id] && !a.review) a.review = REVIEW[a.id];
+    // rev 20: recommenders lined up for Penn, Berkeley, UChicago FinMath, Columbia
+    if (rev < 20) list.forEach(applyRecs);
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
