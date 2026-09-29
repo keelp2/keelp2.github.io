@@ -237,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 26;
+  const SEED_REV = 27;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -335,12 +335,12 @@
         'Penn FAQ: no preference for academic vs. professional; letters should name the Penn program and not be reused from another program.'],
       people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor · 3rd letter (max 3)', 'Not asked')] },
     'seed-2': { confirmed: true, rules: [
-        '2 required.',
+        'Exactly 2 (no room for a 3rd).',
         'Strongly prefer one from your current direct supervisor. If you don\'t use them, explain why in the optional statement.',
         'Professional letters expected; an academic recommender (e.g. thesis advisor) only if you have little work experience. No professor letter needed.'],
       people: [P('Daan', 'Current direct supervisor', 'Agreed'), P('Dan', 'Former manager', 'Agreed')] },
     'seed-3': { confirmed: true, rules: [
-        '2 required; 3 strongly recommended for Financial Mathematics. Additional letters welcome.',
+        '2 required; 3 strongly recommended for Financial Mathematics. No maximum: submit as many as you like.',
         'No specific recommender type listed.',
         '“Send to Recommender” emails them a link right away; they see whether you waived your right to view the letter.'],
       people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor · 4th letter (extras welcome)', 'Not asked')] },
@@ -348,7 +348,8 @@
         '3 required.',
         'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
         'Columbia contacts recommenders once you enter their info. You must have no involvement in drafting or submitting letters.',
-        'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.'],
+        'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.',
+        'Unknown: whether a 4th letter is allowed, and whether an optional 4th would hold up review. Check the portal.'],
       note: 'Plan: Adam + Laura + Dan (two faculty + strongest work letter). If Laura can\'t, use Adam + Dan + Daan.',
       people: [P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor', 'Not asked'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · fallback if Laura can\'t', 'Agreed')] },
   };
@@ -578,8 +579,8 @@
       col.recs = structuredClone(RECS['seed-1']);
       for (const x of col.recs.people) if (prev[x.name]) x.status = prev[x.name];
     }
-    // rev 26: Penn/Berkeley letter guidance; refresh rec boxes, keep statuses the user set
-    if (rev < 26) for (const id of ['seed-10', 'seed-2', 'seed-3']) {
+    // rev 26/27: letter guidance (Berkeley exactly 2, UChicago no max, Columbia 4th unknown); refresh rec boxes, keep statuses the user set
+    if (rev < 27) for (const id of ['seed-10', 'seed-2', 'seed-3', 'seed-1']) {
       const a = list.find(x => x.id === id);
       if (!a || !a.recs) continue;
       const prev = Object.fromEntries(a.recs.people.map(x => [x.name, x.status]));
