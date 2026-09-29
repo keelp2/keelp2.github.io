@@ -127,12 +127,12 @@
               <span class="r-light">Apr 2024 &ndash; Present</span>
             </div>
             <ul class="r-bullets">
-              <li>Designed and built a parameterized continuous futures roll system covering 190+ products across 36 exchanges, with per-consumer configuration profiles controlling roll timing, adjustments, and output</li>
-              <li>Built end-to-end data pipelines for 10+ new database products spanning risk analytics, pricing, reference data, and end-of-day bars</li>
-              <li>Extended a vendor time-series Python library with point-in-time query functionality, packaged it as a conda library, and promoted it firm-wide</li>
-              <li>Built automated systems for exchange strike price scaling (CME, ICE, Eurex), corporate action processing, and reference data uploads with monitoring, alerting, and structured logging</li>
-              <li>Built an internal symbology mapping web application and created documentation hubs, Python notebooks, and an AI-powered data query assistant for the firm</li>
-              <li>Conducted deep data quality investigations and postmortems, led standups and demos across trading and risk teams, and served as primary onboarding contact for the firm's market data platform</li>
+              <li>Designed and built Sisyphus, a 14-step continuous futures roll pipeline (73 files, 13K+ lines of Python) serving 190+ products across 36 exchanges with automated QC gates, daily cron execution, and per-consumer configuration profiles</li>
+              <li>Led the rationalization of 27 research databases across three environments, analyzing usage logs for 100+ users and coordinating migration plans across trading, risk, and research teams</li>
+              <li>Built end-to-end data pipelines for 10+ database products spanning risk analytics, pricing, reference data, corporate actions, and end-of-day bars, and converted native time-series archives to partitioned Parquet for faster access</li>
+              <li>Conducted deep data quality investigations using statistical analysis, including identifying a 42% volume inflation bug in NYSE TAQ data by testing 80 cases across condition codes and exchanges</li>
+              <li>Extended a vendor time-series Python library with point-in-time query functionality, packaged it as a conda library, and built an AI-powered data query assistant used firm-wide</li>
+              <li>Led standups and demos across trading and risk teams, authored documentation and notebooks, and served as primary onboarding contact for the firm's market data platform</li>
             </ul>
           </div>
 
@@ -207,11 +207,29 @@
           <h4 class="r-section-title">Projects</h4>
           <div class="r-entry">
             <div class="r-row">
+              <span class="r-company">Chicago 311 Service Equity Analysis</span>
+              <span class="r-light">2026</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Analyzed 2.5M Chicago 311 service requests to test whether response times vary by neighborhood income. Used Kruskal-Wallis and Mann-Whitney tests with bootstrap confidence intervals to find statistically significant disparities (p&lt;0.001). Built interactive choropleth map and NLP analysis. <a href="https://github.com/keelp2/chicago-311-equity" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            </ul>
+          </div>
+          <div class="r-entry">
+            <div class="r-row">
+              <span class="r-company">U.S. Housing Market Explorer</span>
+              <span class="r-light">2026</span>
+            </div>
+            <ul class="r-bullets">
+              <li>Built an interactive geospatial dashboard visualizing housing data across 894 U.S. metros from 8 data sources (Zillow, Census ACS, FRED, BEA, FEMA, EPA). Automated weekly data refresh via GitHub Actions. <a href="https://keelp2.github.io/housing-market-explorer/" target="_blank" rel="noopener noreferrer">Live demo</a></li>
+            </ul>
+          </div>
+          <div class="r-entry">
+            <div class="r-row">
               <span class="r-company">NBA Hall of Fame Prediction Model</span>
               <span class="r-light">2020 / 2026</span>
             </div>
             <ul class="r-bullets">
-              <li>Cleaned and modeled NBA Hall of Fame induction probability for 380+ players using random forest with 10-fold cross-validation (94.7% accuracy). Originally built in R/Shiny (2020), rebuilt in Python/Streamlit (2026). <a href="https://nba-hof-predict.streamlit.app/" target="_blank" rel="noopener noreferrer">Live demo</a></li>
+              <li>Modeled NBA Hall of Fame induction probability for 380+ players using random forest with 10-fold cross-validation (94.7% accuracy). Built in R/Shiny (2020), rebuilt in Python/Streamlit (2026). <a href="https://nba-hof-predict.streamlit.app/" target="_blank" rel="noopener noreferrer">Live demo</a></li>
             </ul>
           </div>
         </div>
@@ -219,9 +237,10 @@
         <div class="r-section">
           <h4 class="r-section-title">Skills</h4>
           <div class="r-skills">
-            <div><strong>Technical:</strong> Python, SQL, R, Bash, JavaScript, HTML/CSS, Linux, Git, AWS, Conda, CI/CD, Cron</div>
-            <div><strong>Data &amp; Tools:</strong> Pandas, OneTick, Bloomberg, Power BI, Trino, Databricks, Jira, PagerDuty</div>
-            <div><strong>Other:</strong> Data Pipeline Design, ETL, Web Applications, Prompt Engineering</div>
+            <div><strong>Languages:</strong> Python, SQL, R, Bash, JavaScript, HTML/CSS</div>
+            <div><strong>Data &amp; ML:</strong> Pandas, Scikit-learn, SciPy, Plotly, Folium, OneTick, Bloomberg, Parquet, Trino, Databricks</div>
+            <div><strong>Infrastructure:</strong> Linux, Git, AWS, Terraform, Conda, CI/CD, Docker, Airflow, Cron</div>
+            <div><strong>Methods:</strong> Statistical Testing, Machine Learning, NLP, Data Visualization, ETL/Pipeline Design</div>
           </div>
         </div>
 
@@ -237,6 +256,7 @@
               <span class="r-light">Class of 2020</span>
             </div>
             <ul class="r-bullets">
+              <li>Coursework: Statistical Inference, Bayesian Statistics, Data Science, Combinatorics, Linear Algebra, Probability</li>
               <li>Varsity Soccer &amp; Track (Academic All-Conference) &middot; Investment Office Intern &middot; Math Tutor</li>
             </ul>
           </div>
