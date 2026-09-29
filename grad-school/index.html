@@ -237,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 27;
+  const SEED_REV = 28;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -343,15 +343,15 @@
         '2 required; 3 strongly recommended for Financial Mathematics. No maximum: submit as many as you like.',
         'No specific recommender type listed.',
         '“Send to Recommender” emails them a link right away; they see whether you waived your right to view the letter.'],
-      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor · 4th letter (extras welcome)', 'Not asked')] },
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor · 4th letter (extras welcome)', 'Agreed')] },
     'seed-1': { confirmed: true, rules: [
         '3 required.',
         'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
         'Columbia contacts recommenders once you enter their info. You must have no involvement in drafting or submitting letters.',
         'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.',
         'Unknown: whether a 4th letter is allowed, and whether an optional 4th would hold up review. Check the portal.'],
-      note: 'Plan: Adam + Laura + Dan (two faculty + strongest work letter). If Laura can\'t, use Adam + Dan + Daan.',
-      people: [P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor', 'Not asked'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · fallback if Laura can\'t', 'Agreed')] },
+      note: 'Plan: Adam + Laura + Dan (two faculty + strongest work letter).',
+      people: [P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor', 'Agreed'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
   };
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
@@ -586,6 +586,17 @@
       const prev = Object.fromEntries(a.recs.people.map(x => [x.name, x.status]));
       a.recs = structuredClone(RECS[id]);
       for (const x of a.recs.people) if (prev[x.name]) x.status = prev[x.name];
+    }
+    // rev 28: Laura Chihara confirmed (Agreed) for UChicago FinMath + Columbia
+    if (rev < 28) for (const id of ['seed-3', 'seed-1']) {
+      const a = list.find(x => x.id === id);
+      if (!a || !a.recs) continue;
+      const prev = Object.fromEntries(a.recs.people.map(x => [x.name, x.status]));
+      a.recs = structuredClone(RECS[id]);
+      for (const x of a.recs.people) if (prev[x.name]) x.status = prev[x.name];
+      // Force Laura to Agreed if she was Not asked
+      const laura = a.recs.people.find(x => x.name === 'Laura Chihara');
+      if (laura && laura.status === 'Not asked') laura.status = 'Agreed';
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
