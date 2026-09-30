@@ -237,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 28;
+  const SEED_REV = 29;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -333,7 +333,7 @@
         'Application isn\'t reviewed until 2 letters are in; all letters due by the application deadline (Oct 26). Recommenders can submit before you submit.',
         'Waiver: you can waive your right to view letters if enrolled.',
         'Penn FAQ: no preference for academic vs. professional; letters should name the Penn program and not be reused from another program.'],
-      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor · 3rd letter (max 3)', 'Not asked')] },
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor · 3rd letter (max 3)', 'Asked')] },
     'seed-2': { confirmed: true, rules: [
         'Exactly 2 (no room for a 3rd).',
         'Strongly prefer one from your current direct supervisor. If you don\'t use them, explain why in the optional statement.',
@@ -343,7 +343,7 @@
         '2 required; 3 strongly recommended for Financial Mathematics. No maximum: submit as many as you like.',
         'No specific recommender type listed.',
         '“Send to Recommender” emails them a link right away; they see whether you waived your right to view the letter.'],
-      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor · 4th letter (extras welcome)', 'Agreed')] },
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Asked'), P('Laura Chihara', 'Professor · 4th letter (extras welcome)', 'Agreed')] },
     'seed-1': { confirmed: true, rules: [
         '3 required.',
         'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
@@ -351,7 +351,7 @@
         'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.',
         'Unknown: whether a 4th letter is allowed, and whether an optional 4th would hold up review. Check the portal.'],
       note: 'Plan: Adam + Laura + Dan (two faculty + strongest work letter).',
-      people: [P('Adam Loy', 'Professor', 'Not asked'), P('Laura Chihara', 'Professor', 'Agreed'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
+      people: [P('Adam Loy', 'Professor', 'Asked'), P('Laura Chihara', 'Professor', 'Agreed'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
   };
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
@@ -587,6 +587,9 @@
       a.recs = structuredClone(RECS[id]);
       for (const x of a.recs.people) if (prev[x.name]) x.status = prev[x.name];
     }
+    // rev 29: Adam Loy asked (Sept 29) for Penn, UChicago FinMath, Columbia; only moves status forward
+    if (rev < 29) for (const a of list) for (const x of (a.recs?.people || []))
+      if (x.name === 'Adam Loy' && x.status === 'Not asked') x.status = 'Asked';
     // rev 28: Laura Chihara confirmed (Agreed) for UChicago FinMath + Columbia
     if (rev < 28) for (const id of ['seed-3', 'seed-1']) {
       const a = list.find(x => x.id === id);
