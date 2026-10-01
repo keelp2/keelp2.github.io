@@ -237,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 29;
+  const SEED_REV = 30;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -353,6 +353,19 @@
       note: 'Plan: Adam + Laura + Dan (two faculty + strongest work letter).',
       people: [P('Adam Loy', 'Professor', 'Asked'), P('Laura Chihara', 'Professor', 'Agreed'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
   };
+  // Berkeley MIDS details from the official Admissions Overview (shared Oct 1)
+  const BERKELEY_RENAME = {
+    'Statement of purpose': 'Statement of purpose + additional statements (1–2 pages, your own words)',
+    'Short answer (≤300 words — verify)': 'Short answer essay',
+    'Transcripts': 'Order official e-transcript → applicationservices@datascience.berkeley.edu',
+    'Programming proficiency form': 'Programming proficiency section (Python, OOP; certificate upload optional)',
+  };
+  const BERKELEY_NOTES = 'Final deadline Oct 23 for the Jan 2027 start (early action Aug 5 and priority Sep 2 have passed); rolling review, so earlier is better. Also May & Sep starts. Requirements (official): statement of purpose + any additional statements (1–2 pages), short answer essay, resume, transcripts, 2 professional letters, $135 fee; GRE optional; TOEFL not needed. Official transcripts must be sent electronically by Carleton to applicationservices@datascience.berkeley.edu (no paper). Foundational knowledge expected: object-oriented programming, data structures, algorithms, algorithm analysis, linear algebra; otherwise a bridge course. With strong Python you can take a waiver exam to skip DATASCI 200. Programming proof: transcript and resume cover it; the upload is for certificates (optional). Essays must be your own work: Berkeley strongly discourages relying on AI tools. 27 units at $2,850/unit (Fall 2026), ~$82k with campus fees; health insurance extra unless waived.';
+  function applyBerkeley(a) {
+    if (a.id !== 'seed-2') return;
+    for (const q of a.reqs || []) if (BERKELEY_RENAME[q.t]) q.t = BERKELEY_RENAME[q.t];
+    Object.assign(a, { notes: BERKELEY_NOTES, fee: '135' });
+  }
   const SEED = [
     { rank: 1, school: 'Stanford', program: 'MS Computer Science', format: 'In person or online',
       deadline: '', start: 'Autumn 2027', fee: '125', cost: '~$71k online part-time',
@@ -416,6 +429,7 @@
   });
   SEED.forEach(applyRecs);
   SEED.forEach(applyRev21);
+  SEED.forEach(applyBerkeley);
   SEED.forEach(a => { if (RECS[a.id]) a.recs = structuredClone(RECS[a.id]); });
   Object.assign(SEED.find(x => x.id === 'seed-10'), REV22_PENN);
 
@@ -601,6 +615,8 @@
       const laura = a.recs.people.find(x => x.name === 'Laura Chihara');
       if (laura && laura.status === 'Not asked') laura.status = 'Agreed';
     }
+    // rev 30: Berkeley MIDS official requirements (renames keep ticks)
+    if (rev < 30) list.forEach(applyBerkeley);
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
