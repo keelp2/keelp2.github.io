@@ -237,7 +237,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 30;
+  const SEED_REV = 31;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -361,6 +361,13 @@
     'Programming proficiency form': 'Programming proficiency section (Python, OOP; certificate upload optional)',
   };
   const BERKELEY_NOTES = 'Final deadline Oct 23 for the Jan 2027 start (early action Aug 5 and priority Sep 2 have passed); rolling review, so earlier is better. Also May & Sep starts. Requirements (official): statement of purpose + any additional statements (1–2 pages), short answer essay, resume, transcripts, 2 professional letters, $135 fee; GRE optional; TOEFL not needed. Official transcripts must be sent electronically by Carleton to applicationservices@datascience.berkeley.edu (no paper). Foundational knowledge expected: object-oriented programming, data structures, algorithms, algorithm analysis, linear algebra; otherwise a bridge course. With strong Python you can take a waiver exam to skip DATASCI 200. Programming proof: transcript and resume cover it; the upload is for certificates (optional). Essays must be your own work: Berkeley strongly discourages relying on AI tools. 27 units at $2,850/unit (Fall 2026), ~$82k with campus fees; health insurance extra unless waived.';
+  // Oct 1: Carleton e-transcript ordered via Parchment to MIDS (order TR8MKU5L)
+  const TRANSCRIPT_ITEM = 'Order official e-transcript → applicationservices@datascience.berkeley.edu';
+  function applyTranscriptOrdered(a) {
+    if (a.id !== 'seed-2') return;
+    const q = (a.reqs || []).find(x => x.t === TRANSCRIPT_ITEM || x.t.startsWith('Official e-transcript ordered'));
+    if (q) { q.t = 'Official e-transcript ordered Oct 1 (Parchment TR8MKU5L → MIDS); confirm receipt with Arti'; q.done = true; }
+  }
   function applyBerkeley(a) {
     if (a.id !== 'seed-2') return;
     for (const q of a.reqs || []) if (BERKELEY_RENAME[q.t]) q.t = BERKELEY_RENAME[q.t];
@@ -430,6 +437,7 @@
   SEED.forEach(applyRecs);
   SEED.forEach(applyRev21);
   SEED.forEach(applyBerkeley);
+  SEED.forEach(applyTranscriptOrdered);
   SEED.forEach(a => { if (RECS[a.id]) a.recs = structuredClone(RECS[a.id]); });
   Object.assign(SEED.find(x => x.id === 'seed-10'), REV22_PENN);
 
@@ -617,6 +625,8 @@
     }
     // rev 30: Berkeley MIDS official requirements (renames keep ticks)
     if (rev < 30) list.forEach(applyBerkeley);
+    // rev 31: Berkeley transcript ordered
+    if (rev < 31) list.forEach(applyTranscriptOrdered);
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
