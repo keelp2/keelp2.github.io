@@ -137,6 +137,28 @@
     td.school b { display: block; }
     td.school span { color: var(--text-dim); }
 
+    /* Essay plan */
+    .essay-head { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.5; }
+    .essay-head h2 { font-size: 16px; margin-bottom: 6px; }
+    .essay-head blockquote { margin: 8px 0; padding-left: 10px; border-left: 3px solid var(--border); color: var(--text-dim); font-size: 13px; }
+    .essay-head ul { margin: 6px 0 0 18px; font-size: 13px; }
+    table.essay td, table.essay th { white-space: normal; vertical-align: top; }
+    table.essay tbody tr { cursor: default; }
+    table.essay tbody tr:hover { background: none; }
+    table.essay td.n { font-weight: 700; color: var(--text-dim); }
+    table.essay td.first { font-style: italic; min-width: 220px; }
+    table.essay td ul { margin-left: 16px; }
+    table.essay td.para { min-width: 120px; }
+    table.essay td.para span { display: block; color: var(--text-dim); font-size: 12px; }
+    @media (max-width: 700px) {
+      table.essay thead { display: none; }
+      table.essay, table.essay tbody, table.essay tr, table.essay td { display: block; width: 100%; }
+      table.essay tr { border-bottom: 1px solid var(--border); padding: 6px 0; }
+      table.essay tr:last-child { border-bottom: none; }
+      table.essay td { border: none; padding: 4px 14px; min-width: 0; }
+      table.essay td.n { display: none; }
+    }
+
     .empty { text-align: center; color: var(--text-dim); padding: 48px 16px; }
 
     dialog { border: none; border-radius: 18px; padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; box-shadow: 0 20px 60px rgba(15,23,42,0.25); }
@@ -178,6 +200,7 @@
     <div class="seg" id="viewSeg">
       <button data-view="list" class="on">Checklist</button>
       <button data-view="table">Compare</button>
+      <button data-view="essay">Essay plan</button>
     </div>
     <div class="seg" id="sortSeg">
       <button data-sort="deadline" class="on">By deadline</button>
@@ -686,11 +709,78 @@
       next && `Next: <b>${esc(next.school)}</b> in ${next.deadlineEst ? '~' : ''}${daysUntil(next.deadline)}d`,
     ].filter(Boolean).join(' · ');
 
-    document.querySelector('.wrap').classList.toggle('wide', view === 'table');
+    document.querySelector('.wrap').classList.toggle('wide', view === 'table' || view === 'essay');
+    $('sortSeg').style.display = view === 'essay' ? 'none' : '';
     document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('on', b.dataset.sort === sortBy));
     document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === view));
+    if (view === 'essay') { $('main').innerHTML = renderEssay(); return; }
     if (!apps.length) { $('main').innerHTML = `<div class="list"><div class="empty">No programs yet — click <b>+ Add program</b>.</div></div>`; return; }
     $('main').innerHTML = view === 'table' ? renderTable() : `<div class="list">${sorted().map(renderProg).join('')}</div>`;
+  }
+
+  const ESSAY = [
+    ['The moment', 'Motivation', 150,
+      'In [month/year], a [quant/trader] noticed that [instrument]\'s daily return was off by [amount], and it took our team [time] to trace it to [cause].',
+      ['A real incident: what went wrong with the data, who caught it, what it cost or could have cost',
+       'One line on why it\'s hard at scale: symbology changes, dividends, holidays, bad vendor data',
+       'The turn: users bring these judgment calls to your team',
+       'End with your sentence of purpose']],
+    ['Your path', 'Preparation', 150,
+      'My interest in data started with [statistics course/project] at Carleton, where I first saw [what clicked].',
+      ['Carleton: math degree and the stats courses that stuck with you',
+       'Nasdaq: rewrote index models in Python, where you learned you like building',
+       'Cboe: product manager, where you learned what users actually need',
+       'DRW: own the data platform, closest to the people using the data',
+       'One or two sentences per stage, about what you learned, not duties']],
+    ['Your best work', 'Aptitude', 200,
+      'The hardest problem I\'ve worked on at DRW was [project], because [what made it hard].',
+      ['One project: the roll system, or data curation and quality checks',
+       'What made it hard, the judgment calls you made, the result',
+       'Where you hit the limit of what you knew']],
+    ['The gap', 'Motivation', 100,
+      'Our users take the data my team builds and [test/model/visualize] it in ways I can\'t yet.',
+      ['What you can\'t do yet: statistics to catch bad data, ML to understand model builders, visualization to show problems',
+       'Why a degree instead of self-teaching: structure, depth, credibility with researchers',
+       'Why now']],
+    ['Why MIDS', 'Intellectual fit', 200,
+      '[Course name] would let me [specific thing] on the data I already manage at DRW.',
+      ['Two or three courses, each tied to a specific use at DRW, ideas first',
+       'The ML Systems and Production AI focus area',
+       'Logistics last and brief: online, standard path while working, apply it right away',
+       'What you bring: six years at exchanges and a trading firm']],
+    ['Career goal and close', 'Career goals', 100,
+      'After MIDS, I want to grow into a [title] role at a trading firm like DRW, where [why it matters].',
+      ['A job title, at DRW or a firm like it, and why',
+       'Echo paragraph 1: this time, you\'d catch the problem yourself']],
+  ];
+
+  function renderEssay() {
+    return `
+      <div class="essay-head">
+        <h2>Berkeley MIDS statement of purpose</h2>
+        <blockquote>Describe your aptitude and motivation for graduate study in Data Science, including your preparation for this field of study and your future career goals. Be specific about why the UC Berkeley MIDS program would be a good intellectual fit for you. 1–2 pages recommended.</blockquote>
+        <ul>
+          <li><b>Length:</b> about 900 words</li>
+          <li><b>Through-line:</b> the person between the data and the people who use it</li>
+          <li><b>Tone:</b> plain and specific; tools only where the story needs them</li>
+          <li><b>Find-and-replace test:</b> swap in another school's name; if paragraph 5 still works, it's too generic</li>
+          <li><b>Reuse for Penn:</b> paragraphs 1–4 carry over; add community and 15-hours-a-week sections</li>
+          <li>The example sentences are placeholders: fill in the brackets and rewrite them in your own words</li>
+        </ul>
+      </div>
+      <div class="table-wrap">
+        <table class="essay">
+          <thead><tr><th>#</th><th>Paragraph</th><th>Example first sentence</th><th>What it should contain</th></tr></thead>
+          <tbody>${ESSAY.map(([name, el, words, first, items], i) => `
+            <tr>
+              <td class="n">${i + 1}</td>
+              <td class="para"><b>${esc(name)}</b><span>${esc(el)} · ~${words} words</span></td>
+              <td class="first">${esc(first)}</td>
+              <td><ul>${items.map(t => `<li>${esc(t)}</li>`).join('')}</ul></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
   }
 
   function renderProg(a) {
