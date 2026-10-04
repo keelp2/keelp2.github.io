@@ -719,39 +719,43 @@
   }
 
   const ESSAY = [
-    ['The moment', 'Motivation', 150,
-      'In [month/year], a [quant/trader] noticed that [instrument]\'s daily return was off by [amount], and it took our team [time] to trace it to [cause].',
-      ['Your daily-return hook, made real: what went wrong with the data, who caught it, what it cost or could have cost',
-       'One line on why it\'s hard at scale: symbology changes, dividends, holidays, bad vendor data',
-       'The turn: these limitations are only understood by the people closest to the data',
+    ['The moment: the roll adjustment', 'Motivation', 150,
+      'At DRW, I built the pipeline that tells a trading desk when to roll its futures positions from an expiring contract into the next one, and recently we noticed [what happened with the crude spread adjustment].',
+      ['What you built, in plain words (explain "rolling" for a non-finance reader)',
+       'What you noticed: averaging over 24 hours flipped the crude spread adjustment from positive to negative',
+       'Why 24 hours (enough prices on illiquid contracts) and its cost (more room for anomalies)',
+       'The fix: a 10am–12pm window in the product\'s timezone',
+       'The insight: "accurate" depends on use. Odd-hour prices are noise for rolling, signal for a trader studying the order book',
+       'Keep it general: no positions, numbers, or anything proprietary',
        'End with your sentence of purpose']],
     ['Your path', 'Preparation', 150,
-      'My interest in data started with [statistics course/project] at Carleton, where I first saw [what clicked].',
+      'I have spent [six] years finding the limits of financial data, starting with [statistics course/project] at Carleton, where [what clicked].',
       ['Carleton: math degree and the stats courses that stuck with you',
        'Nasdaq: daily checks that flagged index discrepancies before they reached clients',
        'Cboe: automated validation for the quarterly index rebalance',
        'DRW: data quality checks for 300+ quants, traders, and researchers',
        'One or two sentences per stage, each about catching data problems, not duties']],
     ['Your best work', 'Aptitude', 200,
-      'The hardest problem I\'ve worked on at DRW was [project], because [what made it hard].',
-      ['One project: data curation and quality checks (strongest fit), or the roll system',
+      'Beyond the roll system, I curate the historical market data that [300+] quants, traders, and researchers rely on, and the hardest part is [what].',
+      ['A different project from the opening: data curation and quality checks',
        'What made it hard, the judgment calls you made, the result',
        'Where you hit the limit of what you knew']],
     ['The gap', 'Motivation', 100,
-      'Our users take the data my team builds and [test/model/visualize] it in ways I can\'t yet.',
-      ['What you can\'t do yet: statistics to catch bad data, ML to understand model builders, visualization to show problems',
+      'Choosing the 10am–12pm window was a judgment call, and right now [decisions like it] rest on my experience rather than [tested methods].',
+      ['What you want to do instead: compare windows statistically, detect anomalies systematically, define the right price for each use',
+       'What else you can\'t do yet: ML to understand model builders, visualization to show data problems',
        'Why a degree instead of self-teaching: structure, depth, credibility with researchers',
        'Why now']],
     ['Why MIDS', 'Intellectual fit', 200,
-      '[Course name] would let me [specific thing] on the data I already manage at DRW.',
+      '[Course name] would give me the tools to [test choices like the averaging window / detect anomalies] on the data I already manage at DRW.',
       ['Two or three courses, each tied to finding data limitations systematically: e.g. Statistics, time series, ML Systems Engineering (monitoring)',
        'The ML Systems and Production AI focus area',
        'Logistics last and brief: online, standard path while working, apply it right away',
        'What you bring: six years at exchanges and a trading firm']],
     ['Career goal and close', 'Career goals', 100,
-      'After MIDS, I want to grow into a [title] role at a trading firm like DRW, where [why it matters].',
+      'After MIDS, I want to grow into a [title] role at a trading firm like DRW, where [deciding what "accurate" means for each use of the data] is part of the job.',
       ['A job title, at DRW or a firm like it, and why',
-       'Echo paragraph 1: this time, you\'d catch the problem yourself']],
+       'Echo paragraph 1: next time, you\'d test the window choice instead of judging it']],
   ];
 
   function renderEssay() {
@@ -761,7 +765,7 @@
         <blockquote>Describe your aptitude and motivation for graduate study in Data Science, including your preparation for this field of study and your future career goals. Be specific about why the UC Berkeley MIDS program would be a good intellectual fit for you. 1–2 pages recommended.</blockquote>
         <ul>
           <li><b>Length:</b> about 900 words</li>
-          <li><b>Through-line:</b> understanding and detecting a dataset's limitations in trading data, before they cost anyone money</li>
+          <li><b>Through-line:</b> understanding a dataset's limitations, and that "accurate" depends on how the data is used</li>
           <li><b>Tone:</b> plain and specific; tools only where the story needs them</li>
           <li><b>Find-and-replace test:</b> swap in another school's name; if paragraph 5 still works, it's too generic</li>
           <li><b>Reuse for Penn:</b> paragraphs 1–4 carry over; add community and 15-hours-a-week sections</li>
