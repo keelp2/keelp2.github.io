@@ -719,55 +719,39 @@
   }
 
   const ESSAY = [
-    ['Intro frame: the roll story', 'Motivation · WriteIvy §1', 200,
-      'As a [Market Data Systems Engineer] at DRW, I built [one of the pipelines] that tells traders how and when to roll their futures positions out of the expiring contract and into the next.',
-      ['What you built, in plain words (the roll system covers 190+ products across 36 exchanges)',
-       'What happened: a portfolio manager saw the spread price gap flip from positive to negative',
-       'The cause: you traced it to a single anomalous quote; 24 hours gave illiquid spreads enough quotes but let anomalies in',
-       'Your fix: a judgment call to switch to 10am–12pm',
-       'The insight: a PM rolling a position and a researcher studying the order book define "accurate" differently; some anomalies are errors, some are real market events',
-       'Sentence of purpose: MIDS to learn statistically backed methods to tell real market moves from bad data, instead of relying on judgment calls',
-       'Keep it general: nothing proprietary']],
-    ['Why MIDS: courses and capstone', 'Intellectual fit · WriteIvy §2', 150,
-      '[Statistics for Data Science] would give me the tools to test decisions like [the averaging window] instead of making them on judgment.',
-      ['Optional hook from the MIDS curriculum page: it teaches "best practices for data collection and engineering — and how these factors affect timeliness, accuracy, and reliability" (paraphrase it; don\'t quote the program back at them)',
-       'Statistics for Data Science (DATASCI 203): covers estimators, hypothesis testing and regression; you\'d use it to compare averaging windows instead of picking one on judgment',
-       'Applied Time Series Analysis and Forecasting (DATASCI 271; renamed in 2025 from "Statistical Methods for Discrete Response, Time Series, and Panel Data," taught in R): modeling trend, seasonality and robustness in market time series is the foundation for telling a real price move from a bad tick',
-       'Applied Machine Learning (DATASCI 207; requires 201 and 203 first): see the data the way quants do, and build models that flag likely errors',
-       'Optional: Research Design and Applications for Data and Analysis (DATASCI 201); MIDS says it prepares students to "ask good questions of data," like which definition of price fits which user',
-       'Capstone: a model that classifies anomalous quotes as data errors or real market events, on public market data',
-       'Pick 2–3 courses, not all; each one tied to a specific use at DRW',
-       'Professors: optional; only if you have read their work and it truly connects']],
-    ['Why MIDS: focus area and format', 'Intellectual fit · WriteIvy §2', 125,
-      'The [Applied Statistics and Decision Science] focus area fits [what I already do every day]: [deciding which data to trust and explaining why].',
-      ['Focus area: Applied Statistics and Decision Science; its courses (201, 203, 241, 271) and its emphasis on communicating uncertainty to stakeholders match explaining to a PM why a price can be trusted',
-       'Programming waiver: MIDS requires object-oriented programming proficiency and passing the Introduction to Data Science Programming waiver exam; if you pass, you swap that foundation course for one more advanced course (e.g. Data Visualization or ML Systems Engineering)',
-       'Standard path: two courses a term while working at DRW, applying each one right away (e.g. a statistics course to the roll window question)',
-       'Project-based learning fits how you learn: rewriting Nasdaq\'s models in Python, rebuilding your NBA model years later',
-       'What you bring to classmates: six years with market data at Nasdaq, Cboe and DRW; you already train others (onboarding demos, the Nasdaq team, a Cboe intern)']],
-    ['Why qualified: your best work', 'Aptitude · WriteIvy §3', 200,
+    ['Intro: the roll story (drafted ✓)', 'Motivation', 250,
+      'As a Market Data Systems Engineer at DRW, I built one of the pipelines that tells traders how and when to roll their futures positions out of the expiring contract and into the next.',
+      ['Done: the price-gap flip, the anomalous quote, the 10am–12pm judgment call, the PM vs. researcher insight',
+       'Thesis: learn the statistical and modeling methods your users rely on, to separate real market moves from noise with evidence rather than judgment calls',
+       'Final polish: real dashes (—) and "10am–12pm"']],
+    ['Why MIDS: the gap and the courses (drafted ✓)', 'Preparation + intellectual fit', 230,
+      'Since graduating with a mathematics degree from Carleton College in 2020, I have worked deeply with market data and the software and tooling used to ingest it.',
+      ['Done: Carleton stats courses you haven\'t used in six years, project-based approach, Applied Machine Learning, Data Visualization, Applied Time Series Analysis and Forecasting',
+       'Done: ends on "perfect knowledge of the data," so don\'t reuse that line later',
+       'Optional one-liner to add: the Applied Statistics and Decision Science focus area (rigorous decisions, communicating uncertainty to stakeholders)',
+       'Final polish: "However, I have also found" → "But I have found"']],
+    ['Aptitude: your best work', 'Aptitude', 200,
       'Beyond the roll system, I curate the historical market data that [300+] quants, traders, and researchers rely on, and the hardest part is [what].',
-      ['A different project from the intro: data curation and daily quality checks for 300+ users',
+      ['Proves you can do graduate-level data work: pick one project and go deep, not wide',
+       'Best fit: data curation and daily quality checks for 300+ users',
        'One concrete limitation you handled: a symbology change, a corporate action, or quirks like CME\'s scaled-integer strikes',
        'Evidence you already make data-driven decisions: analyzing a month of query logs across 100+ users to decide what to keep, merge, or retire',
-       'Where you hit the limit: rule-based checks flag anomalies but can\'t tell an error from a real event, which leads back to your thesis',
-       'Show what you already have: deep market data knowledge plus the engineering to build pipelines']],
-    ['Why qualified: your path', 'Preparation · WriteIvy §3', 175,
-      'I graduated from Carleton six years ago with a math degree focused on statistics, where [a course like Statistical Consulting, or the hot wings permutation test in MATH 275] taught me [what clicked].',
-      ['Carleton: math degree with a statistics focus (Probability, Statistical Inference, Applied Regression, Bayesian Statistics, Statistical Consulting); graduated a term early. Name one concrete course or project, not the list',
+       'End where you hit the limit: rule-based checks flag anomalies but can\'t tell an error from a real event']],
+    ['Preparation: your path', 'Preparation', 150,
+      '[Before DRW], I spent [four] years at Nasdaq and Cboe, where [what each taught you about data].',
+      ['Don\'t repeat the Carleton course list from paragraph 2; one concrete Carleton detail at most (Statistical Consulting, or the MATH 275 permutation test)',
        'Piper Jaffray: your first applied modeling (credit scores, rating changes, defaults)',
-       'Nasdaq: rewrote 20+ index models in Python and set up daily checks that flagged discrepancies before they reached clients',
-       'Cboe: as a product manager, learned what users need; wrote scripts that automated rebalance validation',
-       'DRW: owns the market data platform today',
-       'Optional: your NBA Hall of Fame model (random forest, rebuilt in 2026) shows you keep practicing data science on your own',
-       'One or two sentences per stage, each about catching data problems, not duties']],
-    ['Concluding frame: career goal', 'Career goals · WriteIvy §4', 125,
+       'Nasdaq: rewrote 20+ index models in Python; daily checks that caught discrepancies before clients did',
+       'Cboe: product manager; learned what users need; automated rebalance validation',
+       'Self-driven: your NBA Hall of Fame model (random forest, rebuilt in 2026) shows you keep practicing data science on your own',
+       'Teaching others (onboarding demos, training the Nasdaq team, managing a Cboe intern): what you bring to MIDS classmates']],
+    ['Career goals and close', 'Career goals', 150,
       'After MIDS, I want to sit with a trading desk as a [title], [researching and building signals] from data I [understand better than anyone].',
-      ['Career goal (2–3 sentences): a title, at DRW or a firm like it, and why',
+      ['The prompt asks for career goals explicitly: give a title, at DRW or a firm like it, and why',
        'The progression: data quality now → research → building signals on a desk',
        'Why you: few people combine the pipelines, the market data knowledge, and the data science',
        'Echo the intro: next time, you would test the window choice instead of judging it',
-       'Optional last line: you can\'t have perfect data, but you can have perfect knowledge of it']],
+       'Don\'t reuse the "perfect knowledge" line; it already ends paragraph 2']],
   ];
 
   function renderEssay() {
@@ -776,12 +760,12 @@
         <h2>Berkeley MIDS statement of purpose</h2>
         <blockquote>Describe your aptitude and motivation for graduate study in Data Science, including your preparation for this field of study and your future career goals. Be specific about why the UC Berkeley MIDS program would be a good intellectual fit for you. 1–2 pages recommended.</blockquote>
         <ul>
-          <li><b>Structure (WriteIvy):</b> intro frame narrative → why MIDS (2 paragraphs) → why I'm qualified (2 paragraphs) → concluding frame</li>
-          <li><b>Length:</b> about 975 words</li>
+          <li><b>Covers every part of the prompt:</b> motivation (1) → preparation and intellectual fit (2) → aptitude (3) → preparation (4) → career goals (5)</li>
+          <li><b>Length:</b> about 980 words, which fits the recommended 1–2 pages</li>
           <li><b>Sub-niche:</b> telling real market moves from bad data, with statistically backed methods instead of judgment calls; later, building signals</li>
           <li><b>Tone:</b> plain and specific; tools only where the story needs them</li>
-          <li><b>Find-and-replace test:</b> swap in another school's name; if paragraphs 2–3 still work, they're too generic</li>
-          <li><b>Reuse for Penn:</b> paragraphs 1, 4, 5 and 6 carry over; rewrite 2–3 for Penn and add community and 15-hours-a-week sections</li>
+          <li><b>Find-and-replace test:</b> swap in another school's name; if paragraph 2 still works, it's too generic</li>
+          <li><b>Penn:</b> adapt after MIDS is done (Penn asks six specific questions)</li>
           <li>The example sentences are placeholders: fill in the brackets and rewrite them in your own words</li>
         </ul>
       </div>
