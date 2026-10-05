@@ -260,7 +260,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 31;
+  const SEED_REV = 32;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -289,7 +289,7 @@
   // Online-only (user can only do online programs). from = starter deadlines this may replace.
   const ONLINE_UPDATES = {
     'seed-0': { format: 'Online (HCP)' },
-    'seed-3': { format: 'Online', start: 'Jan or Jun 2027', from: ['2026-12-03', ''], deadline: '2026-11-05', deadlineEst: true,
+    'seed-3': { format: 'Online', start: 'Jan or Jun 2027', from: ['2026-12-03', ''], deadline: '2026-11-02', deadlineEst: false,
       notes: 'Online program: live classes weekday evenings 6–9pm; online starts are Jan and Jun. Offers go out on a rolling basis, with no advantage to earlier rounds. Jan 2027 deadline not posted — last year Nov 6, so ~Nov 5 (est.); Jun 2027 start ~late Apr (last year Apr 30). Part-time can be 1 course/quarter (~3 yrs). Recs: 2 required, 3 strongly recommended for FinMath; clicking “Send to Recommender” in the portal emails them a link right away, and they see whether you waived your right to view the letter. 1,250 units (12.5 courses) at $7,862/course (2025–26 rate). Needs multivariable calc, linear algebra, probability, programming.' },
     'seed-5': { format: 'Online', start: 'Autumn 2027', from: ['2026-11-09', '2026-12-03', ''], deadline: '2027-06-23', deadlineEst: false,
       notes: 'Online program (official): one final deadline, Jun 23, 2027, with rolling decisions — applying earlier gets an earlier answer. Starts Autumn 2027; part-time is 2 courses/quarter with live evening/Saturday classes. $6,384/course (2025–26 rate; rises 3–7%/yr); $1,500 deposit if admitted. One video required, a second is optional. Recs: 2 required (extra letters welcome); clicking “Send to Recommender” in the portal emails them a link right away. Online info session Sep 28, 5–6pm CT.' },
@@ -331,7 +331,7 @@
   const REV21 = {
     'seed-10': { notes: 'Penn Engineering (Ivy), fully online; switch between part- and full-time any semester. Spring 2027 deadline Oct 19 (official); reviewed as applications arrive. Scholarship deadline (Aug 3) has passed. Recs (official): 2 required, optional 3rd as a backup; must be people who evaluated you (supervisors, managers, professors), not colleagues or friends (2+ such letters = rejected). Penn emails recommenders an upload link. $3,859/course.' },
     'seed-1': { rename: ['Rec 3: TBD (required)', 'Rec 3: Adam (professor) — needed by ~Nov 10'], add: 'Ask Adam for an academic letter (by ~Nov 1)', notes: 'Rolling, but decisions come ~10 weeks after your LAST letter arrives and spring classes start Jan 19, 2027, so all 3 letters should be in by ~Nov 10. Recs (official): 3 required; professors you took courses with and day-to-day supervisors are ideal. Fully online via CVN. 30 credits: 7 core + 3 electives (e.g. risk management, fixed income, vol smile, credit). First 3 courses need B- or better to continue. $2,822/credit + $395/course (2026–27). Min 3.0 GPA; needs probability, calculus, linear algebra and a programming course (C recommended); try the prerequisite questions. GRE optional.' },
-    'seed-3': { rename: ['Rec 3: TBD (strongly recommended)', 'Rec 3: Adam (professor, strongly recommended)'], add: 'Confirm Jan 2027 online deadline with admissions', notes: '⚠ Jan 2027 online deadline NOT confirmed: last year\'s January-start deadline was Nov 6 (so ~Nov 5 is an estimate); some sources list Dec 3 / Jan 14 / Mar 25 rounds, which may be for the autumn start. Confirm with admissions. Recs (official): 2 required, 3 strongly recommended for FinMath; recommender type not specified, so include at least one professor. Online: live classes weekday evenings 6–9pm; starts Jan & Jun; offers go out on a rolling basis with no advantage to earlier rounds. Part-time can be 1 course/quarter (~3 yrs). 1,250 units (12.5 courses) at $7,862/course (2025–26). Needs multivariable calc, linear algebra, probability, programming.' },
+    'seed-3': { rename: ['Rec 3: TBD (strongly recommended)', 'Rec 3: Adam (professor, strongly recommended)'], add: 'Jan 2027 online deadline confirmed: Nov 2 (letters included)', notes: 'Jan 2027 online start: deadline Mon Nov 2, 2026, including letters of recommendation (ask recommenders for ~Oct 28). Later rounds for a June 2027 start: Feb 1 and May 1, 2027. Recs (official): 2 required, 3 strongly recommended for FinMath; recommender type not specified, so include at least one professor. Online: live classes weekday evenings 6–9pm; starts Jan & Jun; offers go out on a rolling basis with no advantage to earlier rounds. Part-time can be 1 course/quarter (~3 yrs). 1,250 units (12.5 courses) at $7,862/course (2025–26). Needs multivariable calc, linear algebra, probability, programming.' },
   };
   const REV22_PENN = { deadline: '2026-10-26', deadlineEst: false, cost: '~$38.6k (10 courses)', fee: '95', notes: 'Penn Engineering (Ivy), fully online and asynchronous (no required live sessions); switch between part- and full-time any semester. 10 course units: 3 foundational, 4 core, 2 technical electives, 1 open elective → ~$38.6k at $3,859/course. Spring 2027 (confirmed): final deadline Oct 26, 2026; decisions released on a rolling basis (apply early for an earlier answer); classes start January 2027. Scholarship deadline (Aug 3) passed. Application fee likely $95 (verify). Recs (official): 2 required, optional 3rd; supervisors/managers/professors, not colleagues or friends. Alternative: Penn MAS-CS Online (formerly MCIT) is built for people without a CS background.' };
   function applyRev21(a) {
@@ -650,6 +650,17 @@
     if (rev < 30) list.forEach(applyBerkeley);
     // rev 31: Berkeley transcript ordered
     if (rev < 31) list.forEach(applyTranscriptOrdered);
+    // rev 32: UChicago FinMath online Jan 2027 deadline confirmed (Nov 2, letters included)
+    if (rev < 32) {
+      const a = list.find(x => x.id === 'seed-3');
+      if (a) {
+        a.deadline = '2026-11-02';
+        a.deadlineEst = false;
+        const q = (a.reqs || []).find(x => x.t === 'Confirm Jan 2027 online deadline with admissions');
+        if (q) { q.t = 'Jan 2027 online deadline confirmed: Nov 2 (letters included)'; q.done = true; }
+        if (a.notes) a.notes = a.notes.replace(/⚠ Jan 2027 online deadline NOT confirmed:[^]*?Confirm with admissions\. /, 'Jan 2027 online start: deadline Mon Nov 2, 2026, including letters of recommendation (ask recommenders for ~Oct 28). Later rounds for a June 2027 start: Feb 1 and May 1, 2027. ');
+      }
+    }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
       const a = list.find(x => x.id === seed.id);
