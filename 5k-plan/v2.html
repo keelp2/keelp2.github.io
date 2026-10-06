@@ -326,11 +326,109 @@ h+='</div>';
 el.innerHTML=h;
 }
 
+function ht(d){
+const tl=d.tl,wo=d.wo,p=d.p;
+const s='<ol style="padding-left:16px;font-size:0.88rem;line-height:1.9">';
+const e='</ol>';
+
+if(tl==='Tempo')return s+
+'<li><strong>Warmup:</strong> Jog 1.5 miles at easy pace (8:30-9:00/mi). Get blood flowing.</li>'+
+'<li><strong>Dynamic warmup:</strong> 20 leg swings each way, 10 walking lunges, 10 high knees + 10 butt kicks.</li>'+
+`<li><strong>Tempo portion:</strong> Speed up to your tempo pace (${p||'see pace above'}). Hold this for the prescribed distance. This should feel "comfortably hard" — you can say short phrases but not full sentences. Check your watch every half mile to make sure you're on pace.</li>`+
+'<li><strong>Cooldown:</strong> Jog 1-1.5 miles easy. Foam roll after.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>If tempo feels too easy,</strong> you\'re doing it right — resist the urge to speed up. Tempo is controlled effort, not racing.</p>';
+
+if(tl==='VO2max Intervals'||tl==='VO2max (Peak)')return s+
+'<li><strong>Warmup:</strong> Jog 1.5 miles easy + dynamic warmup (leg swings, lunges, high knees).</li>'+
+'<li><strong>Find your spot:</strong> Track is ideal. No track? Use GPS to measure the distance on a flat road/path.</li>'+
+`<li><strong>Rep 1:</strong> Run the prescribed distance hard at the target pace. This should feel fast and controlled — breathing hard but not gasping. Check your time.</li>`+
+`<li><strong>Recovery:</strong> Jog VERY slowly (or walk) for the recovery time listed. Don't rush this — let your breathing come down before the next rep.</li>`+
+'<li><strong>Remaining reps:</strong> Repeat. Try to hit the same time every rep. If your last rep is 5+ seconds slower than your first, you went out too fast on rep 1.</li>'+
+'<li><strong>Cooldown:</strong> Jog 1-1.5 miles easy. Foam roll after.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>What it should feel like:</strong> Breathing hard during reps — can only say a few words. During recovery, you should be able to talk again by the end of the rest period.</p>';
+
+if(tl==='Norwegian 4×4'||tl==='Norwegian 4×4 (Final)')return s+
+'<li><strong>Warmup:</strong> Jog 2 miles easy.</li>'+
+'<li><strong>Start your watch/HR monitor.</strong> You need to see your heart rate in real time.</li>'+
+'<li><strong>Rep 1:</strong> Run for 4 minutes. Gradually build pace until your HR reaches <strong>165-175 bpm</strong> (90-95% max HR). Don\'t look at pace — look at your heart rate. It\'ll probably land around 5:50-6:10/mi but the HR is what matters.</li>'+
+'<li><strong>Recovery:</strong> Jog very slowly for 3 minutes. Let HR drop to ~128 bpm (~70% max HR). If HR hasn\'t come down enough, jog a bit longer.</li>'+
+'<li><strong>Reps 2-4:</strong> Repeat 3 more times (4 total). Each rep: 4 min at 165-175 bpm, 3 min recovery jog.</li>'+
+'<li><strong>Cooldown:</strong> Jog 1.5 miles easy.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>Why HR instead of pace:</strong> On a tired day you\'ll run 6:10 and still hit 170 bpm. On a fresh day you\'ll run 5:50 at 170 bpm. The stimulus is always correct because your heart doesn\'t lie. Total time at VO2max zone: 16 minutes.</p>';
+
+if(tl.includes('Easy + Hills'))return s+
+`<li><strong>Run:</strong> ${wo.split('+')[0].trim()} at easy pace (8:00-8:30/mi). Conversation pace.</li>`+
+'<li><strong>Find a steep hill</strong> (6-10% grade). A 20-30 second walk up should feel steep.</li>'+
+'<li><strong>Hill sprint:</strong> From the bottom, sprint ALL OUT up the hill for the prescribed time (10-12 sec). Maximum effort — pump arms, drive knees, fast feet. This is a SPRINT, not a run.</li>'+
+'<li><strong>Recovery:</strong> Walk slowly back down to the bottom. Take your time — full recovery (60-90 seconds) before the next one. You should feel ready to go again.</li>'+
+'<li><strong>Repeat</strong> for the prescribed number of reps.</li>'+
+'<li><strong>Treadmill option:</strong> Set incline to 8-10%, speed to 9-10 mph. Sprint 10-12 sec, grab rails and step onto the side. Rest 60-90 sec.</li>'+e;
+
+if(tl.includes('Easy + Strides')||tl==='Easy')return s+
+`<li><strong>Run:</strong> ${d.mi} miles at easy pace (8:00-8:30/mi). This should feel relaxed — you could hold a full conversation the whole time. If it feels hard, slow down.</li>`+
+(wo.includes('strides')||wo.includes('Strides')?
+'<li><strong>Strides:</strong> Find a flat straight stretch (~100m — a long block, parking lot, or straight section of the lakefront trail).</li>'+
+'<li>From a standstill, gradually accelerate over 50m to about 90% effort (fast but smooth, NOT an all-out sprint).</li>'+
+'<li>Hold that speed for a few seconds, then gradually slow down over the last 30m.</li>'+
+'<li>Walk back to the start. That\'s one stride. Repeat for the prescribed number (usually 4-6).</li>'+
+'<li><strong>Treadmill strides:</strong> Ramp speed to 9.5-10.5 mph, hold 10 sec, step onto side rails, rest 30-45 sec.</li>':'')+ e+
+(wo.includes('strides')?'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>Strides should feel fun and smooth</strong> — like you\'re flowing, not straining. Think "fast and relaxed."</p>':'');
+
+if(tl.includes('Long Run')&&!wo.includes('fast')&&!wo.includes('Fast')&&!wo.includes('→'))return s+
+`<li><strong>Run ${d.mi} miles at easy pace</strong> (8:15-8:45/mi). This is the most important run of the week for building your aerobic engine.</li>`+
+'<li>Conversation pace the whole time. If you can\'t chat, slow down.</li>'+
+'<li>Bring water if it\'s over 8 miles or hot out.</li>'+
+'<li>Foam roll after. Eat within 30 min — carbs + protein.</li>'+e;
+
+if(tl.includes('Long Run')&&(wo.includes('→')||wo.includes('fast')||wo.includes('Fast')))return s+
+`<li><strong>Start easy:</strong> Run the first portion at easy pace (8:15-8:45/mi). Settle in. This should feel relaxed for the first several miles.</li>`+
+`<li><strong>Fast finish:</strong> At the prescribed point, pick up the pace to the target (usually 7:00-7:30/mi). This should feel like "moderate effort" — harder than easy but not tempo. You\'re teaching your body to run strong when already tired.</li>`+
+'<li><strong>Don\'t start the fast portion too early.</strong> Wait until you reach the prescribed mile marker. The whole point is running fast on tired legs.</li>'+
+'<li>Foam roll after. Big meal within 30 min — this is a high-calorie burn day.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>This simulates the last miles of a 10K</strong> — running hard when your legs want to slow down.</p>';
+
+if(tl==='Tempo + Kick')return s+
+'<li><strong>Warmup:</strong> Jog 1.5 miles easy + dynamic warmup.</li>'+
+'<li><strong>Tempo portion:</strong> Run the prescribed miles at tempo pace. Comfortably hard, controlled.</li>'+
+'<li><strong>Recovery:</strong> Jog 2 minutes easy between the tempo and the 400s.</li>'+
+'<li><strong>400m reps:</strong> Run 1 lap of a track (or 0.25 mi on GPS) at the prescribed pace. This is FAST — like your 5K kick. Jog 90 seconds between each rep.</li>'+
+'<li><strong>Cooldown:</strong> Jog 1 mile easy.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>This is a mini race simulation:</strong> sustained hard effort followed by a kick. Exactly like miles 4-6 of a 10K.</p>';
+
+if(tl==='Race Pace')return s+
+'<li><strong>Warmup:</strong> Jog 1.5 miles easy + dynamic warmup.</li>'+
+`<li><strong>Rep 1:</strong> Run 1.5 miles at race pace (${p||'6:05-6:10/mi'}). Use GPS or a track (6 laps). Memorize how this feels — breathing, leg turnover, effort.</li>`+
+'<li><strong>Recovery:</strong> Jog slowly for 3 minutes.</li>'+
+'<li><strong>Rep 2:</strong> Run 1.5 miles at the same pace. It should feel similar to rep 1. If it feels much harder, that tells you where your fitness is.</li>'+
+'<li><strong>Cooldown:</strong> Jog 1.5 miles easy.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>If you can hold 6:07 for both reps,</strong> sub-19 5K is locked in. This is the proof workout.</p>';
+
+if(tl.includes('Time Trial'))return s+
+'<li><strong>Warmup:</strong> Jog 2 miles easy + dynamic warmup + 4 strides.</li>'+
+'<li><strong>Start your watch.</strong> Find a flat, measured route (track is ideal — 8 laps = 2 miles).</li>'+
+'<li><strong>GO.</strong> Run 2 miles as fast as you can. This is a race effort — RPE 9-10.</li>'+
+'<li><strong>Pacing:</strong> Start at 6:00/mi and hold. Don\'t go out in 5:40 — you\'ll die in the second mile. Even splits are the goal.</li>'+
+'<li><strong>Cooldown:</strong> Jog 1 mile easy. You\'ll want to collapse — jog anyway, it helps recovery.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">🎯 <strong>Target: under 12:00.</strong> That predicts ~18:45 5K and ~39:00 10K. Whatever you run, it\'s your baseline for future training.</p>';
+
+if(tl==='Last Hard Day')return s+
+'<li><strong>Warmup:</strong> Jog 1.5 miles easy + dynamic warmup.</li>'+
+'<li><strong>Tempo:</strong> Run 2 miles at 6:20 pace. Controlled.</li>'+
+'<li><strong>Recovery:</strong> Jog 2 minutes easy.</li>'+
+'<li><strong>200m reps:</strong> Run 200m (half a track lap or ~0.12 mi) at the prescribed pace. Fast and smooth. Jog 90 sec between each.</li>'+
+'<li><strong>Cooldown:</strong> Jog 1 mile easy.</li>'+e+
+'<p style="color:var(--o);font-size:0.82rem;margin-top:6px">🎯 <strong>Last hard session of the plan.</strong> Everything is easy after this. You should feel confident and sharp.</p>';
+
+return null;
+}
+
 function om(i){
 const d=D[i];const tcl=d.t==='key'?'dt-k':d.t==='easy'?'dt-e':d.t==='gym'?'dt-g':'dt-o';
 let h=`<span class="mb dt ${tcl}">${d.tl}</span><h2>${d.d} ${d.dt} — ${d.wo}</h2><p class="md">${d.w} | ${d.mi||0} mi</p>`;
 if(d.p)h+=`<div class="ms"><h3>Pace</h3><p>${d.p}</p></div>`;
-if(d.n)h+=`<div class="ms"><h3>Notes</h3><p>${d.n}</p></div>`;
+const hw=ht(d);
+if(hw)h+=`<div class="ms"><h3>Step-by-Step</h3>${hw}</div>`;
+if(d.n)h+=`<div class="ms"><h3>Coach Notes</h3><p>${d.n}</p></div>`;
 if(d.s)h+=`<div class="ms"><h3>Strength Circuit</h3><p>After run: single-leg squats (8ea), single-leg RDL (10ea), calf raises (15ea), glute bridges (12ea), side walks (15ea), wall sit (45s). 2 rounds.</p></div>`;
 const sn=getN(i);
 h+=`<div class="ms"><h3>My Notes <span class="nsv" id="ns">Saved ✓</span></h3><textarea class="mna" id="ni" placeholder="Splits, how you felt, anything..." oninput="sn(${i})">${sn||''}</textarea></div>`;
