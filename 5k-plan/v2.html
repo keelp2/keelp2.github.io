@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>12-Week Speed & VO2max Plan</title>
+<title>12-Week Speed + VO2max Plan</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="V2 Plan">
@@ -11,409 +11,353 @@
 <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
 <style>
-  :root{--o:#FC4C02;--obg:rgba(252,76,2,0.08);--obs:rgba(252,76,2,0.15);--bg:#f7f7f8;--c:#fff;--b:#e5e5e5;--bl:#f0f0f0;--t:#2d2d2d;--m:#8e8e93;--g:#00b84d;--gbg:rgba(0,184,77,0.08);--bl2:#0077cc;--blbg:rgba(0,119,204,0.08);--p:#8B5CF6;--pbg:rgba(139,92,246,0.08);--d:#1a1a2e;--s:0 1px 3px rgba(0,0,0,0.08)}
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--t);line-height:1.6}
-  .bar{background:var(--d);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
-  .bar-logo{color:var(--o);font-size:1.4rem;font-weight:800}
-  .bar-sub{color:rgba(255,255,255,0.6);font-size:0.8rem}
-  .bar a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.8rem}.bar a:hover{color:var(--o)}
-  .w{max-width:820px;margin:0 auto;padding:24px}
-  h1{font-size:1.6rem;font-weight:700;margin-bottom:4px}
-  h2{font-size:1.15rem;font-weight:700;margin:36px 0 12px;border-bottom:2px solid var(--o);padding-bottom:6px;display:inline-block}
-  h3{font-size:0.95rem;font-weight:700;margin:16px 0 8px}
-  .sub{color:var(--m);font-size:0.85rem;margin-bottom:24px}
-  .c{background:var(--c);border:1px solid var(--b);border-radius:8px;padding:20px;margin:12px 0;box-shadow:var(--s)}
-  .c h3{margin-top:0}
-  .c.or{border-left:3px solid var(--o)}.c.gr{border-left:3px solid var(--g)}.c.bl{border-left:3px solid var(--bl2)}.c.pu{border-left:3px solid var(--p)}
-  .pl{display:inline-block;padding:3px 10px;border-radius:4px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
-  .pl.ba{background:var(--gbg);color:var(--g)}.pl.bu{background:var(--obg);color:var(--o)}.pl.sh{background:var(--pbg);color:var(--p)}.pl.re{background:var(--blbg);color:var(--bl2)}
-  table{width:100%;border-collapse:collapse;margin:12px 0}
-  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--bl);font-size:0.84rem}
-  th{color:var(--m);font-weight:600;font-size:0.72rem;text-transform:uppercase}
-  .p{color:var(--o);font-weight:700}.hi{color:var(--o);font-weight:600}
-  ul{padding-left:18px}li{margin-bottom:6px;font-size:0.88rem}
-  .wn{font-weight:700}
-  .gr2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .note{font-size:0.82rem;color:var(--m);margin-top:8px}
-  @media(max-width:768px){.w{padding:16px}.gr2{grid-template-columns:1fr}h1{font-size:1.3rem}}
+:root{--o:#FC4C02;--obg:rgba(252,76,2,0.08);--obs:rgba(252,76,2,0.15);--bg:#f7f7f8;--c:#fff;--b:#e5e5e5;--bl:#f0f0f0;--t:#2d2d2d;--ts:#6d6d78;--m:#8e8e93;--g:#00b84d;--gbg:rgba(0,184,77,0.08);--blu:#0077cc;--blubg:rgba(0,119,204,0.08);--p:#8B5CF6;--pbg:rgba(139,92,246,0.08);--d:#1a1a2e;--s:0 1px 3px rgba(0,0,0,0.08);--sh:0 4px 12px rgba(0,0,0,0.12)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--t);line-height:1.6}
+.bar{background:var(--d);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.bar-l{}.bar-logo{color:var(--o);font-size:1.3rem;font-weight:800}.bar-sub{color:rgba(255,255,255,0.5);font-size:0.75rem}
+.bar-stats{display:flex;gap:16px}.bar-stat{text-align:center}.bar-stat .n{font-size:1.1rem;font-weight:800;color:var(--o)}.bar-stat .l{font-size:0.5rem;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.06em}
+.cw{max-width:1200px;margin:0 auto;padding:20px}
+.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--b);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{padding:9px 16px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:0;color:var(--m);cursor:pointer;font-size:0.82rem;font-weight:600;white-space:nowrap;flex-shrink:0}
+.tab:hover{color:var(--t)}.tab.active{color:var(--o);border-bottom-color:var(--o)}
+.tc{display:none}.tc.active{display:block}
+/* Calendar */
+.wl{font-size:0.82rem;font-weight:700;margin:22px 0 8px;display:flex;align-items:center;gap:10px;text-transform:uppercase;letter-spacing:0.03em;color:var(--t)}
+.wl .mi{font-size:0.72rem;background:var(--obg);padding:2px 8px;border-radius:10px;color:var(--o);font-weight:600;text-transform:none;letter-spacing:0}
+.wl .ph{font-size:0.68rem;padding:2px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-left:auto}
+.ph-r{background:var(--blubg);color:var(--blu)}.ph-b{background:var(--gbg);color:var(--g)}.ph-bu{background:var(--obg);color:var(--o)}.ph-s{background:var(--pbg);color:var(--p)}
+.wg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:4px}
+.dh{text-align:center;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--m);padding:3px;font-weight:600}
+.dc{background:var(--c);border:1px solid var(--b);border-radius:7px;padding:10px;min-height:110px;cursor:pointer;transition:all 0.2s;position:relative;box-shadow:var(--s)}
+.dc:hover{box-shadow:var(--sh);transform:translateY(-2px);border-color:var(--o)}
+.dc.off{opacity:.45;min-height:70px;box-shadow:none}.dc.key{border-left:3px solid var(--o)}.dc.easy{border-left:3px solid var(--g)}.dc.gym{border-left:3px solid var(--blu)}.dc.done{border-left:3px solid var(--m);opacity:.5}
+.dc.completed{opacity:.5}.dc.completed .dwo{text-decoration:line-through;color:var(--m)}
+.dc.today{border:2px solid var(--o);box-shadow:0 0 0 3px var(--obg),var(--s)}
+.dd{font-size:0.72rem;color:var(--m);margin-bottom:3px;font-weight:500}.dc.today .dd{color:var(--o);font-weight:800}
+.dt{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;display:inline-block;padding:2px 5px;border-radius:3px}
+.dt-k{background:var(--obg);color:var(--o)}.dt-e{background:var(--gbg);color:var(--g)}.dt-o{background:rgba(142,142,147,0.1);color:var(--m)}.dt-g{background:var(--blubg);color:var(--blu)}
+.dwo{font-size:0.78rem;line-height:1.3;font-weight:500}.dpa{font-size:0.68rem;color:var(--o);margin-top:3px;font-weight:600}.dmi{font-size:0.68rem;color:var(--m);margin-top:2px}
+.di{position:absolute;top:6px;right:6px;display:flex;gap:3px;font-size:0.65rem}
+.dck{width:18px;height:18px;border-radius:50%;border:2px solid var(--b);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:0.65rem}
+.dck:hover{border-color:var(--o)}.dck.chk{background:var(--o);border-color:var(--o);color:#fff}
+.dni{font-size:0.6rem;color:var(--o)}
+/* Modal */
+.mo{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:100;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.ml{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:28px;max-width:600px;width:100%;max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.ml h2{font-size:1.15rem;margin-bottom:3px;font-weight:700}.ml .md{color:var(--m);font-size:0.82rem;margin-bottom:14px}
+.ms{margin-bottom:14px}.ms h3{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--o);margin-bottom:5px;font-weight:700}
+.ms p,.ms li{font-size:0.88rem;color:var(--t)}.ms ul{padding-left:16px}
+.mx{position:absolute;top:14px;right:14px;background:0;border:0;color:var(--m);font-size:1.4rem;cursor:pointer}.mx:hover{color:var(--t)}
+.mb{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.72rem;font-weight:700;margin-bottom:6px}
+.mcb{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:20px;border:2px solid var(--o);background:0;color:var(--o);font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:6px}
+.mcb:hover,.mcb.chk{background:var(--o);color:#fff}
+.mna{width:100%;min-height:60px;padding:9px 11px;border:1px solid var(--b);border-radius:7px;font-family:inherit;font-size:0.83rem;color:var(--t);background:var(--bg);resize:vertical;line-height:1.5}
+.mna:focus{outline:0;border-color:var(--o)}.mna::placeholder{color:var(--m)}
+.nsv{font-size:0.72rem;color:var(--g);margin-left:6px;opacity:0;transition:opacity 0.3s}.nsv.show{opacity:1}
+/* Info cards */
+.ig{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.ic{background:var(--c);border:1px solid var(--b);border-radius:7px;padding:18px;box-shadow:var(--s)}
+.ic h3{font-size:0.78rem;font-weight:700;margin-bottom:8px;color:var(--o);text-transform:uppercase;letter-spacing:0.04em}
+.ic ul{padding-left:15px}.ic li{font-size:0.83rem;margin-bottom:4px}.hi{color:var(--o);font-weight:600}
+table{width:100%;border-collapse:collapse;margin:10px 0}th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--bl);font-size:0.82rem}
+th{color:var(--m);font-weight:600;font-size:0.7rem;text-transform:uppercase}.pa{color:var(--o);font-weight:700}
+.el{list-style:none;padding:0}.el li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bl);font-size:0.83rem}.el li:last-child{border:0}.el .rp{color:var(--o);font-weight:600}
+.note{font-size:0.8rem;color:var(--m);margin-top:7px}
+@media(max-width:768px){
+.wg{display:flex;flex-direction:column;gap:3px}.dh{display:none}
+.dc{min-height:auto;padding:9px 12px;display:flex;align-items:center;gap:8px;border-radius:5px}.dc.off{padding:5px 12px}
+.dd{min-width:34px;font-size:0.78rem;margin-bottom:0}.dt{font-size:0.58rem;margin-bottom:0;min-width:48px;text-align:center}
+.dwo{font-size:0.8rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dpa{display:none}.dmi{margin-top:0;min-width:30px;text-align:right;font-weight:600}
+.di{position:static}
+.cw{padding:10px}.bar{padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top))}
+.tab{padding:7px 11px;font-size:0.76rem}
+.ml{padding:18px;margin:0;max-height:88vh;border-radius:14px 14px 0 0;width:100%;max-width:100%}.mo{padding:0;align-items:flex-end}
+.ig{grid-template-columns:1fr}.wl{margin:16px 0 6px;font-size:0.78rem}
+}
+@supports(-webkit-touch-callout:none){.dc{-webkit-tap-highlight-color:rgba(252,76,2,0.1)}.tab{-webkit-tap-highlight-color:transparent}.ml{-webkit-overflow-scrolling:touch}}
 </style>
 </head>
 <body>
-
 <div class="bar">
-  <div><div class="bar-logo">V2 TRAINING</div><div class="bar-sub">12-Week Speed + VO2max — Chicago Winter</div></div>
-  <a href="index.html">← 5K Plan</a>
+<div class="bar-l"><div class="bar-logo">V2 TRAINING</div><div class="bar-sub">12-Week Speed + VO2max</div></div>
+<div class="bar-stats"><div class="bar-stat"><div class="n" id="cntd">84</div><div class="l">Days Left</div></div><div class="bar-stat"><div class="n" id="cntc">0/84</div><div class="l">Done</div></div></div>
+</div>
+<div class="cw">
+<div class="tabs">
+<div class="tab active" onclick="stab('cal')">Calendar</div>
+<div class="tab" onclick="stab('gym')">Gym</div>
+<div class="tab" onclick="stab('nutr')">Nutrition</div>
+<div class="tab" onclick="stab('winter')">Chicago Winter</div>
+<div class="tab" onclick="stab('gloss')">📖 Glossary</div>
 </div>
 
-<div class="w">
+<div id="tab-cal" class="tc active"><div id="cal"></div></div>
 
-<h1>12-Week Plan: Sub-19 5K / Sub-40 10K / VO2max 60</h1>
-<p class="sub">Oct 6, 2026 → Dec 28, 2026 | Chicago | 3-5 runs/week + 1 gym day</p>
-
-<div class="c or">
-<h3>Starting Point → Goal</h3>
-<table>
-  <tr><th>Metric</th><th>Now</th><th>Goal</th></tr>
-  <tr><td>5K</td><td>19:14 (6:12/mi)</td><td class="p">&lt;19:00 (6:07/mi)</td></tr>
-  <tr><td>10K</td><td>~40:30 est.</td><td class="p">&lt;40:00 (6:26/mi)</td></tr>
-  <tr><td>VO2max</td><td>56</td><td class="p">58-60</td></tr>
-  <tr><td>Weekly mileage</td><td>15-20 mi</td><td class="p">28-32 mi</td></tr>
-  <tr><td>Long run</td><td>6-7 mi</td><td class="p">10-11 mi</td></tr>
-</table>
-</div>
-
-<!-- ===================== PHASES ===================== -->
-<h2>The 4 Phases</h2>
-
-<div class="gr2">
-  <div class="c bl">
-    <span class="pl re">Recovery</span>
-    <h3>Week 1</h3>
-    <p>Post-race recovery. Easy running only. Let the 5K race fatigue clear out.</p>
-    <p style="margin-top:6px"><strong>~20 mi</strong></p>
-  </div>
-  <div class="c gr">
-    <span class="pl ba">Phase 1: Base</span>
-    <h3>Weeks 2-5</h3>
-    <p>Build mileage gradually. Tempo runs, hill sprints, introduce gym day. Long run grows 7→9 mi.</p>
-    <p style="margin-top:6px"><strong>21→27 mi/week</strong></p>
-  </div>
-  <div class="c or">
-    <span class="pl bu">Phase 2: Build</span>
-    <h3>Weeks 6-9</h3>
-    <p>VO2max intervals + Norwegian 4×4. Longer tempos. Fast-finish long runs to 10-11 mi. This is where the Garmin number moves.</p>
-    <p style="margin-top:6px"><strong>28→32 mi/week</strong></p>
-  </div>
-  <div class="c pu">
-    <span class="pl sh">Phase 3: Sharpen</span>
-    <h3>Weeks 10-12</h3>
-    <p>Race-specific combos. Time trials. Peak fitness. Optional race if one comes up.</p>
-    <p style="margin-top:6px"><strong>28-30 mi/week</strong></p>
-  </div>
-</div>
-
-<!-- ===================== WEEKLY SCHEDULE ===================== -->
-<h2>Weekly Schedule (All Phases)</h2>
-<div class="c">
-<table>
-  <tr><th>Day</th><th>Type</th><th>Notes</th></tr>
-  <tr><td><strong>Mon</strong></td><td class="p">Quality Run #1</td><td>Tempo (Phase 1) or VO2max intervals (Phase 2-3)</td></tr>
-  <tr><td><strong>Tue</strong></td><td>Gym — Explosive Legs</td><td>30 min. OR upper body. Alternate weeks.</td></tr>
-  <tr><td><strong>Wed</strong></td><td class="p">Quality Run #2</td><td>Hill sprints + easy (Phase 1) or Norwegian 4×4/tempo (Phase 2-3)</td></tr>
-  <tr><td><strong>Thu</strong></td><td>Upper Body + Abs</td><td>Same as 5K plan. Go hard. No deadlifts.</td></tr>
-  <tr><td><strong>Fri</strong></td><td>Easy + Strides</td><td>4-5 mi easy + 6×100m strides</td></tr>
-  <tr><td><strong>Sat</strong></td><td>Easy (optional)</td><td>3-4 mi easy or OFF. Added in Phase 2+.</td></tr>
-  <tr><td><strong>Sun</strong></td><td class="p">Long Run</td><td>The most important run of the week for VO2max.</td></tr>
-</table>
-<p class="note">Tuesday gym alternates: Legs Week 1, Upper Week 2, Legs Week 3, etc. So you get legs 1×/week (on the weeks you do them) and upper 2-3×/week (Thu always + every other Tue).</p>
-</div>
-
-<!-- ===================== GYM DAY ===================== -->
-<h2>Tuesday Gym — Explosive Legs (every other Tue)</h2>
-<div class="c or">
-<p>Goal: power and force production. <strong>Low reps, heavy-ish weight, explosive on the way up.</strong> Not a bodybuilding workout. In and out in 30 min.</p>
-<table>
-  <tr><th>Exercise</th><th>Sets × Reps</th><th>How</th></tr>
-  <tr><td class="wn">Barbell Back Squat</td><td class="p">4 × 4-5</td><td>Heavy. Controlled down, EXPLODE up. Rest 2-3 min between sets.</td></tr>
-  <tr><td class="wn">Bulgarian Split Squat</td><td class="p">3 × 6 each leg</td><td>Hold dumbbells. Back foot on bench. Running-specific single-leg strength.</td></tr>
-  <tr><td class="wn">Calf Raises (weighted)</td><td class="p">3 × 12</td><td>Hold a dumbbell. 3-sec lower. Calf stiffness = free speed.</td></tr>
-  <tr><td class="wn">Jump Squats (bodyweight)</td><td class="p">3 × 6</td><td>Squat down, jump as high as you can, soft landing. Pure power. Do these in an open area.</td></tr>
-</table>
-<p class="note"><strong>Progression:</strong> Add 5 lbs to the squat every 2 weeks. If you can't complete 4 reps with good form, stay at the same weight. Start conservative — you're a runner, not a powerlifter.</p>
-<p class="note"><strong>Nothing weird about this workout.</strong> It's a squat, split squats, calf raises, and jump squats. Every gym has these. 30 minutes, headphones in, done.</p>
-</div>
-
-<!-- ===================== WEEK 1 ===================== -->
-<h2>Week 1: Recovery (Oct 6-12)</h2>
-<div class="c bl">
-<span class="pl re">Recovery Week</span>
-<p>You raced Saturday 10/3. This week is easy — let the race fatigue clear before building.</p>
-<table>
-  <tr><th>Day</th><th>Date</th><th>Workout</th><th>Miles</th></tr>
-  <tr><td>Mon</td><td>10/5</td><td>✅ Done — 6.4 mi easy at 8:30</td><td>6.4</td></tr>
-  <tr><td>Tue</td><td>10/6</td><td>OFF or light upper body</td><td>—</td></tr>
-  <tr><td>Wed</td><td>10/7</td><td>4 mi easy + 4×100m strides</td><td>4.5</td></tr>
-  <tr><td>Thu</td><td>10/8</td><td>Upper body + abs at gym</td><td>—</td></tr>
-  <tr><td>Fri</td><td>10/9</td><td>4 mi easy</td><td>4</td></tr>
-  <tr><td>Sat</td><td>10/10</td><td>OFF</td><td>—</td></tr>
-  <tr><td>Sun</td><td>10/11</td><td>6 mi easy at 8:15-8:45</td><td>6</td></tr>
-  <tr><td colspan="3"><strong>Total</strong></td><td><strong>~21</strong></td></tr>
-</table>
-</div>
-
-<!-- ===================== WEEK 2 ===================== -->
-<h2>Week 2: Base Begins (Oct 13-19) — NC Vacation</h2>
-<div class="c gr">
-<span class="pl ba">Phase 1 — Base</span>
-<p>You're in NC this week. Do what you can — 3 runs is great, 2 is fine. Hiking counts as cross-training. The tempo is the priority if you can find a flat stretch.</p>
-<table>
-  <tr><th>Day</th><th>Date</th><th>Workout</th><th>Miles</th></tr>
-  <tr><td>Mon</td><td>10/13</td><td class="p">Tempo: 1.5 mi WU → 2 mi at 6:30-6:40 → 1 mi CD. If no flat road, swap for easy 5 mi.</td><td>5</td></tr>
-  <tr><td>Tue</td><td>10/14</td><td>OFF — hike if you want</td><td>—</td></tr>
-  <tr><td>Wed</td><td>10/15</td><td>Easy 4-5 mi on trails + find a hill for 6×10s sprints. Or just easy run.</td><td>4-5</td></tr>
-  <tr><td>Thu</td><td>10/16</td><td>OFF — hike</td><td>—</td></tr>
-  <tr><td>Fri</td><td>10/17</td><td>Easy 4 mi + strides (find any straight stretch of road/path)</td><td>4.5</td></tr>
-  <tr><td>Sat</td><td>10/18</td><td>OFF or easy 3 mi</td><td>0-3</td></tr>
-  <tr><td>Sun</td><td>10/19</td><td>Long run 7 mi easy at 8:15-8:45</td><td>7</td></tr>
-  <tr><td colspan="3"><strong>Total</strong></td><td><strong>~21-24</strong></td></tr>
-</table>
-<p class="note">NC has great trail running if you want to do your easy runs on trails. Just slow down 30-60 sec/mi for elevation — effort matters more than pace on hilly terrain.</p>
-</div>
-
-<!-- ===================== PHASE 1 ===================== -->
-<h2>Phase 1: Base (Weeks 2-5)</h2>
-<p>Build aerobic volume. Introduce tempos and hill sprints. Start gym work.</p>
-
-<div class="c gr">
-<h3>Monday — Tempo Progression</h3>
-<table>
-  <tr><th>Week</th><th>Warmup</th><th>Tempo</th><th>Cooldown</th><th>Total</th></tr>
-  <tr><td>2</td><td>1.5 mi easy</td><td class="p">2 mi at 6:30-6:40</td><td>1 mi</td><td>~5 mi</td></tr>
-  <tr><td>3</td><td>1.5 mi easy</td><td class="p">2.5 mi at 6:25-6:35</td><td>1 mi</td><td>~5.5 mi</td></tr>
-  <tr><td>4</td><td>1.5 mi easy</td><td class="p">3 mi at 6:20-6:30</td><td>1 mi</td><td>~6 mi</td></tr>
-  <tr><td>5</td><td>1.5 mi easy</td><td class="p">3.5 mi at 6:20-6:30</td><td>1 mi</td><td>~6.5 mi</td></tr>
-</table>
-<p class="note">Tempo = "comfortably hard." Can say short phrases but not full sentences. If you can chat, you're too slow. If you can't say a word, you're too fast.</p>
-</div>
-
-<div class="c gr">
-<h3>Wednesday — Easy + Hill Sprints</h3>
-<table>
-  <tr><th>Week</th><th>Easy Run</th><th>Hill Sprints</th><th>Total</th></tr>
-  <tr><td>2</td><td>4 mi at 8:00-8:30</td><td class="p">6 × 10 sec ALL OUT uphill</td><td>~4.5 mi</td></tr>
-  <tr><td>3</td><td>4.5 mi</td><td class="p">7 × 10 sec</td><td>~5 mi</td></tr>
-  <tr><td>4</td><td>5 mi</td><td class="p">8 × 10 sec</td><td>~5.5 mi</td></tr>
-  <tr><td>5</td><td>5 mi</td><td class="p">8 × 12 sec</td><td>~5.5 mi</td></tr>
-</table>
-<p class="note">Find a steep hill. Sprint UP for 10-12 sec at max effort. Walk down. Full recovery (60-90 sec). These build raw power with almost zero injury risk.<br><br><strong>Treadmill option:</strong> Set incline to 8-10%, speed to 9-10 mph. Sprint 10-12 sec, grab the rails and step onto the side. Rest 60-90 sec. Repeat.</p>
-</div>
-
-<div class="c gr">
-<h3>Sunday — Long Run Progression</h3>
-<table>
-  <tr><th>Week</th><th>Distance</th><th>Pace</th><th>Notes</th></tr>
-  <tr><td>2</td><td>7 mi</td><td>8:15-8:45</td><td>Conversation pace</td></tr>
-  <tr><td>3</td><td>8 mi</td><td>8:15-8:45</td><td>Add 1 mi</td></tr>
-  <tr><td>4</td><td>8 mi</td><td>8:15-8:45</td><td>Hold — absorb the mileage</td></tr>
-  <tr><td>5</td><td>9 mi</td><td>8:15-8:45, last 2 mi at 7:30</td><td>First fast finish</td></tr>
-</table>
-</div>
-
-<div class="c">
-<h3>Phase 1 Mileage</h3>
-<table>
-  <tr><th>Week</th><th>Mon</th><th>Wed</th><th>Fri</th><th>Sat</th><th>Sun</th><th>Total</th></tr>
-  <tr><td>2</td><td>5</td><td>4.5</td><td>4.5</td><td>—</td><td>7</td><td><strong>21</strong></td></tr>
-  <tr><td>3</td><td>5.5</td><td>5</td><td>4.5</td><td>—</td><td>8</td><td><strong>23</strong></td></tr>
-  <tr><td>4</td><td>6</td><td>5.5</td><td>5</td><td>—</td><td>8</td><td><strong>24.5</strong></td></tr>
-  <tr><td>5</td><td>6.5</td><td>5.5</td><td>5</td><td>3</td><td>9</td><td><strong>29</strong></td></tr>
-</table>
-<p class="note">Saturday added in Week 5. If 29 feels like too much, drop Saturday.</p>
-</div>
-
-<!-- ===================== PHASE 2 ===================== -->
-<h2>Phase 2: Build (Weeks 6-9)</h2>
-<p>The engine-building phase. VO2max intervals + Norwegian 4×4 + longer tempos + fast-finish long runs.</p>
-
-<div class="c or">
-<h3>Monday — VO2max Intervals (alternating with Norwegian 4×4)</h3>
-<table>
-  <tr><th>Week</th><th>Workout</th><th>Details</th><th>Recovery</th></tr>
-  <tr><td>6</td><td class="p">5×800m</td><td>2:48-2:53 per 800 (5:38-5:48/mi)</td><td>2:00 jog</td></tr>
-  <tr><td>7</td><td class="p">Norwegian 4×4</td><td>4×4 min at 90-95% max HR (165-175 bpm, ~5:50-6:10 pace)</td><td>3:00 jog at 70% HR</td></tr>
-  <tr><td>8</td><td class="p">4×1000m</td><td>3:32-3:38 per 1K (5:42-5:52/mi)</td><td>2:30 jog</td></tr>
-  <tr><td>9</td><td class="p">Norwegian 4×4</td><td>4×4 min at 90-95% max HR. Should feel smoother than Week 7.</td><td>3:00 jog</td></tr>
-</table>
-<p class="note">Alternating weeks: traditional intervals → Norwegian 4×4 → traditional → Norwegian. This gives you both pace-based and HR-based VO2max stimulus.</p>
-</div>
-
-<div class="c or">
-<h3>Norwegian 4×4 — How to Do It</h3>
-<ul>
-  <li>Warmup: 2 mi easy jog</li>
-  <li><strong>Rep 1:</strong> Run for 4 minutes at 90-95% max HR. For you that's <span class="hi">165-175 bpm</span>. Don't look at pace — look at your heart rate. It'll probably land around 5:50-6:10/mi but the HR is what matters.</li>
-  <li><strong>Recovery:</strong> Jog for 3 minutes at ~70% max HR (<span class="hi">~128 bpm</span>). Slow enough that HR actually comes down.</li>
-  <li>Repeat 3 more times (4 total).</li>
-  <li>Cooldown: 1.5 mi easy jog</li>
-  <li><strong>Total time at VO2max zone:</strong> 16 minutes. That's the magic number.</li>
+<div id="tab-gym" class="tc">
+<h2 style="margin-bottom:12px">Tuesday Gym — Explosive Legs (every other Tue)</h2>
+<p style="color:var(--m);font-size:0.85rem;margin-bottom:14px">30 min. Low reps, heavy-ish, explosive up. Not bodybuilding. Alternate Tuesdays with upper body.</p>
+<div class="ic" style="border-left:3px solid var(--o)">
+<h3>The Workout</h3>
+<ul class="el">
+<li><span><strong>Barbell Back Squat</strong> — controlled down, EXPLODE up. Rest 2-3 min.</span><span class="rp">4 × 4-5</span></li>
+<li><span><strong>Bulgarian Split Squat</strong> — dumbbells, back foot on bench.</span><span class="rp">3 × 6 ea</span></li>
+<li><span><strong>Calf Raises (weighted)</strong> — 3-sec lower.</span><span class="rp">3 × 12</span></li>
+<li><span><strong>Jump Squats (bodyweight)</strong> — max height, soft landing.</span><span class="rp">3 × 6</span></li>
 </ul>
-<p class="note"><strong>Why HR instead of pace:</strong> On a tired day you'll run 6:10 and still hit 170 bpm. On a fresh day you'll run 5:50 at 170 bpm. The stimulus is always correct because your heart doesn't lie.</p>
+<p class="note">Add 5 lbs to squat every 2 weeks. Start conservative. Upper body on the other Tuesdays + every Thursday.</p>
+</div>
 </div>
 
-<div class="c or">
-<h3>Wednesday — Tempo Progression</h3>
+<div id="tab-nutr" class="tc">
+<h2 style="margin-bottom:12px">Nutrition</h2>
+<p style="color:var(--m);font-size:0.85rem;margin-bottom:14px">6'3" / 180-185 lbs | Same targets as 5K plan, scaled for higher mileage.</p>
+<div class="ic">
+<h3>Daily Targets by Day Type</h3>
 <table>
-  <tr><th>Week</th><th>Warmup</th><th>Tempo</th><th>Cooldown</th></tr>
-  <tr><td>6</td><td>1.5 mi</td><td class="p">3.5 mi at 6:20-6:25</td><td>1 mi</td></tr>
-  <tr><td>7</td><td>1.5 mi</td><td class="p">4 mi at 6:15-6:25</td><td>1 mi</td></tr>
-  <tr><td>8</td><td>1.5 mi</td><td class="p">4.5 mi at 6:15-6:20</td><td>1 mi</td></tr>
-  <tr><td>9</td><td>1.5 mi</td><td class="p">5 mi at 6:15-6:20</td><td>1 mi</td></tr>
+<tr><th>Day Type</th><th>Calories</th><th>Carbs</th><th>Protein</th><th>Fat</th></tr>
+<tr><td>Rest (Tue/Thu)</td><td class="pa">2,500-2,600</td><td>250-275g</td><td>140-150g</td><td>85-95g</td></tr>
+<tr><td>Easy run (3-5 mi)</td><td class="pa">2,700-2,900</td><td>275-325g</td><td>140-150g</td><td>85-95g</td></tr>
+<tr><td>Key session (Mon/Wed)</td><td class="pa">3,000-3,200</td><td>350-400g</td><td>140-150g</td><td>80-90g</td></tr>
+<tr><td>Long run (8-11 mi)</td><td class="pa">3,100-3,400</td><td>375-425g</td><td>140-150g</td><td>85-95g</td></tr>
 </table>
-<p class="note">By Week 9 you're holding sub-40 10K pace for 5 continuous miles. That's race-ready.</p>
+<p class="note">As mileage increases in Phase 2, eat at the higher end. Don't undereat — you're running 30 mi/week. Fuel it.</p>
+</div>
+<div class="ig">
+<div class="ic"><h3>Before Runs</h3><ul><li><span class="hi">2-3 hrs before:</span> 300-400 cal — oatmeal + banana, toast + PB, bagel + honey</li><li><span class="hi">Night before key sessions:</span> Carb-heavy dinner (pasta, rice)</li></ul></div>
+<div class="ic"><h3>After Runs</h3><ul><li><span class="hi">Within 30 min (key):</span> 30-40g protein + 50-60g carbs — chocolate milk + banana, protein shake</li><li><span class="hi">Within 30 min (easy):</span> Yogurt + granola, banana + PB</li></ul></div>
+</div>
 </div>
 
-<div class="c or">
-<h3>Sunday — Long Run w/ Fast Finish</h3>
+<div id="tab-winter" class="tc">
+<h2 style="margin-bottom:12px">Chicago Winter Running</h2>
+<div class="ig">
+<div class="ic" style="border-left:3px solid var(--blu)"><h3 style="color:var(--blu)">Where to Run</h3><ul>
+<li><span class="hi">Lakefront Trail</span> — 18 mi paved. Wind off the lake but well-maintained.</li>
+<li><span class="hi">606 Trail</span> — elevated, wind-sheltered, 2.7 mi. Good for tempos.</li>
+<li><span class="hi">Treadmill</span> — no shame. Set 1% incline. Norwegian 4×4 works great on treadmill.</li>
+</ul></div>
+<div class="ic" style="border-left:3px solid var(--blu)"><h3 style="color:var(--blu)">Gear by Temp</h3>
 <table>
-  <tr><th>Week</th><th>Total</th><th>Structure</th></tr>
-  <tr><td>6</td><td>9 mi</td><td>7 mi easy → last 2 mi at 7:15-7:30</td></tr>
-  <tr><td>7</td><td>10 mi</td><td>7 mi easy → last 3 mi at 7:15-7:30</td></tr>
-  <tr><td>8</td><td>10 mi</td><td>7 mi easy → last 3 mi at 7:00-7:15</td></tr>
-  <tr><td>9</td><td>11 mi</td><td>8 mi easy → last 3 mi at 7:00-7:15</td></tr>
+<tr><td><strong>50-60°F</strong></td><td>Shorts + long sleeve</td></tr>
+<tr><td><strong>40-50°F</strong></td><td>Tights + long sleeve. Light gloves.</td></tr>
+<tr><td><strong>25-40°F</strong></td><td>Tights + long sleeve + wind vest. Gloves. Beanie. Buff.</td></tr>
+<tr><td><strong>Below 25°F</strong></td><td>Full tights + base layer + wind jacket. Mittens. OR: treadmill.</td></tr>
 </table>
+<p class="note">Dress like it's 15-20°F warmer. If you're comfortable standing outside, you're overdressed.</p>
+</div>
+</div>
+<div class="ic" style="border-left:3px solid var(--blu)"><h3 style="color:var(--blu)">Treadmill Guide</h3><ul>
+<li><strong>1% incline</strong> always — compensates for no wind resistance.</li>
+<li><strong>Strides:</strong> Ramp speed to 9.5-10.5 mph, hold 10 sec, step onto rails, rest 30-45 sec. Repeat 4-6×.</li>
+<li><strong>Norwegian 4×4:</strong> Set pace, watch HR. Adjust speed to stay 165-175 bpm. Rails for recovery at 4.5-5 mph.</li>
+<li><strong>Hill sprints:</strong> 8-10% incline, 9-10 mph, 10-12 sec. Grab rails, step off. Rest 60-90 sec.</li>
+<li><strong>Tempo:</strong> Set exact pace and hold. Easier to pace than outdoor.</li>
+<li><strong>Ice outside = treadmill.</strong> A slip = weeks of missed training.</li>
+</ul></div>
 </div>
 
-<div class="c">
-<h3>Phase 2 Mileage</h3>
-<table>
-  <tr><th>Week</th><th>Mon</th><th>Wed</th><th>Fri</th><th>Sat</th><th>Sun</th><th>Total</th></tr>
-  <tr><td>6</td><td>6</td><td>6.5</td><td>5</td><td>3</td><td>9</td><td><strong>29.5</strong></td></tr>
-  <tr><td>7</td><td>6</td><td>7</td><td>5</td><td>3</td><td>10</td><td><strong>31</strong></td></tr>
-  <tr><td>8</td><td>6</td><td>7.5</td><td>5</td><td>3.5</td><td>10</td><td><strong>32</strong></td></tr>
-  <tr><td>9</td><td>6</td><td>8</td><td>5</td><td>3.5</td><td>11</td><td><strong>33.5</strong></td></tr>
-</table>
+<div id="tab-gloss" class="tc">
+<h2 style="margin-bottom:12px">Glossary</h2>
+<p style="color:var(--m);font-size:0.85rem;margin-bottom:14px">Plain-English explanations of every term.</p>
+<div class="ig" style="grid-template-columns:1fr">
+<div class="ic" style="border-left:3px solid var(--o)"><h3>Workout Types</h3><ul>
+<li><span class="hi">Intervals / Repeats (e.g. "5×800m"):</span> Run a distance fast, jog to recover, repeat. "5×800m" = run 800m hard, jog 2 min, do it 5 times total.</li>
+<li><span class="hi">Tempo run:</span> Sustained "comfortably hard" pace. Can say short phrases but not sentences.</li>
+<li><span class="hi">Easy run:</span> Relaxed jog, full conversation. Should feel genuinely easy.</li>
+<li><span class="hi">Strides:</span> 100m smooth accelerations to ~90% effort. Walk back. Not sprints — "fast and relaxed."</li>
+<li><span class="hi">Hill sprints:</span> 10-12 sec ALL OUT up a steep hill. Walk down. Builds raw power.</li>
+<li><span class="hi">Norwegian 4×4:</span> 4 × 4 minutes at 90-95% max HR (165-175 bpm) with 3 min jog recovery. HR-based, not pace-based.</li>
+<li><span class="hi">Fast finish long run:</span> Most of the run easy, last 2-3 miles at a harder pace. Teaches running strong when tired.</li>
+</ul></div>
+<div class="ic" style="border-left:3px solid var(--g)"><h3 style="color:var(--g)">Pace & Effort</h3><ul>
+<li><span class="hi">Pace (e.g. "6:07/mi"):</span> Minutes per mile. Lower = faster.</li>
+<li><span class="hi">WU / CD:</span> Warmup / Cooldown. Easy jogging before/after the hard part.</li>
+<li><span class="hi">Recovery jog:</span> Very slow jog (or walk) between hard reps. Let HR come down.</li>
+<li><span class="hi">RPE:</span> 1-10 effort scale. Easy=4-5, Tempo=7, Intervals=8-9, Race=9-10.</li>
+<li><span class="hi">Negative split:</span> Running the second half faster than the first. The goal.</li>
+</ul></div>
+<div class="ic" style="border-left:3px solid var(--p)"><h3 style="color:var(--p)">Recovery</h3><ul>
+<li><span class="hi">Foam rolling:</span> Roll muscles on a foam cylinder. 30-60 sec per area: quads, IT band (outer thigh), calves, glutes.</li>
+<li><span class="hi">Hip flexor stretch:</span> Kneel on one knee, push hips forward. Hold 90 sec each side.</li>
+<li><span class="hi">Taper:</span> Reducing volume before a race so you arrive fresh. You'll feel restless — that's it working.</li>
+</ul></div>
+</div>
 </div>
 
-<!-- ===================== PHASE 3 ===================== -->
-<h2>Phase 3: Sharpen (Weeks 10-12)</h2>
-<p>Race-specific workouts. Test your fitness. Peak.</p>
+<div class="mo" id="modal" onclick="if(event.target===this)cm()"><div class="ml"><button class="mx" onclick="cm()">&times;</button><div id="mc"></div></div></div>
 
-<div class="c pu">
-<h3>Monday — Key Workouts</h3>
-<table>
-  <tr><th>Week</th><th>Workout</th><th>Purpose</th></tr>
-  <tr><td>10</td><td class="p">6×800m at 2:45-2:50 w/ 90s rest</td><td>Peak VO2max. Faster reps, shorter rest.</td></tr>
-  <tr><td>11</td><td class="p">2×1.5mi at 6:05-6:10 w/ 3:00 jog</td><td>Race-pace endurance. If you hold 6:07 for 1.5mi twice, sub-19 is locked.</td></tr>
-  <tr><td>12</td><td class="p">Norwegian 4×4 (final)</td><td>Compare HR vs pace to Week 7. Expect same HR at faster pace = fitness gained.</td></tr>
-</table>
-</div>
+<script>
+// 12-week day-by-day data
+// Types: key, easy, off, gym, done
+const D=[
+// WEEK 1 — Recovery (Oct 5-11)
+{w:"Week 1 — Recovery",d:"Mon",dt:"10/5",t:"done",tl:"Done",wo:"6.4 mi easy at 8:30",p:"",mi:6.4,s:false,n:"Already completed"},
+{w:"Week 1 — Recovery",d:"Tue",dt:"10/6",t:"off",tl:"OFF",wo:"Rest or light upper body",p:"",mi:0,s:false,n:""},
+{w:"Week 1 — Recovery",d:"Wed",dt:"10/7",t:"easy",tl:"Easy",wo:"4 mi easy + 4×100m strides",p:"8:00-8:30/mi",mi:4.5,s:false,n:""},
+{w:"Week 1 — Recovery",d:"Thu",dt:"10/8",t:"gym",tl:"Upper Body",wo:"Upper body + abs at gym",p:"",mi:0,s:false,n:""},
+{w:"Week 1 — Recovery",d:"Fri",dt:"10/9",t:"easy",tl:"Easy",wo:"4 mi easy",p:"8:00-8:30/mi",mi:4,s:false,n:""},
+{w:"Week 1 — Recovery",d:"Sat",dt:"10/10",t:"off",tl:"OFF",wo:"Rest",p:"",mi:0,s:false,n:""},
+{w:"Week 1 — Recovery",d:"Sun",dt:"10/11",t:"easy",tl:"Long Run",wo:"6 mi easy",p:"8:15-8:45/mi",mi:6,s:false,n:""},
+// WEEK 2 — Base / NC Vacation (Oct 12-18)
+{w:"Week 2 — Base (NC)",d:"Mon",dt:"10/12",t:"key",tl:"Tempo",wo:"1.5mi WU → 2mi at 6:30-6:40 → 1.5mi CD. Or easy 5 mi if no flat road.",p:"6:30-6:40 tempo",mi:5,s:false,n:"NC vacation — do what you can"},
+{w:"Week 2 — Base (NC)",d:"Tue",dt:"10/13",t:"off",tl:"OFF",wo:"Hike if you want",p:"",mi:0,s:false,n:"NC — enjoy"},
+{w:"Week 2 — Base (NC)",d:"Wed",dt:"10/14",t:"easy",tl:"Easy + Hills",wo:"4 mi easy + 6×10s hill sprints. Or just easy run on trails.",p:"8:00-8:30/mi",mi:4.5,s:false,n:"Find a hill in NC — shouldn't be hard"},
+{w:"Week 2 — Base (NC)",d:"Thu",dt:"10/15",t:"off",tl:"OFF",wo:"Hike",p:"",mi:0,s:false,n:""},
+{w:"Week 2 — Base (NC)",d:"Fri",dt:"10/16",t:"easy",tl:"Easy + Strides",wo:"4 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:4.5,s:false,n:"Any straight stretch of road works"},
+{w:"Week 2 — Base (NC)",d:"Sat",dt:"10/17",t:"off",tl:"Optional",wo:"Easy 3 mi or OFF",p:"8:30/mi",mi:0,s:false,n:"Last day NC"},
+{w:"Week 2 — Base (NC)",d:"Sun",dt:"10/18",t:"easy",tl:"Long Run",wo:"7 mi easy",p:"8:15-8:45/mi",mi:7,s:false,n:"Back home"},
+// WEEK 3 — Base (Oct 19-25)
+{w:"Week 3 — Base",d:"Mon",dt:"10/19",t:"key",tl:"Tempo",wo:"1.5mi WU → 2.5mi at 6:25-6:35 → 1.5mi CD",p:"6:25-6:35 tempo",mi:5.5,s:false,n:""},
+{w:"Week 3 — Base",d:"Tue",dt:"10/20",t:"gym",tl:"Legs",wo:"Explosive legs at gym (see Gym tab)",p:"",mi:0,s:false,n:"First leg day"},
+{w:"Week 3 — Base",d:"Wed",dt:"10/21",t:"easy",tl:"Easy + Hills",wo:"4.5 mi easy + 7×10s hill sprints",p:"8:00-8:30/mi",mi:5,s:false,n:""},
+{w:"Week 3 — Base",d:"Thu",dt:"10/22",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 3 — Base",d:"Fri",dt:"10/23",t:"easy",tl:"Easy + Strides",wo:"4.5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:4.5,s:true,n:"Bodyweight strength circuit after"},
+{w:"Week 3 — Base",d:"Sat",dt:"10/24",t:"off",tl:"OFF",wo:"Rest",p:"",mi:0,s:false,n:""},
+{w:"Week 3 — Base",d:"Sun",dt:"10/25",t:"easy",tl:"Long Run",wo:"8 mi easy",p:"8:15-8:45/mi",mi:8,s:false,n:""},
+// WEEK 4 — Base (Oct 26 - Nov 1)
+{w:"Week 4 — Base",d:"Mon",dt:"10/26",t:"key",tl:"Tempo",wo:"1.5mi WU → 3mi at 6:20-6:30 → 1.5mi CD",p:"6:20-6:30 tempo",mi:6,s:false,n:""},
+{w:"Week 4 — Base",d:"Tue",dt:"10/27",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 4 — Base",d:"Wed",dt:"10/28",t:"easy",tl:"Easy + Hills",wo:"5 mi easy + 8×10s hill sprints",p:"8:00-8:30/mi",mi:5.5,s:false,n:""},
+{w:"Week 4 — Base",d:"Thu",dt:"10/29",t:"gym",tl:"Legs",wo:"Explosive legs at gym (see Gym tab)",p:"",mi:0,s:false,n:""},
+{w:"Week 4 — Base",d:"Fri",dt:"10/30",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:5,s:true,n:"Strength circuit after"},
+{w:"Week 4 — Base",d:"Sat",dt:"10/31",t:"off",tl:"OFF",wo:"Rest — Happy Halloween 🎃",p:"",mi:0,s:false,n:""},
+{w:"Week 4 — Base",d:"Sun",dt:"11/1",t:"easy",tl:"Long Run",wo:"8 mi easy",p:"8:15-8:45/mi",mi:8,s:false,n:"Hold distance — absorb the mileage"},
+// WEEK 5 — Base (Nov 2-8)
+{w:"Week 5 — Base",d:"Mon",dt:"11/2",t:"key",tl:"Tempo",wo:"1.5mi WU → 3.5mi at 6:20-6:30 → 1.5mi CD",p:"6:20-6:30 tempo",mi:6.5,s:false,n:"Longest tempo yet"},
+{w:"Week 5 — Base",d:"Tue",dt:"11/3",t:"gym",tl:"Legs",wo:"Explosive legs at gym",p:"",mi:0,s:false,n:""},
+{w:"Week 5 — Base",d:"Wed",dt:"11/4",t:"easy",tl:"Easy + Hills",wo:"5 mi easy + 8×12s hill sprints",p:"8:00-8:30/mi",mi:5.5,s:false,n:"12 sec sprints now — slightly longer"},
+{w:"Week 5 — Base",d:"Thu",dt:"11/5",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 5 — Base",d:"Fri",dt:"11/6",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:5,s:true,n:"Strength circuit after"},
+{w:"Week 5 — Base",d:"Sat",dt:"11/7",t:"easy",tl:"Easy",wo:"3 mi easy",p:"8:30-9:00/mi",mi:3,s:false,n:"Saturday runs start now"},
+{w:"Week 5 — Base",d:"Sun",dt:"11/8",t:"key",tl:"Long Run + Fast Finish",wo:"9 mi: 7 mi easy → last 2 mi at 7:30",p:"8:30 easy / 7:30 fast finish",mi:9,s:false,n:"First fast finish long run"},
+// WEEK 6 — Build (Nov 9-15)
+{w:"Week 6 — Build",d:"Mon",dt:"11/9",t:"key",tl:"VO2max Intervals",wo:"1.5mi WU → 5×800m at 2:48-2:53 → 2:00 jog recovery → 1.5mi CD",p:"2:48-2:53/800m (5:38-5:48/mi)",mi:6.5,s:false,n:"Intervals return — faster than 5K plan"},
+{w:"Week 6 — Build",d:"Tue",dt:"11/10",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 6 — Build",d:"Wed",dt:"11/11",t:"key",tl:"Tempo",wo:"1.5mi WU → 3.5mi at 6:20-6:25 → 1mi CD",p:"6:20-6:25 tempo",mi:6,s:false,n:"Veterans Day"},
+{w:"Week 6 — Build",d:"Thu",dt:"11/12",t:"gym",tl:"Legs",wo:"Explosive legs at gym",p:"",mi:0,s:false,n:""},
+{w:"Week 6 — Build",d:"Fri",dt:"11/13",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:5,s:true,n:"Strength circuit after"},
+{w:"Week 6 — Build",d:"Sat",dt:"11/14",t:"easy",tl:"Easy",wo:"3 mi easy",p:"8:30-9:00/mi",mi:3,s:false,n:""},
+{w:"Week 6 — Build",d:"Sun",dt:"11/15",t:"key",tl:"Long Run + Fast Finish",wo:"9 mi: 7 mi easy → last 2 mi at 7:15-7:30",p:"8:30 easy / 7:15-7:30 finish",mi:9,s:false,n:""},
+// WEEK 7 — Build (Nov 16-22)
+{w:"Week 7 — Build",d:"Mon",dt:"11/16",t:"key",tl:"Norwegian 4×4",wo:"2mi WU → 4×4min at 90-95% max HR (165-175 bpm) w/ 3min jog → 1.5mi CD",p:"165-175 bpm (HR-based, ~5:50-6:10)",mi:6.5,s:false,n:"First Norwegian session — watch HR not pace"},
+{w:"Week 7 — Build",d:"Tue",dt:"11/17",t:"gym",tl:"Legs",wo:"Explosive legs at gym",p:"",mi:0,s:false,n:""},
+{w:"Week 7 — Build",d:"Wed",dt:"11/18",t:"key",tl:"Tempo",wo:"1.5mi WU → 4mi at 6:15-6:25 → 1mi CD",p:"6:15-6:25 tempo",mi:6.5,s:false,n:""},
+{w:"Week 7 — Build",d:"Thu",dt:"11/19",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 7 — Build",d:"Fri",dt:"11/20",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:5,s:true,n:"Strength circuit after"},
+{w:"Week 7 — Build",d:"Sat",dt:"11/21",t:"easy",tl:"Easy",wo:"3 mi easy",p:"8:30-9:00/mi",mi:3,s:false,n:""},
+{w:"Week 7 — Build",d:"Sun",dt:"11/22",t:"key",tl:"Long Run + Fast Finish",wo:"10 mi: 7 mi easy → last 3 mi at 7:15-7:30",p:"8:30 easy / 7:15-7:30 finish",mi:10,s:false,n:"Longest run of the plan so far"},
+// WEEK 8 — Build / Thanksgiving (Nov 23-29)
+{w:"Week 8 — Build",d:"Mon",dt:"11/23",t:"key",tl:"VO2max Intervals",wo:"1.5mi WU → 4×1000m at 3:32-3:38 → 2:30 jog recovery → 1.5mi CD",p:"3:32-3:38/1K (5:42-5:52/mi)",mi:6,s:false,n:""},
+{w:"Week 8 — Build",d:"Tue",dt:"11/24",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 8 — Build",d:"Wed",dt:"11/25",t:"key",tl:"Tempo",wo:"1.5mi WU → 4.5mi at 6:15-6:20 → 1mi CD",p:"6:15-6:20 tempo",mi:7,s:false,n:"Day before Thanksgiving — get it done early"},
+{w:"Week 8 — Build",d:"Thu",dt:"11/26",t:"off",tl:"OFF",wo:"Thanksgiving 🦃 — eat big, rest well",p:"",mi:0,s:false,n:"Enjoy it. The carbs are fuel."},
+{w:"Week 8 — Build",d:"Fri",dt:"11/27",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:5,s:false,n:"Burn off some turkey"},
+{w:"Week 8 — Build",d:"Sat",dt:"11/28",t:"easy",tl:"Easy",wo:"3.5 mi easy",p:"8:30-9:00/mi",mi:3.5,s:false,n:""},
+{w:"Week 8 — Build",d:"Sun",dt:"11/29",t:"key",tl:"Long Run + Fast Finish",wo:"10 mi: 7 mi easy → last 3 mi at 7:00-7:15",p:"8:30 easy / 7:00-7:15 finish",mi:10,s:false,n:"Faster finish than last week"},
+// WEEK 9 — Build (Nov 30 - Dec 6)
+{w:"Week 9 — Build",d:"Mon",dt:"11/30",t:"key",tl:"Norwegian 4×4",wo:"2mi WU → 4×4min at 90-95% max HR → 3min jog → 1.5mi CD",p:"165-175 bpm — should feel smoother than Week 7",mi:6.5,s:false,n:"Compare pace at same HR to Week 7"},
+{w:"Week 9 — Build",d:"Tue",dt:"12/1",t:"gym",tl:"Legs",wo:"Explosive legs at gym",p:"",mi:0,s:false,n:""},
+{w:"Week 9 — Build",d:"Wed",dt:"12/2",t:"key",tl:"Tempo",wo:"1.5mi WU → 5mi at 6:15-6:20 → 1mi CD",p:"6:15-6:20 tempo",mi:7.5,s:false,n:"5 continuous miles at sub-40 10K pace. If you can do this, you're ready."},
+{w:"Week 9 — Build",d:"Thu",dt:"12/3",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 9 — Build",d:"Fri",dt:"12/4",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:5,s:true,n:"Strength circuit after"},
+{w:"Week 9 — Build",d:"Sat",dt:"12/5",t:"easy",tl:"Easy",wo:"3.5 mi easy",p:"8:30-9:00/mi",mi:3.5,s:false,n:""},
+{w:"Week 9 — Build",d:"Sun",dt:"12/6",t:"key",tl:"Long Run + Fast Finish",wo:"11 mi: 8 mi easy → last 3 mi at 7:00-7:15",p:"8:30 easy / 7:00-7:15 finish",mi:11,s:false,n:"Peak long run"},
+// WEEK 10 — Sharpen (Dec 7-13)
+{w:"Week 10 — Sharpen",d:"Mon",dt:"12/7",t:"key",tl:"VO2max (Peak)",wo:"1.5mi WU → 6×800m at 2:45-2:50 → 90s jog recovery → 1.5mi CD",p:"2:45-2:50/800m (5:34-5:42/mi)",mi:7,s:false,n:"Peak VO2max session. Faster reps, shorter rest."},
+{w:"Week 10 — Sharpen",d:"Tue",dt:"12/8",t:"gym",tl:"Legs",wo:"Explosive legs — last heavy session",p:"",mi:0,s:false,n:"Last heavy leg day"},
+{w:"Week 10 — Sharpen",d:"Wed",dt:"12/9",t:"key",tl:"Tempo + Kick",wo:"1.5mi WU → 3mi tempo at 6:15 → 2min jog → 4×400m at 1:20-1:23 → 1mi CD",p:"6:15 tempo + 5:30-5:40 400s",mi:7,s:false,n:"Endurance + kick combo. Mini race sim."},
+{w:"Week 10 — Sharpen",d:"Thu",dt:"12/10",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
+{w:"Week 10 — Sharpen",d:"Fri",dt:"12/11",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 6×100m strides",p:"8:00-8:30/mi",mi:5,s:false,n:""},
+{w:"Week 10 — Sharpen",d:"Sat",dt:"12/12",t:"easy",tl:"Easy",wo:"3 mi easy",p:"8:30-9:00/mi",mi:3,s:false,n:""},
+{w:"Week 10 — Sharpen",d:"Sun",dt:"12/13",t:"key",tl:"Long Run + Fast Finish",wo:"10 mi: 7 mi easy → last 3 mi at 7:00-7:15",p:"8:30 easy / 7:00-7:15 finish",mi:10,s:false,n:""},
+// WEEK 11 — Sharpen (Dec 14-20)
+{w:"Week 11 — Sharpen",d:"Mon",dt:"12/14",t:"key",tl:"Race Pace",wo:"1.5mi WU → 2×1.5mi at 6:05-6:10 → 3min jog between → 1.5mi CD",p:"6:05-6:10/mi — sub-19 5K pace",mi:6.5,s:false,n:"If you hold 6:07 for 1.5mi twice, sub-19 is locked."},
+{w:"Week 11 — Sharpen",d:"Tue",dt:"12/15",t:"gym",tl:"Upper Body",wo:"Upper body + abs — no legs this week",p:"",mi:0,s:false,n:""},
+{w:"Week 11 — Sharpen",d:"Wed",dt:"12/16",t:"key",tl:"⭐ 2-Mile Time Trial",wo:"2mi WU → 2 MILES ALL OUT → 1mi CD",p:"Target: under 12:00 (6:00/mi)",mi:5,s:false,n:"THE FITNESS TEST. Under 12:00 = sub-19 5K + sub-40 10K ready."},
+{w:"Week 11 — Sharpen",d:"Thu",dt:"12/17",t:"off",tl:"OFF",wo:"Rest — recover from TT",p:"",mi:0,s:false,n:""},
+{w:"Week 11 — Sharpen",d:"Fri",dt:"12/18",t:"easy",tl:"Easy + Strides",wo:"5 mi easy + 4×100m strides",p:"8:00-8:30/mi",mi:5,s:false,n:""},
+{w:"Week 11 — Sharpen",d:"Sat",dt:"12/19",t:"easy",tl:"Easy",wo:"3 mi easy",p:"8:30-9:00/mi",mi:3,s:false,n:""},
+{w:"Week 11 — Sharpen",d:"Sun",dt:"12/20",t:"easy",tl:"Long Run",wo:"9 mi easy — no fast finish",p:"8:15-8:45/mi",mi:9,s:false,n:"Easy. Volume dropping."},
+// WEEK 12 — Sharpen (Dec 21-27)
+{w:"Week 12 — Sharpen",d:"Mon",dt:"12/21",t:"key",tl:"Norwegian 4×4 (Final)",wo:"2mi WU → 4×4min at 90-95% max HR → 3min jog → 1.5mi CD",p:"165-175 bpm — compare to Week 7",mi:6.5,s:false,n:"Same HR, faster pace = fitness gained. How much faster?"},
+{w:"Week 12 — Sharpen",d:"Tue",dt:"12/22",t:"off",tl:"OFF",wo:"Rest",p:"",mi:0,s:false,n:""},
+{w:"Week 12 — Sharpen",d:"Wed",dt:"12/23",t:"key",tl:"Last Hard Day",wo:"1.5mi WU → 2mi tempo at 6:20 → 2min jog → 6×200m at 5:15-5:25 → 1mi CD",p:"6:20 tempo + 5:15-5:25 200s",mi:5.5,s:false,n:"Last hard session. Confidence builder."},
+{w:"Week 12 — Sharpen",d:"Thu",dt:"12/24",t:"off",tl:"OFF",wo:"Christmas Eve — rest 🎄",p:"",mi:0,s:false,n:""},
+{w:"Week 12 — Sharpen",d:"Fri",dt:"12/25",t:"off",tl:"OFF",wo:"Christmas — rest 🎅",p:"",mi:0,s:false,n:"Enjoy the day off."},
+{w:"Week 12 — Sharpen",d:"Sat",dt:"12/26",t:"easy",tl:"Easy + Strides",wo:"3 mi easy + 4×100m strides",p:"8:00-8:30/mi",mi:3.5,s:false,n:""},
+{w:"Week 12 — Sharpen",d:"Sun",dt:"12/27",t:"easy",tl:"Long Run",wo:"8 mi easy",p:"8:15-8:45/mi",mi:8,s:false,n:"Plan complete. You're ready to race whenever."},
+];
 
-<div class="c pu">
-<h3>Wednesday — Key Workouts</h3>
-<table>
-  <tr><th>Week</th><th>Workout</th><th>Purpose</th></tr>
-  <tr><td>10</td><td class="p">3 mi tempo at 6:15 + 4×400m at 1:20-1:23</td><td>Endurance + kick combo. Mini race sim.</td></tr>
-  <tr><td>11</td><td class="p">2-mile Time Trial (all out)</td><td>Target: under 12:00. Predicts ~18:45 5K / ~39:00 10K.</td></tr>
-  <tr><td>12</td><td class="p">2 mi tempo at 6:20 + 6×200m at 5:15-5:25</td><td>Last hard session. Confidence builder.</td></tr>
-</table>
-</div>
+const WM={"Week 1 — Recovery":"~21 mi","Week 2 — Base (NC)":"~21 mi","Week 3 — Base":"~23 mi","Week 4 — Base":"~24.5 mi","Week 5 — Base":"~29 mi","Week 6 — Build":"~29.5 mi","Week 7 — Build":"~31 mi","Week 8 — Build":"~31.5 mi","Week 9 — Build":"~33.5 mi","Week 10 — Sharpen":"~32 mi","Week 11 — Sharpen":"~28.5 mi","Week 12 — Sharpen":"~23.5 mi"};
+const WP={"Week 1 — Recovery":"ph-r","Week 2 — Base (NC)":"ph-b","Week 3 — Base":"ph-b","Week 4 — Base":"ph-b","Week 5 — Base":"ph-b","Week 6 — Build":"ph-bu","Week 7 — Build":"ph-bu","Week 8 — Build":"ph-bu","Week 9 — Build":"ph-bu","Week 10 — Sharpen":"ph-s","Week 11 — Sharpen":"ph-s","Week 12 — Sharpen":"ph-s"};
+const WPN={"ph-r":"Recovery","ph-b":"Base","ph-bu":"Build","ph-s":"Sharpen"};
+const DO=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-<div class="c pu">
-<h3>Sunday — Long Runs</h3>
-<table>
-  <tr><th>Week</th><th>Distance</th><th>Notes</th></tr>
-  <tr><td>10</td><td>10 mi</td><td>7 easy → 3 at 7:00-7:15</td></tr>
-  <tr><td>11</td><td>9 mi</td><td>All easy. Slight volume drop.</td></tr>
-  <tr><td>12</td><td>8 mi</td><td>All easy. Freshening up.</td></tr>
-</table>
-</div>
+function build(){
+const el=document.getElementById('cal');let h='';
+const wks={};D.forEach(d=>{if(!wks[d.w])wks[d.w]=[];wks[d.w].push(d)});
+for(const[wn,wd] of Object.entries(wks)){
+const pc=WP[wn]||'ph-b';
+h+=`<div class="wl">${wn.split(' — ')[0]} <span class="mi">${WM[wn]||''}</span><span class="ph ${pc}">${WPN[pc]||''}</span></div>`;
+h+='<div class="wg">';
+DO.forEach(d=>h+=`<div class="dh">${d}</div>`);
+DO.forEach(dn=>{
+const d=wd.find(x=>x.d===dn);
+if(!d){h+='<div></div>';return}
+const idx=D.indexOf(d);const ic=isC(idx);const cc=ic?' completed':'';const tc=isT(d.dt)?' today':'';
+const cls=d.t==='off'?'off':d.t==='gym'?'gym off':d.t==='done'?'done':d.t==='key'?'key':'easy';
+const tcl=d.t==='key'?'dt-k':d.t==='easy'?'dt-e':d.t==='gym'?'dt-g':'dt-o';
+const ni=getN(idx)?'<span class="dni">📝</span>':'';
+const si=d.s?'💪':'';
+h+=`<div class="dc ${cls}${cc}${tc}" onclick="om(${idx})">
+<div class="dck ${ic?'chk':''}" onclick="event.stopPropagation();tg(${idx})">${ic?'✓':''}</div>
+<div class="di">${ni}${si}</div>
+<div class="dd">${isT(d.dt)?'● TODAY':d.dt}</div>
+<div class="dt ${tcl}">${d.tl}</div>
+<div class="dwo">${d.wo}</div>
+${d.p?`<div class="dpa">${d.p}</div>`:''}
+<div class="dmi">${d.mi||'—'} mi</div>
+</div>`;
+});
+h+='</div>';
+}
+el.innerHTML=h;
+}
 
-<div class="c">
-<h3>Phase 3 Mileage</h3>
-<table>
-  <tr><th>Week</th><th>Mon</th><th>Wed</th><th>Fri</th><th>Sat</th><th>Sun</th><th>Total</th></tr>
-  <tr><td>10</td><td>6</td><td>7</td><td>5</td><td>3</td><td>10</td><td><strong>31</strong></td></tr>
-  <tr><td>11</td><td>6</td><td>5</td><td>5</td><td>3</td><td>9</td><td><strong>28</strong></td></tr>
-  <tr><td>12</td><td>5.5</td><td>6</td><td>4</td><td>3</td><td>8</td><td><strong>26.5</strong></td></tr>
-</table>
-</div>
+function om(i){
+const d=D[i];const tcl=d.t==='key'?'dt-k':d.t==='easy'?'dt-e':d.t==='gym'?'dt-g':'dt-o';
+let h=`<span class="mb dt ${tcl}">${d.tl}</span><h2>${d.d} ${d.dt} — ${d.wo}</h2><p class="md">${d.w} | ${d.mi||0} mi</p>`;
+if(d.p)h+=`<div class="ms"><h3>Pace</h3><p>${d.p}</p></div>`;
+if(d.n)h+=`<div class="ms"><h3>Notes</h3><p>${d.n}</p></div>`;
+if(d.s)h+=`<div class="ms"><h3>Strength Circuit</h3><p>After run: single-leg squats (8ea), single-leg RDL (10ea), calf raises (15ea), glute bridges (12ea), side walks (15ea), wall sit (45s). 2 rounds.</p></div>`;
+const sn=getN(i);
+h+=`<div class="ms"><h3>My Notes <span class="nsv" id="ns">Saved ✓</span></h3><textarea class="mna" id="ni" placeholder="Splits, how you felt, anything..." oninput="sn(${i})">${sn||''}</textarea></div>`;
+const ic=isC(i);
+h+=`<div class="ms"><button class="mcb ${ic?'chk':''}" onclick="tg(${i});om(${i})">${ic?'✓ Completed':'Mark as Done'}</button></div>`;
+document.getElementById('mc').innerHTML=h;document.getElementById('modal').classList.add('open');
+}
+function cm(){document.getElementById('modal').classList.remove('open')}
+function stab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));document.getElementById('tab-'+n).classList.add('active');event.target.classList.add('active')}
 
-<!-- ===================== BENCHMARKS ===================== -->
-<h2>How to Know It's Working</h2>
-<div class="c">
-<table>
-  <tr><th>By End of</th><th>Benchmark</th><th>Meaning</th></tr>
-  <tr><td>Week 5</td><td>3.5 mi tempo at 6:25 comfortably</td><td>Aerobic base is solid</td></tr>
-  <tr><td>Week 7</td><td>Norwegian 4×4: hitting 170bpm at 5:55-6:05 pace</td><td>VO2max is climbing</td></tr>
-  <tr><td>Week 9</td><td>5 mi tempo at 6:18</td><td>Sub-40 10K fitness ✅</td></tr>
-  <tr><td>Week 11</td><td>2-mile TT under 12:00</td><td>Sub-19 5K + sub-40 10K ready</td></tr>
-  <tr><td>Week 12</td><td>Norwegian 4×4 at same HR but 10-15s/mi faster than Week 7</td><td>VO2max has improved 2-4 points</td></tr>
-</table>
-</div>
-
-<div class="c">
-<h3>Garmin VO2max Expectations</h3>
-<ul>
-  <li><span class="hi">Weeks 1-5:</span> 56 → maybe 57. Base building is slow to show. Don't be discouraged.</li>
-  <li><span class="hi">Weeks 6-9:</span> 57 → 58-59. Intervals + Norwegian 4×4 kick in.</li>
-  <li><span class="hi">Weeks 10-12:</span> 58 → 59-60 possible. Depends on consistency.</li>
-  <li>Check weekly, not daily. It lags behind real fitness by ~1-2 weeks.</li>
-</ul>
-</div>
-
-<!-- ===================== CHICAGO WINTER ===================== -->
-<h2>Chicago Winter Running</h2>
-<div class="c bl">
-<h3>Where to Run</h3>
-<ul>
-  <li><span class="hi">Lakefront Trail</span> — the go-to. 18 miles of paved path. Exposed to wind off the lake but well-maintained. Best for long runs and tempos.</li>
-  <li><span class="hi">606 Trail</span> — elevated, sheltered from wind, 2.7 mi out-and-back. Good for tempo repeats.</li>
-  <li><span class="hi">Lincoln Park / North Pond loop</span> — ~3 mi loop, some wind protection from trees.</li>
-  <li><span class="hi">Treadmill</span> — no shame. For intervals in December when it's 15°F and icy, the treadmill is smarter than risking a fall. Set 1% incline to simulate outdoor effort. Norwegian 4×4 works great on a treadmill (just set pace and watch HR).</li>
-</ul>
-</div>
-
-<div class="c bl">
-<h3>Gear by Temperature</h3>
-<table>
-  <tr><th>Temp</th><th>What to Wear</th></tr>
-  <tr><td class="p">50-60°F (Oct)</td><td>Shorts + long sleeve or T-shirt. You're fine.</td></tr>
-  <tr><td class="p">40-50°F (Nov)</td><td>Tights or shorts + long sleeve. Light gloves. Ear band optional.</td></tr>
-  <tr><td class="p">25-40°F (Dec)</td><td>Tights + long sleeve + wind-blocking vest or jacket. Gloves. Ear band or beanie. Buff/neck gaiter if windy.</td></tr>
-  <tr><td class="p">Below 25°F</td><td>Full tights + base layer + wind jacket. Mittens (warmer than gloves). Cover all skin. OR: treadmill.</td></tr>
-</table>
-<p class="note"><strong>Rule of thumb:</strong> Dress like it's 15-20°F warmer than the actual temp. You'll warm up after the first mile. If you're comfortable standing outside, you're overdressed for running.</p>
-</div>
-
-<div class="c bl">
-<h3>Treadmill Guide</h3>
-<ul>
-  <li><strong>Set 1% incline</strong> for all runs — compensates for lack of wind resistance.</li>
-  <li><strong>Strides on treadmill:</strong> At the end of your easy run, bump speed up by 2-3 mph every 5 sec until you hit 9.5-10.5 mph (~5:40-6:20 pace). Hold 10 sec. Step onto side rails, rest 30-45 sec. Repeat 4-6 times.</li>
-  <li><strong>Norwegian 4×4 on treadmill:</strong> Works great. Set pace, watch HR on your watch. Adjust speed to stay in the 165-175 bpm zone. Step onto rails for recovery jog at 4.5-5.0 mph.</li>
-  <li><strong>Hill sprints on treadmill:</strong> Set incline to 8-10%, speed to 9-10 mph. Sprint 10-12 sec. Grab rails, step onto sides. Rest 60-90 sec. Repeat.</li>
-  <li><strong>Tempo on treadmill:</strong> Set your tempo pace (e.g. 9.2 mph = 6:31/mi) and hold it. Treadmill tempos are actually easier to pace than outdoor since you can't drift.</li>
-</ul>
-</div>
-
-<div class="c bl">
-<h3>Cold Weather Tips</h3>
-<ul>
-  <li><strong>Wind:</strong> Run INTO the wind on the way out, wind at your back coming home. You don't want to be sweaty and facing a headwind on the way back.</li>
-  <li><strong>Ice:</strong> If there's ice on the ground, treadmill. A slip = weeks of missed training. Not worth it.</li>
-  <li><strong>Breathing:</strong> Cold air can burn your lungs. A buff/gaiter over your mouth warms the air. Breathe through it.</li>
-  <li><strong>Warm up inside:</strong> Do your dynamic warmup (leg swings, lunges) in your apartment before going out. Start running immediately — don't stand around in the cold.</li>
-  <li><strong>Shorter intervals in extreme cold:</strong> If it's below 20°F and you insist on running outside, swap 4×1000m for 6×400m. Less time exposed at hard effort.</li>
-</ul>
-</div>
-
-<!-- ===================== RULES ===================== -->
-<h2>Rules</h2>
-<div class="c">
-<ul>
-  <li><span class="hi">Easy runs = truly easy.</span> 8:00-8:45/mi. This is the #1 rule. If every run feels hard, you're not recovering and VO2max won't improve.</li>
-  <li><span class="hi">Max 10% mileage increase per week.</span> If you miss a week, drop back one week in the plan.</li>
-  <li><span class="hi">2+ days of pain = extra rest day.</span> Missing 1 run > missing 3 weeks with an injury.</li>
-  <li><span class="hi">Sleep 7.5-8 hrs.</span> VO2max adaptations happen while you sleep. Non-negotiable.</li>
-  <li><span class="hi">Eat 2,800-3,200 cal on workout days.</span> You're running 30 mi/week now. Fuel it.</li>
-  <li><span class="hi">Gym legs every other Tuesday.</span> Upper body whenever you want (Tue/Thu).</li>
-  <li><span class="hi">Bodyweight strength circuit</span> from the 5K plan — keep doing it Friday after easy runs.</li>
-  <li><span class="hi">If you find a race</span> during the plan, do a 10-day mini-taper (drop volume 40%, keep 1 sharpener) and race it. Then resume where you left off.</li>
-</ul>
-</div>
-
-<div class="c or" style="margin-top:32px">
-<h3>After Week 12</h3>
-<p>If you've hit the benchmarks, you're ready to race sub-19 and sub-40 with a 2-week taper. If not, repeat Weeks 8-12 at the same paces — the volume itself will push your fitness forward. You can also extend indefinitely by repeating Phase 2 and increasing mileage by 1-2 mi/week.</p>
-<p style="margin-top:8px">The work compounds. Consistency over 12 weeks beats any single workout.</p>
-</div>
-
-<p style="text-align:center;color:var(--m);font-size:0.8rem;margin-top:40px">
-  Week 1 started Mon 10/5/2026. Plan ends Dec 28, 2026.<br>
-  <a href="index.html" style="color:var(--o)">← 5K Race Plan</a> · <a href="training.html" style="color:var(--o)">Old 8-Week Plan</a>
-</p>
-
+// localStorage
+function gCS(){try{return new Set(JSON.parse(localStorage.getItem('v2_done')||'[]'))}catch{return new Set()}}
+function isC(i){return gCS().has(i)}
+function tg(i){const s=gCS();if(s.has(i))s.delete(i);else s.add(i);localStorage.setItem('v2_done',JSON.stringify([...s]));build();upd()}
+function getN(i){try{return JSON.parse(localStorage.getItem('v2_notes')||'{}')[i]||''}catch{return''}}
+let _t=null;
+function sn(i){clearTimeout(_t);_t=setTimeout(()=>{const ns=JSON.parse(localStorage.getItem('v2_notes')||'{}');const v=document.getElementById('ni').value.trim();if(v)ns[i]=v;else delete ns[i];localStorage.setItem('v2_notes',JSON.stringify(ns));const b=document.getElementById('ns');if(b){b.classList.add('show');setTimeout(()=>b.classList.remove('show'),1500)}build()},500)}
+function isT(ds){const n=new Date();const[m,d]=ds.split('/').map(Number);return n.getMonth()+1===m&&n.getDate()===d}
+function upd(){
+const race=new Date(2026,11,27);const now=new Date();now.setHours(0,0,0,0);
+const diff=Math.ceil((race-now)/(1e3*60*60*24));
+document.getElementById('cntd').textContent=diff<=0?'🏁':diff;
+document.getElementById('cntc').textContent=gCS().size+'/'+D.length;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cm()});
+build();upd();
+</script>
 </div>
 </body>
 </html>
