@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Speed & VO2max Training Plan</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Training">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+<style>
+  :root {
+    --strava-orange: #FC4C02;
+    --strava-orange-bg: rgba(252,76,2,0.08);
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e5e5e5;
+    --border-light: #f0f0f0;
+    --text: #2d2d2d;
+    --muted: #8e8e93;
+    --green: #00b84d;
+    --green-bg: rgba(0,184,77,0.08);
+    --blue: #0077cc;
+    --blue-bg: rgba(0,119,204,0.08);
+    --purple: #8B5CF6;
+    --purple-bg: rgba(139,92,246,0.08);
+    --dark: #1a1a2e;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  .top-bar { background:var(--dark); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .top-bar-logo { color:var(--strava-orange); font-size:1.4rem; font-weight:800; }
+  .top-bar-subtitle { color:rgba(255,255,255,0.6); font-size:0.8rem; }
+  .top-bar a { color:rgba(255,255,255,0.5); text-decoration:none; font-size:0.8rem; }
+  .top-bar a:hover { color:var(--strava-orange); }
+  .content { max-width:800px; margin:0 auto; padding:24px; }
+  h1 { font-size:1.6rem; font-weight:700; margin-bottom:4px; }
+  h2 { font-size:1.2rem; font-weight:700; margin:32px 0 12px; color:var(--text); border-bottom:2px solid var(--strava-orange); padding-bottom:6px; display:inline-block; }
+  h3 { font-size:1rem; font-weight:700; margin:20px 0 8px; }
+  .subtitle { color:var(--muted); font-size:0.85rem; margin-bottom:24px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:20px; margin:12px 0; box-shadow:var(--shadow); }
+  .card h3 { margin-top:0; }
+  .card.orange { border-left:3px solid var(--strava-orange); }
+  .card.green { border-left:3px solid var(--green); }
+  .card.blue { border-left:3px solid var(--blue); }
+  .card.purple { border-left:3px solid var(--purple); }
+  .phase-label { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
+  .phase-label.base { background:var(--green-bg); color:var(--green); }
+  .phase-label.build { background:var(--strava-orange-bg); color:var(--strava-orange); }
+  .phase-label.sharpen { background:var(--purple-bg); color:var(--purple); }
+  table { width:100%; border-collapse:collapse; margin:12px 0; }
+  th,td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--border-light); font-size:0.85rem; }
+  th { color:var(--muted); font-weight:600; font-size:0.72rem; text-transform:uppercase; }
+  .pace { color:var(--strava-orange); font-weight:700; }
+  .highlight { color:var(--strava-orange); font-weight:600; }
+  ul { padding-left:18px; }
+  li { margin-bottom:6px; font-size:0.9rem; }
+  .workout-name { font-weight:700; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:768px) {
+    .content { padding:16px; }
+    .grid { grid-template-columns:1fr; }
+    h1 { font-size:1.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div><div class="top-bar-logo">TRAINING PLAN</div><div class="top-bar-subtitle">Speed + VO2max — 8 Weeks</div></div>
+  <a href="index.html">← 5K Plan</a>
+</div>
+
+<div class="content">
+
+<h1>Get Faster: Sub-19 5K / Sub-40 10K / VO2max 60</h1>
+<p class="subtitle">8-week general fitness block. No race date. Build the engine.</p>
+
+<div class="card orange">
+  <h3>Where You Are → Where You're Going</h3>
+  <table>
+    <tr><th>Metric</th><th>Current</th><th>Target</th></tr>
+    <tr><td>5K</td><td>19:14 (6:12/mi)</td><td class="pace">&lt;19:00 (6:07/mi)</td></tr>
+    <tr><td>10K</td><td>~40:30 (est.)</td><td class="pace">&lt;40:00 (6:26/mi)</td></tr>
+    <tr><td>VO2max</td><td>56</td><td class="pace">58-60</td></tr>
+    <tr><td>Weekly mileage</td><td>15-20 mi</td><td class="pace">25-28 mi</td></tr>
+  </table>
+</div>
+
+<h2>The 3 Phases</h2>
+
+<div class="grid">
+  <div class="card green">
+    <span class="phase-label base">Phase 1: Base</span>
+    <h3>Weeks 1-3</h3>
+    <p>Build mileage safely. Mostly easy running + strides. One tempo per week. Long run grows from 6→8 mi. This is the foundation everything else sits on.</p>
+    <p style="margin-top:8px;"><strong>18-23 mi/week</strong></p>
+  </div>
+  <div class="card orange">
+    <span class="phase-label build">Phase 2: Build</span>
+    <h3>Weeks 4-6</h3>
+    <p>Add VO2max intervals + longer tempos. Hill sprints for explosiveness. Long run reaches 9-10 mi. This is where VO2max jumps.</p>
+    <p style="margin-top:8px;"><strong>23-28 mi/week</strong></p>
+  </div>
+</div>
+<div class="card purple" style="max-width:calc(50% - 6px);">
+  <span class="phase-label sharpen">Phase 3: Sharpen</span>
+  <h3>Weeks 7-8</h3>
+  <p>Race-specific work. Combine speed + endurance. Time trial to test fitness. Maintain mileage.</p>
+  <p style="margin-top:8px;"><strong>25-28 mi/week</strong></p>
+</div>
+
+<h2>Phase 1: Base (Weeks 1-3)</h2>
+<p>Goal: safely add mileage, reintroduce tempo work, build long run. No VO2max intervals yet — earn them with volume first.</p>
+
+<div class="card green">
+<h3>Weekly Template</h3>
+<table>
+  <tr><th>Day</th><th>Workout</th><th>Pace</th><th>Miles</th></tr>
+  <tr><td><strong>Mon</strong></td><td class="workout-name">Tempo Run</td><td class="pace">See progression below</td><td>5-6</td></tr>
+  <tr><td><strong>Tue</strong></td><td>OFF</td><td></td><td>0</td></tr>
+  <tr><td><strong>Wed</strong></td><td class="workout-name">Easy + Hill Sprints</td><td>8:00-8:30 easy, then 6×10sec hill sprints</td><td>4-5</td></tr>
+  <tr><td><strong>Thu</strong></td><td>OFF</td><td></td><td>0</td></tr>
+  <tr><td><strong>Fri</strong></td><td class="workout-name">Easy + Strides</td><td>8:00-8:30, then 6×100m strides</td><td>4-5</td></tr>
+  <tr><td><strong>Sat</strong></td><td>Easy (optional)</td><td>8:30-9:00</td><td>0-3</td></tr>
+  <tr><td><strong>Sun</strong></td><td class="workout-name">Long Run</td><td>8:15-8:45</td><td>6-8</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Tempo Progression (Monday)</h3>
+<table>
+  <tr><th>Week</th><th>Warmup</th><th>Tempo</th><th>Cooldown</th><th>Total</th></tr>
+  <tr><td>1</td><td>1.5 mi easy</td><td class="pace">2 mi at 6:30-6:40</td><td>1 mi easy</td><td>~5 mi</td></tr>
+  <tr><td>2</td><td>1.5 mi easy</td><td class="pace">2.5 mi at 6:25-6:35</td><td>1 mi easy</td><td>~5.5 mi</td></tr>
+  <tr><td>3</td><td>1.5 mi easy</td><td class="pace">3 mi at 6:20-6:30</td><td>1 mi easy</td><td>~6 mi</td></tr>
+</table>
+<p style="font-size:0.82rem; color:var(--muted); margin-top:8px;">Tempo pace = "comfortably hard." You can say short phrases but not sentences. For sub-40 10K, your tempo pace should be around 6:20-6:35.</p>
+</div>
+
+<div class="card">
+<h3>Long Run Progression (Sunday)</h3>
+<table>
+  <tr><th>Week</th><th>Distance</th><th>Pace</th><th>Notes</th></tr>
+  <tr><td>1</td><td>6 mi</td><td>8:15-8:45</td><td>Conversation pace. Easy.</td></tr>
+  <tr><td>2</td><td>7 mi</td><td>8:15-8:45</td><td>Add 1 mi. Still easy.</td></tr>
+  <tr><td>3</td><td>8 mi</td><td>8:15-8:45</td><td>Last 2 mi at 7:30-7:45 if feeling good.</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Hill Sprints — What Are These?</h3>
+<p>Find a steep-ish hill (6-10% grade). Sprint ALL OUT up it for 10-12 seconds. Walk back down. Repeat 6 times.</p>
+<ul>
+  <li><strong>Why:</strong> Builds raw power and explosiveness with almost zero injury risk (short duration, soft effort on the downhill walk). Recruits fast-twitch muscle fibers that easy running ignores.</li>
+  <li><strong>How hard:</strong> 100% effort. Pump your arms. Drive your knees. 10 seconds and done.</li>
+  <li><strong>Recovery:</strong> Walk down slowly. Full recovery (60-90 sec) before the next one.</li>
+  <li><strong>You won't be sore</strong> because it's so short. But over 8 weeks, the power gains compound.</li>
+</ul>
+</div>
+
+<h2>Phase 2: Build (Weeks 4-6)</h2>
+<p>Goal: VO2max intervals return. Tempo gets longer. Long run adds a fast finish. This is where your Garmin number moves.</p>
+
+<div class="card orange">
+<h3>Weekly Template</h3>
+<table>
+  <tr><th>Day</th><th>Workout</th><th>Pace</th><th>Miles</th></tr>
+  <tr><td><strong>Mon</strong></td><td class="workout-name">VO2max Intervals</td><td class="pace">See progression below</td><td>5-6</td></tr>
+  <tr><td><strong>Tue</strong></td><td>OFF</td><td></td><td>0</td></tr>
+  <tr><td><strong>Wed</strong></td><td class="workout-name">Tempo Run</td><td class="pace">See progression below</td><td>6-7</td></tr>
+  <tr><td><strong>Thu</strong></td><td>OFF</td><td></td><td>0</td></tr>
+  <tr><td><strong>Fri</strong></td><td class="workout-name">Easy + Hill Sprints + Strides</td><td>8:00-8:30 easy, 6×10s hills, 4×100m strides</td><td>5</td></tr>
+  <tr><td><strong>Sat</strong></td><td>Easy</td><td>8:30-9:00</td><td>3-4</td></tr>
+  <tr><td><strong>Sun</strong></td><td class="workout-name">Long Run w/ Fast Finish</td><td>See progression below</td><td>8-10</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>VO2max Intervals (Monday)</h3>
+<table>
+  <tr><th>Week</th><th>Workout</th><th>Pace</th><th>Recovery</th></tr>
+  <tr><td>4</td><td class="pace">5×800m</td><td>2:50-2:55 (5:42-5:50/mi)</td><td>2:00 jog</td></tr>
+  <tr><td>5</td><td class="pace">4×1000m</td><td>3:35-3:40 (5:45-5:55/mi)</td><td>2:30 jog</td></tr>
+  <tr><td>6</td><td class="pace">3×1200m</td><td>4:20-4:30 (5:48-6:00/mi)</td><td>3:00 jog</td></tr>
+</table>
+<p style="font-size:0.82rem; color:var(--muted); margin-top:8px;">Note: these targets are 5-10 sec/mi faster than your 5K plan. You're fitter now.</p>
+</div>
+
+<div class="card">
+<h3>Tempo Progression (Wednesday)</h3>
+<table>
+  <tr><th>Week</th><th>Warmup</th><th>Tempo</th><th>Cooldown</th></tr>
+  <tr><td>4</td><td>1.5 mi</td><td class="pace">3.5 mi at 6:20-6:30</td><td>1 mi</td></tr>
+  <tr><td>5</td><td>1.5 mi</td><td class="pace">4 mi at 6:15-6:25</td><td>1 mi</td></tr>
+  <tr><td>6</td><td>1.5 mi</td><td class="pace">4.5 mi at 6:15-6:25</td><td>1 mi</td></tr>
+</table>
+<p style="font-size:0.82rem; color:var(--muted); margin-top:8px;">By Week 6, you're holding 6:15-6:25 for 4.5 miles. That's sub-40 10K pace for 70% of race distance. That's race-ready fitness.</p>
+</div>
+
+<div class="card">
+<h3>Long Run w/ Fast Finish (Sunday)</h3>
+<table>
+  <tr><th>Week</th><th>Total</th><th>Structure</th></tr>
+  <tr><td>4</td><td>8 mi</td><td>6 mi easy (8:15-8:45) → last 2 mi at 7:15-7:30</td></tr>
+  <tr><td>5</td><td>9 mi</td><td>6 mi easy → last 3 mi at 7:15-7:30</td></tr>
+  <tr><td>6</td><td>10 mi</td><td>7 mi easy → last 3 mi at 7:00-7:15</td></tr>
+</table>
+<p style="font-size:0.82rem; color:var(--muted); margin-top:8px;">The fast finish teaches your body to run strong when already fatigued — exactly what miles 4-6 of a 10K demand.</p>
+</div>
+
+<h2>Phase 3: Sharpen (Weeks 7-8)</h2>
+<p>Goal: combine speed + endurance. Race-specific workouts. Optional time trial.</p>
+
+<div class="card purple">
+<h3>Weekly Template</h3>
+<table>
+  <tr><th>Day</th><th>Workout</th><th>Pace</th><th>Miles</th></tr>
+  <tr><td><strong>Mon</strong></td><td class="workout-name">Race-Specific Intervals</td><td class="pace">See below</td><td>5-6</td></tr>
+  <tr><td><strong>Tue</strong></td><td>OFF</td><td></td><td>0</td></tr>
+  <tr><td><strong>Wed</strong></td><td class="workout-name">Tempo + Speed</td><td class="pace">See below</td><td>6-7</td></tr>
+  <tr><td><strong>Thu</strong></td><td>OFF</td><td></td><td>0</td></tr>
+  <tr><td><strong>Fri</strong></td><td class="workout-name">Easy + Strides</td><td>8:00-8:30, 6×100m strides</td><td>4-5</td></tr>
+  <tr><td><strong>Sat</strong></td><td>Easy</td><td>8:30-9:00</td><td>3-4</td></tr>
+  <tr><td><strong>Sun</strong></td><td class="workout-name">Long Run</td><td>8:15-8:45 (straight easy — no fast finish)</td><td>8-9</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Week 7 Key Workouts</h3>
+<ul>
+  <li><span class="workout-name">Mon — 6×800m at 2:48-2:53</span> (5:38-5:48/mi) w/ 90sec recovery. Faster than Phase 2. Shorter rest. This is the peak VO2max session.</li>
+  <li><span class="workout-name">Wed — 3 mi tempo at 6:15 + 4×400m at 1:22-1:25</span> (5:30-5:40/mi). Combines endurance and kick. Like a mini race simulation.</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>Week 8 Key Workouts</h3>
+<ul>
+  <li><span class="workout-name">Mon — 2×1.5mi at 6:07-6:12</span> w/ 3:00 jog. Goal race pace for extended reps. If you can hold 6:07 for 1.5 miles twice, sub-19 5K is locked in.</li>
+  <li><span class="workout-name">Wed — Optional Time Trial: 2-mile all-out.</span> Warmup 2mi → race 2 miles → cooldown. Target: under 12:00 (6:00/mi). This predicts ~18:45-18:55 5K and ~38:30-39:30 10K.</li>
+</ul>
+</div>
+
+<h2>Mileage Progression</h2>
+<div class="card">
+<table>
+  <tr><th>Week</th><th>Phase</th><th>Mon</th><th>Wed</th><th>Fri</th><th>Sat</th><th>Sun</th><th>Total</th></tr>
+  <tr><td>1</td><td><span class="phase-label base">Base</span></td><td>5</td><td>4</td><td>4</td><td>—</td><td>6</td><td><strong>19</strong></td></tr>
+  <tr><td>2</td><td><span class="phase-label base">Base</span></td><td>5.5</td><td>4.5</td><td>4.5</td><td>—</td><td>7</td><td><strong>21.5</strong></td></tr>
+  <tr><td>3</td><td><span class="phase-label base">Base</span></td><td>6</td><td>5</td><td>5</td><td>—</td><td>8</td><td><strong>24</strong></td></tr>
+  <tr><td>4</td><td><span class="phase-label build">Build</span></td><td>5.5</td><td>6</td><td>5</td><td>3</td><td>8</td><td><strong>27.5</strong></td></tr>
+  <tr><td>5</td><td><span class="phase-label build">Build</span></td><td>5.5</td><td>6.5</td><td>5</td><td>3</td><td>9</td><td><strong>29</strong></td></tr>
+  <tr><td>6</td><td><span class="phase-label build">Build</span></td><td>6</td><td>7</td><td>5</td><td>4</td><td>10</td><td><strong>32</strong></td></tr>
+  <tr><td>7</td><td><span class="phase-label sharpen">Sharpen</span></td><td>6</td><td>7</td><td>5</td><td>3</td><td>8</td><td><strong>29</strong></td></tr>
+  <tr><td>8</td><td><span class="phase-label sharpen">Sharpen</span></td><td>6</td><td>6</td><td>4</td><td>3</td><td>8</td><td><strong>27</strong></td></tr>
+</table>
+<p style="font-size:0.82rem; color:var(--muted); margin-top:8px;">Biggest jump is Week 3→4 (24→27.5) when Saturday is added. If that feels like too much, drop Saturday and stay at ~24.</p>
+</div>
+
+<h2>How to Know It's Working</h2>
+<div class="card">
+<h3>Benchmarks to Watch</h3>
+<table>
+  <tr><th>By End of...</th><th>You Should Be Able To</th><th>What It Means</th></tr>
+  <tr><td>Week 3</td><td>3 mi tempo at 6:25 comfortably</td><td>Aerobic base is building</td></tr>
+  <tr><td>Week 5</td><td>4×1000m at 3:35-3:40</td><td>VO2max is improving (faster than your 5K plan 1Ks)</td></tr>
+  <tr><td>Week 6</td><td>4.5 mi tempo at 6:20</td><td>Sub-40 10K fitness is there</td></tr>
+  <tr><td>Week 8</td><td>2-mile TT under 12:00</td><td>Sub-19 5K + sub-40 10K ready</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Garmin VO2max Expectations</h3>
+<ul>
+  <li><span class="highlight">Weeks 1-3:</span> May not move. Base building doesn't spike VO2max immediately.</li>
+  <li><span class="highlight">Weeks 4-6:</span> Should see 56 → 57-58. The intervals + longer runs kick in.</li>
+  <li><span class="highlight">Weeks 7-8:</span> 58-60 is possible if everything clicks. More likely 57-59.</li>
+  <li>Don't obsess over the Garmin number daily — check it weekly. It lags behind actual fitness.</li>
+</ul>
+</div>
+
+<h2>Rules</h2>
+<div class="card">
+<ul>
+  <li><span class="highlight">Easy runs = truly easy.</span> 8:00-8:45/mi. If you can't hold a conversation, slow down. This is the #1 mistake — making easy days too hard kills your recovery for Monday/Wednesday.</li>
+  <li><span class="highlight">Never increase mileage more than 10% per week.</span> If you miss a week, don't jump back to where you were. Drop back one week.</li>
+  <li><span class="highlight">If something hurts for 2+ days, take an extra rest day.</span> Missing one run is nothing. Missing 3 weeks with a stress fracture kills the whole block.</li>
+  <li><span class="highlight">Sleep 7.5-8 hrs.</span> Still the #1 recovery tool. VO2max adaptations happen while you sleep.</li>
+  <li><span class="highlight">Eat 2,800-3,200 cal on workout days.</span> You're running more now. Don't undereat.</li>
+  <li><span class="highlight">Upper body + abs on Tue/Thu = still fine.</span> No heavy deadlifts.</li>
+  <li><span class="highlight">Strength circuit from the 5K plan</span> — keep doing it once a week (Friday after easy run).</li>
+</ul>
+</div>
+
+<h2>What "Explosive and Fast" Means in Practice</h2>
+<div class="card">
+<p>Three things build explosiveness for a runner:</p>
+<ul>
+  <li><span class="highlight">Hill sprints (Wed, Phase 1-2):</span> Pure neuromuscular power. Recruits fast-twitch fibers. Makes you feel powerful even at easy pace.</li>
+  <li><span class="highlight">Strides (Fri, every week):</span> Teaches your legs to move fast without fatigue. Keeps your turnover quick.</li>
+  <li><span class="highlight">Short fast reps — 200m/400m (Phase 2-3):</span> Top-end speed. The difference between "hanging on" at 6:07 and "choosing to run" 6:07.</li>
+</ul>
+<p style="margin-top:12px;">By Week 8, your easy pace will feel faster, your intervals will be at paces you couldn't touch in September, and your kick will be even more dangerous than the 1:17 you ran in the 5K plan.</p>
+</div>
+
+<div class="card orange" style="margin-top:32px;">
+  <h3>When You're Ready to Race</h3>
+  <p>After Week 8, you can either:</p>
+  <ul>
+    <li><strong>Race a 5K:</strong> Do a 2-week taper (same as the Oct 3 plan) and target sub-19.</li>
+    <li><strong>Race a 10K:</strong> Do a 2-week taper with longer race-pace reps (2×2mi at 6:25). Target sub-40.</li>
+    <li><strong>Keep building:</strong> Repeat Phase 2-3 at higher paces. The engine keeps growing.</li>
+  </ul>
+  <p style="margin-top:8px;">The work you did in September isn't wasted — this plan stacks directly on top of it.</p>
+</div>
+
+<p style="text-align:center; color:var(--muted); font-size:0.8rem; margin-top:40px;">
+  Start date: whenever you're ready. Week 1, Day 1 = your next Monday.<br>
+  <a href="index.html" style="color:var(--strava-orange);">← Back to 5K Race Plan</a>
+</p>
+
+</div>
+</body>
+</html>
