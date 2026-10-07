@@ -277,7 +277,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 32;
+  const SEED_REV = 33;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -373,25 +373,26 @@
         'Application isn\'t reviewed until 2 letters are in; all letters due by the application deadline (Oct 26). Recommenders can submit before you submit.',
         'Waiver: you can waive your right to view letters if enrolled.',
         'Penn FAQ: no preference for academic vs. professional; letters should name the Penn program and not be reused from another program.'],
-      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor · 3rd letter (max 3)', 'Asked')] },
+      people: [P('Daan', 'Current manager', 'Registered in portal'), P('Dan', 'Former manager', 'Registered in portal'), P('Adam Loy', 'Professor · 3rd letter (max 3)', 'Registered in portal')] },
     'seed-2': { confirmed: true, rules: [
         'Exactly 2 (no room for a 3rd).',
         'Strongly prefer one from your current direct supervisor. If you don\'t use them, explain why in the optional statement.',
         'Professional letters expected; an academic recommender (e.g. thesis advisor) only if you have little work experience. No professor letter needed.'],
-      people: [P('Daan', 'Current direct supervisor', 'Agreed'), P('Dan', 'Former manager', 'Agreed')] },
+      people: [P('Daan', 'Current direct supervisor', 'Registered in portal'), P('Dan', 'Former manager', 'Registered in portal')] },
     'seed-3': { confirmed: true, rules: [
         '2 required; 3 strongly recommended for Financial Mathematics. No maximum: submit as many as you like.',
         'No specific recommender type listed.',
         '“Send to Recommender” emails them a link right away; they see whether you waived your right to view the letter.'],
-      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Asked'), P('Laura Chihara', 'Professor · 4th letter (extras welcome)', 'Agreed')] },
+      note: 'Laura and Adam registered Oct 7, which covers the 2 required. Consider adding Dan and/or Daan for the strongly recommended 3rd.',
+      people: [P('Daan', 'Current manager', 'Agreed'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Registered in portal'), P('Laura Chihara', 'Professor', 'Registered in portal')] },
     'seed-1': { confirmed: true, rules: [
         '3 required.',
         'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
         'Columbia contacts recommenders once you enter their info. You must have no involvement in drafting or submitting letters.',
         'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.',
         'Unknown: whether a 4th letter is allowed, and whether an optional 4th would hold up review. Check the portal.'],
-      note: 'Plan: Adam + Laura + Dan (two faculty + strongest work letter).',
-      people: [P('Adam Loy', 'Professor', 'Asked'), P('Laura Chihara', 'Professor', 'Agreed'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
+      note: 'Plan: Adam + Laura + Dan. Adam and Laura registered Oct 7; still need to add Dan in the portal (3 required).',
+      people: [P('Adam Loy', 'Professor', 'Registered in portal'), P('Laura Chihara', 'Professor', 'Registered in portal'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
   };
   // Berkeley MIDS details from the official Admissions Overview (shared Oct 1)
   const BERKELEY_RENAME = {
@@ -677,6 +678,25 @@
         if (q) { q.t = 'Jan 2027 online deadline confirmed: Nov 2 (letters included)'; q.done = true; }
         if (a.notes) a.notes = a.notes.replace(/⚠ Jan 2027 online deadline NOT confirmed:[^]*?Confirm with admissions\. /, 'Jan 2027 online start: deadline Mon Nov 2, 2026, including letters of recommendation (ask recommenders for ~Oct 28). Later rounds for a June 2027 start: Feb 1 and May 1, 2027. ');
       }
+    }
+    // rev 33: recommender portal registrations as of Oct 7 (only moves statuses forward)
+    if (rev < 33) {
+      const order = REC_STATUSES;
+      const bump = (id, name, st) => {
+        const x = list.find(a => a.id === id)?.recs?.people.find(p => p.name === name);
+        if (x && order.indexOf(x.status) < order.indexOf(st)) x.status = st;
+      };
+      const R = 'Registered in portal';
+      bump('seed-2', 'Daan', R); bump('seed-2', 'Dan', R);
+      bump('seed-10', 'Daan', R); bump('seed-10', 'Dan', R); bump('seed-10', 'Adam Loy', R);
+      bump('seed-1', 'Adam Loy', R); bump('seed-1', 'Laura Chihara', R);
+      bump('seed-3', 'Adam Loy', R); bump('seed-3', 'Laura Chihara', R);
+      for (const id of ['seed-1', 'seed-3']) {
+        const a = list.find(x => x.id === id);
+        if (a?.recs) a.recs.note = RECS[id].note;
+      }
+      const u = list.find(x => x.id === 'seed-3')?.recs?.people.find(p => p.name === 'Laura Chihara');
+      if (u) u.role = 'Professor';
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
