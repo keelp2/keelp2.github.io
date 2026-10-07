@@ -159,6 +159,19 @@
       table.essay td.n { display: none; }
     }
 
+    /* Open decisions */
+    .decisions { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 16px 12px; }
+    .decisions h2 { font-size: 16px; margin: 10px 0 2px; }
+    .decisions .sub { font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+    .decisions ul { list-style: none; }
+    .decisions li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .decisions li input[type=checkbox] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--green); flex: none; cursor: pointer; }
+    .decisions li .txt { flex: 1; font-size: 14px; line-height: 1.45; }
+    .decisions li .txt span { display: block; font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+    .decisions li.done .txt b { color: var(--text-dim); text-decoration: line-through; font-weight: 500; }
+    .decisions li .del { border: none; background: none; color: var(--text-dim); cursor: pointer; font-size: 16px; }
+    .decisions .add-item { margin: 8px 0 0; width: 100%; }
+
     .empty { text-align: center; color: var(--text-dim); padding: 48px 16px; }
 
     dialog { border: none; border-radius: 18px; padding: 0; width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); margin: auto; box-shadow: 0 20px 60px rgba(15,23,42,0.25); }
@@ -182,6 +195,9 @@
       .grid { grid-template-columns: 1fr; }
       .body { padding-left: 14px; }
       .row .pill { display: none; }
+      .toolbar { flex-wrap: wrap; }
+      #viewSeg { width: 100%; }
+      #viewSeg button { flex: 1; padding: 7px 4px; font-size: 13px; white-space: nowrap; }
     }
   </style>
 </head>
@@ -201,6 +217,7 @@
       <button data-view="list" class="on">Checklist</button>
       <button data-view="table">Compare</button>
       <button data-view="essay">Essay plan</button>
+      <button data-view="decisions">Decisions</button>
     </div>
     <div class="seg" id="sortSeg">
       <button data-sort="deadline" class="on">By deadline</button>
@@ -721,10 +738,11 @@
     ].filter(Boolean).join(' · ');
 
     document.querySelector('.wrap').classList.toggle('wide', view === 'table' || view === 'essay');
-    $('sortSeg').style.display = view === 'essay' ? 'none' : '';
+    $('sortSeg').style.display = view === 'essay' || view === 'decisions' ? 'none' : '';
     document.querySelectorAll('#sortSeg button').forEach(b => b.classList.toggle('on', b.dataset.sort === sortBy));
     document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === view));
     if (view === 'essay') { $('main').innerHTML = renderEssay(); return; }
+    if (view === 'decisions') { $('main').innerHTML = renderDecisions(); return; }
     if (!apps.length) { $('main').innerHTML = `<div class="list"><div class="empty">No programs yet — click <b>+ Add program</b>.</div></div>`; return; }
     $('main').innerHTML = view === 'table' ? renderTable() : `<div class="list">${sorted().map(renderProg).join('')}</div>`;
   }
@@ -766,6 +784,39 @@
        'Echo the intro: next time, you would test the window choice instead of judging it',
        'Don\'t reuse the "perfect knowledge" line; it already ends paragraph 2']],
   ];
+
+  // Open decisions: seeded list, ticks and additions saved in this browser
+  const DEC_KEY = 'gradapps-decisions';
+  const DECISIONS = [
+    { id: 'd-ai', t: 'MIDS: add one line about AI?', note: 'e.g. "Even as AI tools make these methods easier to apply, knowing when their output is wrong still requires understanding them." Goes after "…modeling the behavior within it." Optional: only if it sounds like you.' },
+    { id: 'd-jargon', t: 'MIDS: simplify "order book microstructure"?', note: 'Last bit of jargon in paragraph 2. Fine to leave.' },
+    { id: 'd-share', t: 'Share the MIDS essay with Daan and Dan?', note: 'If yes, remove "or a firm like it" in the copy you send them; keep it in the Berkeley version.' },
+    { id: 'd-short', t: 'UChicago: what is your real shortcoming?', note: 'Rusty math, a specific missing course (stochastic calculus, derivatives pricing), or C++?' },
+    { id: 'd-online', t: 'UChicago: why online rather than in person?', note: 'You live in Chicago and the in-person program has evening classes, so give your real reason.' },
+    { id: 'd-prep', t: 'UChicago: what recent prep can you mention?', note: 'Courses, books, self-study, info sessions. Must be real and already done.' },
+    { id: 'd-uiuc', t: 'UIUC (due Oct 30): still applying?', note: '' },
+  ];
+  let decisions = [];
+  try { decisions = JSON.parse(localStorage.getItem(DEC_KEY)) || []; } catch {}
+  for (const d of DECISIONS) if (!decisions.some(x => x.id === d.id)) decisions.push({ ...d, done: false });
+  function saveDecisions() { try { localStorage.setItem(DEC_KEY, JSON.stringify(decisions)); } catch {} }
+
+  function renderDecisions() {
+    const left = decisions.filter(d => !d.done).length;
+    return `
+      <div class="decisions">
+        <h2>Open decisions</h2>
+        <div class="sub">${left} open · tick one off once you've decided</div>
+        <ul>${decisions.map((d, i) => `
+          <li class="${d.done ? 'done' : ''}">
+            <input type="checkbox" data-dec="${i}" ${d.done ? 'checked' : ''} aria-label="Decided">
+            <div class="txt"><b>${esc(d.t)}</b>${d.note ? `<span>${esc(d.note)}</span>` : ''}</div>
+            <button class="del" data-decdel="${i}" title="Remove">×</button>
+          </li>`).join('')}
+        </ul>
+        <input class="add-item" placeholder="+ Add a decision" data-decadd>
+      </div>`;
+  }
 
   function renderEssay() {
     return `
@@ -878,6 +929,10 @@
   const appOf = el => apps.find(a => a.id === el.closest('[data-id]')?.dataset.id);
 
   $('main').addEventListener('click', e => {
+    if (e.target.dataset.decdel != null) {
+      decisions.splice(+e.target.dataset.decdel, 1);
+      saveDecisions(); render(); return;
+    }
     const row = e.target.closest('tr[data-row]');
     if (row) { openDialog(row.dataset.row); return; }
     const a = appOf(e.target);
@@ -894,6 +949,11 @@
   });
 
   $('main').addEventListener('change', e => {
+    if (e.target.dataset.dec != null) {
+      decisions[+e.target.dataset.dec].done = e.target.checked;
+      saveDecisions(); render(); return;
+    }
+    if (e.target.dataset.decadd != null) return;
     const a = appOf(e.target);
     if (!a || e.target.dataset.add != null) return;
     if (e.target.type === 'checkbox') {
@@ -911,6 +971,14 @@
   });
 
   $('main').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.dataset.decadd != null) {
+      const t = e.target.value.trim();
+      if (!t) return;
+      decisions.push({ id: 'u-' + Date.now(), t, note: '', done: false });
+      saveDecisions(); render();
+      document.querySelector('[data-decadd]')?.focus();
+      return;
+    }
     if (e.key !== 'Enter' || e.target.dataset.add == null) return;
     const t = e.target.value.trim();
     if (!t) return;
