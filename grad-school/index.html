@@ -277,7 +277,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 35;
+  const SEED_REV = 36;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -378,7 +378,7 @@
         'Exactly 2 (no room for a 3rd).',
         'Strongly prefer one from your current direct supervisor. If you don\'t use them, explain why in the optional statement.',
         'Professional letters expected; an academic recommender (e.g. thesis advisor) only if you have little work experience. No professor letter needed.'],
-      people: [P('Daan', 'Current direct supervisor', 'Submitted'), P('Dan', 'Former manager', 'Registered in portal')] },
+      people: [P('Daan', 'Current direct supervisor', 'Submitted'), P('Dan', 'Former manager', 'Submitted')] },
     'seed-3': { confirmed: true, rules: [
         '2 required; 3 strongly recommended for Financial Mathematics. No maximum: submit as many as you like.',
         'No specific recommender type listed.',
@@ -480,7 +480,8 @@
   SEED.forEach(applyBerkeley);
   SEED.forEach(applyTranscriptOrdered);
   SEED.forEach(a => { if (RECS[a.id]) a.recs = structuredClone(RECS[a.id]); });
-  // Daan's letters are in for these (Oct 20)
+  // Daan's letters are in for these (Oct 20); Dan's Berkeley letter too
+  SEED.forEach(a => { if (a.id === 'seed-2') (a.reqs || []).forEach(r => { if (/^Rec \d: Dan\b/.test(r.t)) r.done = true; }); });
   SEED.forEach(a => { if (['seed-2', 'seed-10', 'seed-3'].includes(a.id)) (a.reqs || []).forEach(r => { if (/^Rec \d: Daan/.test(r.t)) r.done = true; }); });
   Object.assign(SEED.find(x => x.id === 'seed-10'), REV22_PENN);
 
@@ -721,6 +722,14 @@
         if (d && order.indexOf(d.status) < order.indexOf(R)) d.status = R;
         if (id === 'seed-1' && a?.recs) a.recs.note = RECS[id].note;
       }
+    }
+    // rev 36: Dan submitted his Berkeley letter
+    if (rev < 36) {
+      const a = list.find(x => x.id === 'seed-2');
+      const d = a?.recs?.people.find(p => p.name === 'Dan');
+      if (d) d.status = 'Submitted';
+      const r = (a?.reqs || []).find(x => /^Rec \d: Dan\b/.test(x.t));
+      if (r) r.done = true;
     }
     // rev 4: starting prestige rank
     for (const seed of SEED) {
