@@ -277,7 +277,7 @@
 
   // Starter list, researched Sept 2026 (requirements re-checked against program sites).
   // Loaded when nothing is saved yet; SEED_REV bumps patch it into already-saved lists.
-  const SEED_REV = 34;
+  const SEED_REV = 35;
   const r = (...items) => items.map(t => ({ t, done: false }));
   const FINMATH_UPDATE = {
     format: 'In person or online',
@@ -384,15 +384,15 @@
         'No specific recommender type listed.',
         '“Send to Recommender” emails them a link right away; they see whether you waived your right to view the letter.'],
       note: 'Laura and Adam registered Oct 7, which covers the 2 required. Daan submitted his letter Oct 20 (the strongly recommended 3rd).',
-      people: [P('Daan', 'Current manager', 'Submitted'), P('Dan', 'Former manager', 'Agreed'), P('Adam Loy', 'Professor', 'Registered in portal'), P('Laura Chihara', 'Professor', 'Registered in portal')] },
+      people: [P('Daan', 'Current manager', 'Submitted'), P('Dan', 'Former manager', 'Registered in portal'), P('Adam Loy', 'Professor', 'Registered in portal'), P('Laura Chihara', 'Professor', 'Registered in portal')] },
     'seed-1': { confirmed: true, rules: [
         '3 required.',
         'Preferred: faculty you studied with, who can assess your academic work and ability to handle a rigorous curriculum. Current or former supervisors are also allowed. No personal references.',
         'Columbia contacts recommenders once you enter their info. You must have no involvement in drafting or submitting letters.',
         'Decisions come ~10 weeks after the last letter arrives, so all 3 by ~Nov 10 for a spring start.',
         'Unknown: whether a 4th letter is allowed, and whether an optional 4th would hold up review. Check the portal.'],
-      note: 'Plan: Adam + Laura + Dan. Adam and Laura registered Oct 7; still need to add Dan in the portal (3 required).',
-      people: [P('Adam Loy', 'Professor', 'Registered in portal'), P('Laura Chihara', 'Professor', 'Registered in portal'), P('Dan', 'Former manager · strongest work letter', 'Agreed'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
+      note: 'Adam, Laura and Dan all registered (3 required), so all 3 letters are requested.',
+      people: [P('Adam Loy', 'Professor', 'Registered in portal'), P('Laura Chihara', 'Professor', 'Registered in portal'), P('Dan', 'Former manager · strongest work letter', 'Registered in portal'), P('Daan', 'Current manager · 4th letter if allowed', 'Agreed')] },
   };
   // Berkeley MIDS details from the official Admissions Overview (shared Oct 1)
   const BERKELEY_RENAME = {
@@ -710,6 +710,16 @@
         const r = (a?.reqs || []).find(x => /^Rec \d: Daan/.test(x.t));
         if (r) r.done = true;
         if (id === 'seed-3' && a?.recs) a.recs.note = RECS[id].note;
+      }
+    }
+    // rev 35: Dan registered in the UChicago and Columbia portals
+    if (rev < 35) {
+      const order = REC_STATUSES, R = 'Registered in portal';
+      for (const id of ['seed-3', 'seed-1']) {
+        const a = list.find(x => x.id === id);
+        const d = a?.recs?.people.find(p => p.name === 'Dan');
+        if (d && order.indexOf(d.status) < order.indexOf(R)) d.status = R;
+        if (id === 'seed-1' && a?.recs) a.recs.note = RECS[id].note;
       }
     }
     // rev 4: starting prestige rank
