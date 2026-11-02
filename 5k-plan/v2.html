@@ -150,9 +150,9 @@ th{color:var(--m);font-weight:600;font-size:0.7rem;text-transform:uppercase}.pa{
 </div>
 <div class="ic" style="border-left:3px solid var(--blu)"><h3 style="color:var(--blu)">Treadmill Guide</h3><ul>
 <li><strong>1% incline</strong> always — compensates for no wind resistance.</li>
-<li><strong>Strides:</strong> Ramp speed to 9.5-10.5 mph, hold 10 sec, step onto rails, rest 30-45 sec. Repeat 4-6×.</li>
-<li><strong>Norwegian 4×4:</strong> Set pace, watch HR. Adjust speed to stay 165-175 bpm. Rails for recovery at 4.5-5 mph.</li>
-<li><strong>Hill sprints:</strong> 8-10% incline, 9-10 mph, 10-12 sec. Grab rails, step off. Rest 60-90 sec.</li>
+<li><strong>Pickups:</strong> Ramp speed to 9.5-10.5 mph, hold 15 sec, step onto rails, rest 30-45 sec. Repeat 4-6×.</li>
+<li><strong>Norwegian 4×4:</strong> Start at 9.5-9.7 mph, watch HR. Adjust speed to stay 165-175 bpm. Rails for recovery at 4.5-5 mph.</li>
+<li><strong>Fast 400s:</strong> 0.25 mi at the mph shown for that day. Step onto rails for the 1:45-2:00 recovery.</li>
 <li><strong>Tempo:</strong> Set exact pace and hold. Easier to pace than outdoor.</li>
 <li><strong>Ice outside = treadmill.</strong> A slip = weeks of missed training.</li>
 </ul></div>
@@ -166,9 +166,9 @@ th{color:var(--m);font-weight:600;font-size:0.7rem;text-transform:uppercase}.pa{
 <li><span class="hi">Intervals / Repeats (e.g. "5×800m"):</span> Run a distance fast, jog to recover, repeat. "5×800m" = run 800m hard, jog 2 min, do it 5 times total.</li>
 <li><span class="hi">Tempo run:</span> Sustained "comfortably hard" pace. Can say short phrases but not sentences.</li>
 <li><span class="hi">Easy run:</span> Relaxed jog, full conversation. Should feel genuinely easy.</li>
-<li><span class="hi">Strides:</span> 100m smooth accelerations to ~90% effort. Walk back. Not sprints — "fast and relaxed."</li>
-<li><span class="hi">Hill sprints:</span> 10-12 sec ALL OUT up a steep hill. Walk down. Builds raw power.</li>
-<li><span class="hi">Norwegian 4×4:</span> 4 × 4 minutes at 90-95% max HR (165-175 bpm) with 3 min jog recovery. HR-based, not pace-based.</li>
+<li><span class="hi">Pickups:</span> 15-sec smooth accelerations to a fast pace, then back to easy. Treadmill or road. Not sprints — "fast and relaxed."</li>
+<li><span class="hi">Fast 400s:</span> 400m (1 track lap or 0.25 mi) at a fast, controlled pace, with a 1:45-2:00 jog between reps. Builds speed and power.</li>
+<li><span class="hi">Norwegian 4×4:</span> 4 × 4 minutes at 90-95% max HR (165-175 bpm) with 3 min jog recovery. Run by HR — or 6:10-6:20/mi by pace if your HR reading looks off.</li>
 <li><span class="hi">Fast finish long run:</span> Most of the run easy, last 2-3 miles at a harder pace. Teaches running strong when tired.</li>
 </ul></div>
 <div class="ic" style="border-left:3px solid var(--g)"><h3 style="color:var(--g)">Pace & Effort</h3><ul>
@@ -203,7 +203,7 @@ const D=[
 // WEEK 2 — Base / NC Vacation (Oct 12-18)
 {w:"Week 2 — Base (NC)",d:"Mon",dt:"10/12",t:"key",tl:"Tempo",wo:"1.5mi WU → 2mi at 6:30-6:40 → 1.5mi CD. Or easy 5 mi if no flat road.",p:"6:30-6:40 tempo (9.0-9.2 mph)",mi:5,s:false,n:"NC vacation — do what you can"},
 {w:"Week 2 — Base (NC)",d:"Tue",dt:"10/13",t:"off",tl:"OFF",wo:"Hike if you want",p:"",mi:0,s:false,n:"NC — enjoy"},
-{w:"Week 2 — Base (NC)",d:"Wed",dt:"10/14",t:"easy",tl:"Easy + Fast 400s",wo:"4 mi easy + 4×400m at 1:30-1:35 w/ 2:00 jog recovery",p:"Easy: 6.9-7.3 mph / 400s: 9.5-10.0 mph",mi:5,s:false,n:"NC — find a flat stretch or use GPS for the 400s"},
+{w:"Week 2 — Base (NC)",d:"Wed",dt:"10/14",t:"easy",tl:"Easy + Fast 400s",wo:"4 mi easy + 4×400m at 1:30-1:35 w/ 2:00 jog recovery",p:"Easy: 6.9-7.3 mph / 400s: 9.4-9.9 mph",mi:5,s:false,n:"NC — find a flat stretch or use GPS for the 400s"},
 {w:"Week 2 — Base (NC)",d:"Thu",dt:"10/15",t:"off",tl:"OFF",wo:"Hike",p:"",mi:0,s:false,n:""},
 {w:"Week 2 — Base (NC)",d:"Fri",dt:"10/16",t:"easy",tl:"Easy + Pickups",wo:"4 mi easy + 6×15s treadmill speed pickups (or road pickups)",p:"Easy: 6.9-7.3 mph / Pickups: ramp to 9.5-10.5 mph",mi:4.5,s:false,n:"Pickups = 15 sec at fast pace, then back to easy. Can do on road or treadmill."},
 {w:"Week 2 — Base (NC)",d:"Sat",dt:"10/17",t:"off",tl:"Optional",wo:"Easy 3 mi or OFF",p:"8:30/mi (7.1 mph)",mi:0,s:false,n:"Last day NC"},
@@ -227,7 +227,7 @@ const D=[
 // WEEK 5 — Base (Nov 2-8)
 {w:"Week 5 — Base",d:"Mon",dt:"11/2",t:"key",tl:"Tempo",wo:"1.5mi WU → 3.5mi at 6:35-6:45 → 1.5mi CD",p:"6:35-6:45 tempo (8.9-9.1 mph)",mi:6.5,s:false,n:"Longest tempo yet"},
 {w:"Week 5 — Base",d:"Tue",dt:"11/3",t:"gym",tl:"Legs",wo:"Explosive legs at gym",p:"",mi:0,s:false,n:""},
-{w:"Week 5 — Base",d:"Wed",dt:"11/4",t:"easy",tl:"Easy + Fast 400s",wo:"5 mi easy + 5×400m at 1:26-1:30 w/ 1:45 jog recovery",p:"Easy: 6.9-7.3 mph / 400s: 10.0-10.5 mph",mi:6,s:false,n:"Faster 400s + shorter rest than previous weeks"},
+{w:"Week 5 — Base",d:"Wed",dt:"11/4",t:"easy",tl:"Easy + Fast 400s",wo:"5 mi easy + 5×400m at 1:26-1:30 w/ 1:45 jog recovery",p:"Easy: 6.9-7.3 mph / 400s: 9.9-10.4 mph",mi:6,s:false,n:"Faster 400s + shorter rest than previous weeks"},
 {w:"Week 5 — Base",d:"Thu",dt:"11/5",t:"gym",tl:"Upper Body",wo:"Upper body + abs",p:"",mi:0,s:false,n:""},
 {w:"Week 5 — Base",d:"Fri",dt:"11/6",t:"easy",tl:"Easy + Pickups",wo:"5 mi easy + 6×15s treadmill speed pickups",p:"Easy: 6.9-7.3 mph / Pickups: ramp to 10.0-10.5 mph",mi:5,s:true,n:"Strength circuit after"},
 {w:"Week 5 — Base",d:"Sat",dt:"11/7",t:"easy",tl:"Easy",wo:"3 mi easy",p:"8:30-9:00/mi (6.7-7.1 mph)",mi:3,s:false,n:"Saturday runs start now"},
@@ -409,7 +409,7 @@ if(tl==='Race Pace')return s+
 '<p style="color:var(--o);font-size:0.82rem;margin-top:6px">💡 <strong>If you can hold 6:07 for both reps,</strong> sub-19 5K is locked in. This is the proof workout.</p>';
 
 if(tl.includes('Time Trial'))return s+
-'<li><strong>Warmup:</strong> Jog 2 miles easy + dynamic warmup + 4 strides.</li>'+
+'<li><strong>Warmup:</strong> Jog 2 miles easy + dynamic warmup + 4 pickups.</li>'+
 '<li><strong>Start your watch.</strong> Find a flat, measured route (track is ideal — 8 laps = 2 miles).</li>'+
 '<li><strong>GO.</strong> Run 2 miles as fast as you can. This is a race effort — RPE 9-10.</li>'+
 '<li><strong>Pacing:</strong> Start at 6:00/mi and hold. Don\'t go out in 5:40 — you\'ll die in the second mile. Even splits are the goal.</li>'+
@@ -460,7 +460,8 @@ document.getElementById('cntd').textContent=diff<=0?'🏁':diff;
 document.getElementById('cntc').textContent=gCS().size+'/'+D.length;
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')cm()});
-build();upd();
+function snapT(){const t=document.querySelector('.dc.today');if(!t||!matchMedia('(max-width:768px)').matches)return;if('scrollRestoration' in history)history.scrollRestoration='manual';t.scrollIntoView({block:'center'})}
+build();upd();snapT();
 </script>
 </div>
 </body>
