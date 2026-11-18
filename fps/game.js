@@ -2581,6 +2581,7 @@ function setCharWeapon(o, id) {
   o.muzzlePt = gm.muzzlePt;
 }
 const _cv = new V3(), _cf = new V3(), _cr = new V3(), _aq = new THREE.Quaternion(), _bq = new THREE.Quaternion();
+const CROUCH = { u: -1.25, l: 2.1, f: -0.75, s: 0.28 };
 function animChar(o, dt, speed, pitch = 0) {
   if (o.gunHolder) o.gunHolder.rotation.x = (o.gun && !o.gun.forePt ? -0.6 : 0) - pitch;
   if (o.mixer) {
@@ -2588,6 +2589,8 @@ function animChar(o, dt, speed, pitch = 0) {
     if (st !== o.animState && o.act[st]) { const from = o.act[o.animState], to = o.act[st]; to.reset(); to.play(); if (from) from.crossFadeTo(to, 0.25, false); o.animState = st; }
     if (o.act.Walk) o.act.Walk.timeScale = clamp(speed / 1.6, 0.6, 1.7); if (o.act.Run) o.act.Run.timeScale = clamp(speed / 5, 0.7, 1.4);
     o.mixer.update(dt);
+    { const c = o.crouchK || 0, B = o.bones; o.inner.position.y = -0.5 * c; // crouch: bend hips/knees/ankles and lower the body (hands stay on the gun via IK below)
+      if (c > 0.01) { for (const sd of ['Left', 'Right']) { if (B[sd + 'UpLeg']) B[sd + 'UpLeg'].rotation.x += CROUCH.u * c; if (B[sd + 'Leg']) B[sd + 'Leg'].rotation.x += CROUCH.l * c; if (B[sd + 'Foot']) B[sd + 'Foot'].rotation.x += CROUCH.f * c; } if (B.Spine) B.Spine.rotation.x += CROUCH.s * c; } }
     o.group.updateMatrixWorld(true);
     // inverse kinematics: hands onto the weapon
     const yaw = o.group.rotation.y; _cf.set(Math.sin(yaw), 0, Math.cos(yaw)); _cr.set(Math.cos(yaw), 0, -Math.sin(yaw)).multiplyScalar(o.rsign);
@@ -2681,7 +2684,7 @@ class Enemy {
     }
   }
   get canSee() { return this.visible; }
-  eye(out) { return out.set(this.pos.x, this.pos.y + 1.62 * this.s, this.pos.z); }
+  eye(out) { return out.set(this.pos.x, this.pos.y + (1.62 - 0.55 * (this.crouchK || 0)) * this.s, this.pos.z); }
   gunPos(out) { if (this.muzzlePt) { this.muzzlePt.getWorldPosition(out); return out; } return this.eye(out); }
   candidates() { const l = []; if (player.alive && (!MP.active) && !isAlly(this, PLAYER_T)) l.push(PLAYER_T); if (this.bot) for (const e of enemies) if (e !== this && !e.dead && e.bot && !isAlly(this, e)) l.push(e); return l; }
   aimPoint(t, out, head) { const hh = t.isPlayer ? player.h - 0.12 : t.h * (head ? 0.9 : 0.62); return out.set(t.pos.x, t.pos.y + (t.isPlayer ? (head ? hh : hh - 0.45) : hh), t.pos.z); }
@@ -2708,6 +2711,29 @@ class Enemy {
       const d = Math.hypot(nx - this.pos.x, nz - this.pos.z) + Math.hypot(nx - this.target.pos.x, nz - this.target.pos.z) * -0.15; if (d < bd) { bd = d; best = new V3(nx, ny, nz); }
     }
     return best;
+  }
+  findLowCover() { // tuck in right behind something waist-high (crate, sandbags, low wall, car): hidden crouched, can shoot standing
+    if (!this.target) return null; const t = this.target, te = this.aimPoint(t, new V3(), true), nav = world.nav, seen = new Set(); let best = null, bd = 1e9;
+    for (let gx = -12; gx <= 12; gx += 4) for (let gz = -12; gz <= 12; gz += 4) for (const bx of nav.bucket(this.pos.x + gx, this.pos.z + gz)) {
+      if (seen.has(bx) || bx.dead || bx.glass) continue; seen.add(bx); const base = this.pos.y, ht = bx.y1 - base;
+      if (ht < 0.8 || ht > 1.45 || bx.y0 > base + 0.3 || Math.max(bx.x1 - bx.x0, bx.z1 - bx.z0) < 0.5) continue;
+      const cx = (bx.x0 + bx.x1) / 2, cz = (bx.z0 + bx.z1) / 2; let dx = cx - t.pos.x, dz = cz - t.pos.z; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+      if (dl < 6 || Math.hypot(cx - this.pos.x, cz - this.pos.z) > 14) continue;
+      const ext = Math.abs(dx) * (bx.x1 - bx.x0) / 2 + Math.abs(dz) * (bx.z1 - bx.z0) / 2, x = cx + dx * (ext + 0.5), z = cz + dz * (ext + 0.5); // the far side, facing the enemy
+      const n = nav.nodeAt(x, base, z, 0.5); if (n < 0) continue; const [nx, ny, nz] = nav.nodePos(n); if (Math.abs(ny - base) > 0.5) continue;
+      if (los(te.x, te.y, te.z, nx, ny + 0.95 * this.s, nz) || !los(te.x, te.y, te.z, nx, ny + 1.6 * this.s, nz)) continue;
+      const d = Math.hypot(nx - this.pos.x, nz - this.pos.z) + Math.random() * 1.5; if (d < bd) { bd = d; best = new V3(nx, ny, nz); }
+    }
+    return best;
+  }
+  lowCoverTick(dt) { // returns [mx, mz] while moving there, null once in place; drives the duck / pop-up rhythm
+    const lc = this.lcover, d = Math.hypot(lc.x - this.pos.x, lc.z - this.pos.z);
+    if (d > 0.6 && !this.lcIn) { this.setGoal(lc, true); this.wantCrouch = 0; return this.followPath(dt) || [0, 0]; }
+    this.lcIn = true; this.lcT -= dt;
+    if (this.lcT <= 0) { this.lcUp = !this.lcUp; this.lcT = this.lcUp ? rand(1.1, 2.4) : rand(0.7, 1.6); if (!this.lcUp) { this.lcCycles = (this.lcCycles || 0) + 1; if (this.mag < this.W.mag * 0.5) this.startReload(); } }
+    this.wantCrouch = this.lcUp && this.reloadT <= 0 ? 0 : 1;
+    const t = this.target; if (!t || t.dead || this.lcCycles > 3 || Math.hypot(t.pos.x - this.pos.x, t.pos.z - this.pos.z) < 5) { this.state = 'hunt'; this.lcover = null; this.lcIn = false; this.lcCycles = 0; this.wantCrouch = 0; }
+    return null;
   }
   setGoal(p, run) { if (!p) return; if (!this.goal || this.goal.distanceTo(p) > 1.2) { this.goal = p.clone(); this.repathT = 0; } this.run = !!run; }
   followPath(dt) { // returns desired horizontal direction
@@ -2749,8 +2775,12 @@ class Enemy {
     if (this.visible && t) {
       this.investigate = null;
       if ((hurt || this.reloadT > 0) && this.state !== 'cover' && Math.random() < dt * 2 && !T.rush) { const c = this.findCover(); if (c) { this.state = 'cover'; this.cover = c; this.coverT = rand(1.4, 2.8); } }
-      if (this.state === 'cover' && this.cover) { this.setGoal(this.cover, true); const d = this.followPath(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } }
+      if (this.state === 'cover' && this.cover) { this.setGoal(this.cover, true); const d = this.followPath(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } this.wantCrouch = 0; }
+      else if (this.state === 'lowcover' && this.lcover) { const d = this.lowCoverTick(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } }
       else {
+        this.wantCrouch = 0; this.lcSearch = (this.lcSearch || rand(0.5, 2)) - dt;
+        this.cpT = (this.cpT || 0) - dt; if (this.cpT <= 0) { this.cpT = rand(1.5, 3.5); this.cpOn = !T.rush && dist > 10 && Math.random() < 0.35 ? rand(0.6, 1.5) : 0; } if (this.cpOn > 0) { this.cpOn -= dt; this.wantCrouch = 1; } // crouch mid-fight to shrink the target
+        if (!T.rush && this.lcSearch <= 0 && dist > 7) { this.lcSearch = rand(1.5, 3); if (Math.random() < 0.7 + 0.2 * this.skill) { const c = this.findLowCover(); if (c) { this.state = 'lowcover'; this.lcover = c; this.lcIn = false; this.lcUp = false; this.lcT = rand(0.4, 1); this.lcCycles = 0; } } }
         this.state = 'engage';
         const ux = (t.pos.x - this.pos.x) / (dist || 1), uz = (t.pos.z - this.pos.z) / (dist || 1), nav = world.nav;
         this.strafeT -= dt; if (this.strafeT <= 0) { this.strafe = Math.random() < 0.7 ? -this.strafe : this.strafe; this.strafeT = rand(0.35, 1.4) / Math.max(0.6, this.skill); }
@@ -2760,11 +2790,14 @@ class Enemy {
         if (T.rush || dist > pr[1] + 4) { this.setGoal(t.pos, false); const d = this.followPath(dt); if (d) { mx = d[0]; mz = d[1]; } if (T.rush) { spd = T.speed; if (dist < 6 && nav.lineFreeAt(this.pos.x, this.pos.y, this.pos.z, t.pos.x, t.pos.y, t.pos.z)) { mx = ux + sx * 0.4; mz = uz + sz * 0.4; } } }
         else if (dist < pr[0] && nav.freeAt(this.pos.x - ux * 1.2, this.pos.y, this.pos.z - uz * 1.2)) { mx = -ux * 0.8 + sx * 0.5; mz = -uz * 0.8 + sz * 0.5; }
         else if (!still) { mx = sx; mz = sz; spd = T.speed * (0.45 + 0.25 * this.skill); }
+        else if (dist > 18) this.wantCrouch = 1; // planted at range: drop to a crouch for stability
         if (this.aimT > 0) { mx = mz = 0; }
         if (this.jumpCD <= 0 && this.onGround && dist < 16 && Math.random() < dt * 0.6 * this.skill && !T.sniper) { this.vel.y = 6.8; this.jumpCD = rand(2.5, 6); }
       }
     } else {
-      if (this.state === 'cover' && this.cover) { // hide, then peek out toward the last known position
+      if (this.state === 'lowcover' && this.lcover) { const d = this.lowCoverTick(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } }
+      else if (this.state === 'cover' && this.cover) { // hide, then peek out toward the last known position
+        this.wantCrouch = this.reloadT > 0 ? 1 : 0;
         this.setGoal(this.cover, true); const d = this.followPath(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } else { this.coverT -= dt; if (this.coverT <= 0 && this.reloadT <= 0) { this.state = 'hunt'; this.cover = null; if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + 20); this.investigate = this.lastKnown.clone(); } }
       } else {
         // grenade the spot they were last seen hiding behind
@@ -2777,7 +2810,8 @@ class Enemy {
         let goal = this.investigate || (t ? this.lastKnown : null);
         if (!goal && this.bot) { // roam
           if ((!this.roam || this.pos.distanceTo(this.roam) < 2) && isAlly(this, PLAYER_T) && player.alive && Math.random() < 0.6) this.roam = new V3(player.pos.x + rand(-6, 6), player.pos.y, player.pos.z + rand(-6, 6));
-          if (!this.roam || this.pos.distanceTo(this.roam) < 2) { const n = world.nav.randomNode(); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } }
+          if (!this.roam || this.pos.distanceTo(this.roam) < 2) { let n = world.nav.randomNode(); if (Math.random() < 0.35) for (let q = 0; q < 24; q++) { const m = world.nav.randomNode(); if (m >= 0 && world.nav.nodeH[m] > Math.max(2.2, n >= 0 ? world.nav.nodeH[n] : 0)) n = m; } // humans like high ground
+            if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } }
           goal = this.roam;
         }
         if (goal) {
@@ -2793,6 +2827,7 @@ class Enemy {
     for (const o of enemies) { if (o === this || o.dead) continue; const ox = this.pos.x - o.pos.x, oz = this.pos.z - o.pos.z, d2 = ox * ox + oz * oz; if (d2 < 1.44 && d2 > 1e-4 && Math.abs(o.pos.y - this.pos.y) < 1.5) { const d = Math.sqrt(d2); mx += ox / d * (1.2 - d) * 1.6; mz += oz / d * (1.2 - d) * 1.6; } }
     { const px = this.pos.x - player.pos.x, pz = this.pos.z - player.pos.z, d = Math.hypot(px, pz); if (d < 1.0 && d > 1e-3 && Math.abs(player.pos.y - this.pos.y) < 1.5) { mx += px / d * 1.5; mz += pz / d * 1.5; } }
     const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
+    { const want = this.wantCrouch && !this.dead ? 1 : 0; if (want < (this.crouchK || 0) && anyOverlap(this.pos.x, this.pos.y, this.pos.z, this.r * 0.9, 1.82 * this.s)) {} else this.crouchK = damp(this.crouchK || 0, want, 9, dt); this.h = 1.82 * this.s * (1 - 0.36 * this.crouchK); spd *= 1 - 0.5 * this.crouchK; }
     const k = this.onGround ? 10 : 1.5;
     this.vel.x = damp(this.vel.x, mx * spd, k, dt); this.vel.z = damp(this.vel.z, mz * spd, k, dt);
     this.stepSmooth = 0; moveBody(this, dt);
@@ -4808,7 +4843,7 @@ class Remote {
     this.spS = lerp(this.spS || 0, Math.min(sp, 10), Math.min(1, dt * 8)); if (alive) footTick(this, dt, this.spS, b.h < 1.45, Math.abs(this.pos.y - (this.lastY === undefined ? this.pos.y : this.lastY)) < 0.08 || this.spS > 0, true); this.lastY = this.pos.y;
     if (b.w && b.w !== this.weaponId && widx(b.w) >= 0) setCharWeapon(this, b.w);
     animChar(this, dt, Math.min(sp, 9), b.pitch || 0);
-    this.inner.scale.y = this.s * clamp(this.h / (1.82 * this.s), 0.55, 1); flapWings(this, game.time);
+    if (this.skinned) { this.crouchK = clamp((1.82 * this.s - this.h) / (0.65 * this.s), 0, 1); this.inner.scale.y = this.s; } else this.inner.scale.y = this.s * clamp(this.h / (1.82 * this.s), 0.55, 1); flapWings(this, game.time);
     this.group.position.copy(this.pos); this.group.rotation.y = this.yaw + Math.PI; // remote yaw is camera yaw (faces -z)
     this.tag.visible = alive; this.tag.position.y = this.h + 0.45;
     if (player.pulseT > 0 && alive) { const q = 0.35 + 0.25 * Math.sin(game.time * 6); this.bodyMat.emissive.setRGB(q, q * 0.6, 0); }
@@ -5276,7 +5311,7 @@ function updateAvatar(dt) {
   setCharWeapon(avatar, WEAPONS[wst.cur].id);
   avatar.group.visible = true; avatar.group.position.set(player.pos.x, player.pos.y, player.pos.z); avatar.group.rotation.y = player.yaw + Math.PI;
   avatar.group.rotation.x = player.alive ? 0 : -Math.min(1, (game.deadT || 0) / 0.5) * 1.4;
-  avatar.inner.scale.y = (CHAR[cls().model] || { scale: 1 }).scale * (player.h / 1.75);
+  if (avatar.skinned) { avatar.crouchK = clamp((1.75 - player.h) / 0.65, 0, 1); avatar.inner.scale.y = (CHAR[cls().model] || { scale: 1 }).scale; } else avatar.inner.scale.y = (CHAR[cls().model] || { scale: 1 }).scale * (player.h / 1.75);
   animChar(avatar, dt, Math.hypot(player.vel.x, player.vel.z), player.pitch);
   if (avatar.flash) avatar.flash.visible = vm.flashT > 0;
   if (outroShow) return true; // the outro camera frames the operator itself
@@ -5433,5 +5468,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { PV, startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { PV, los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
