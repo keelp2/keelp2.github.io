@@ -226,6 +226,13 @@ img.thumb.tall{height:110px;object-fit:cover}
 .lslot{font-size:13px!important;letter-spacing:.24em!important;color:#fff!important;margin:22px 0 4px!important;font-weight:800;border-bottom:1px solid var(--line);padding-bottom:6px}
 #menu .mode{color:inherit}#menu #botbtn,#menu #mpbtn{border-color:var(--line);border-left-color:var(--acc);background:rgba(255,255,255,.05)}
 .modeopts.g3{grid-template-columns:1.6fr 1fr 1fr}
+.cbig{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:1300px}.cbig div{background:rgba(255,255,255,.05);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:6px;padding:14px 18px}
+.cbig small{display:block;font-size:10px;letter-spacing:.22em;color:var(--mut)}.cbig b{display:block;font-size:34px;font-weight:900;margin-top:4px}
+.ccols{display:grid;grid-template-columns:1fr 1.2fr 1.4fr;gap:26px;max-width:1300px;margin-top:10px}.ktab td small{color:var(--mut);font-size:10px}.r_win{color:#5dff9a}.r_loss{color:#ff7a7a}.r_draw,.r_run{color:#ffcf6b}
+.mysum{margin:12px 0 0;text-align:center;color:#ffb27a;font-size:13px;letter-spacing:.04em}
+@media (max-width:1000px){.cbig{grid-template-columns:repeat(2,1fr)}.ccols{grid-template-columns:1fr}}
+#flashov{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
+.nind{position:absolute;left:50%;top:50%;margin:-18px 0 0 -30px;width:60px;text-align:center;display:none;color:#ff5a4a;text-shadow:0 0 6px #000;font-weight:800;pointer-events:none}.nind b{display:block;font-size:22px;line-height:22px}.nind small{font-size:9px;letter-spacing:.15em}
 /* ---------- loading screen ---------- */
 #loading{position:fixed;inset:0;z-index:50;display:none;background:#05070a}
 #loading.on{display:block}
@@ -241,7 +248,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 <body>
 <div id="game"></div>
 
-<div id="hud">
+<div id="hud"><div id="flashov"></div>
   <canvas id="radar" width="170" height="170"></canvas>
   <div id="vig"></div>
   <div id="scope"><b></b></div>
@@ -282,7 +289,7 @@ img.thumb.tall{height:110px;object-fit:cover}
   <div class="mshell">
     <header class="mtop">
       <div class="logo">BREACH<span>POINT</span></div>
-      <nav class="mtabs" id="mtabs"><button data-tab="play" class="on">PLAY</button><button data-tab="loadout">LOADOUT</button><button data-tab="operators">OPERATORS</button><button data-tab="settings">SETTINGS</button><button data-tab="controls">CONTROLS</button></nav>
+      <nav class="mtabs" id="mtabs"><button data-tab="play" class="on">PLAY</button><button data-tab="loadout">LOADOUT</button><button data-tab="operators">OPERATORS</button><button data-tab="career">CAREER</button><button data-tab="settings">SETTINGS</button><button data-tab="controls">CONTROLS</button></nav>
       <div class="mplayer"><b id="mpname2">OPERATOR</b><small id="mclass"></small></div>
     </header>
     <main class="mbody">
@@ -306,6 +313,7 @@ img.thumb.tall{height:110px;object-fit:cover}
       <section class="mtab" data-tab="loadout"><div class="lgrid"><div class="lmain"><div id="loadout"></div></div><div class="pvslot" data-pv="loadout"></div></div></section>
       <section class="mtab" data-tab="operators"><div class="lgrid"><div class="lmain"><h3>Choose your operator</h3><div class="wcards clsgrid" id="classes"></div></div>
         <div class="pvslot" data-pv="operators"><div class="pvbox" id="pvbox"><canvas id="preview"></canvas><div id="pvlabel"></div></div></div></div></section>
+      <section class="mtab" data-tab="career"><div id="career"></div></section>
       <section class="mtab" data-tab="settings"><div class="sgroups">
         <div class="sgroup"><h3>Graphics &amp; display</h3><label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (old laptops)</option><option value="medium">Medium — shadows, balanced (most laptops)</option><option value="high">High — realistic lighting (gaming PC)</option><option value="ultra">Ultra — + ambient occlusion, max shadows (strong GPU)</option></select></label><label class="set"><div>Field of view <b id="fovv"></b></div><input type="range" id="fov" min="70" max="105" step="1"></label><label class="set"><div>Camera</div><select id="view"><option value="first">First person</option><option value="third">Third person</option></select></label><label class="set"><div>Crosshair</div><select id="xhair"><option value="cross">Cross</option><option value="dot">Dot</option><option value="circle">Circle</option><option value="none">None</option></select></label><label class="set"><div>Crosshair colour</div><select id="xcolor"><option value="#ffffff">White</option><option value="#5dff9a">Green</option><option value="#ffe14d">Yellow</option><option value="#ff4fd8">Pink</option><option value="#4fd8ff">Cyan</option></select></label><label class="set"><div>Fullscreen on deploy</div><select id="fullscreen"><option value="1">On — locks Ctrl+W etc. (recommended)</option><option value="0">Off</option></select></label></div>
         <div class="sgroup"><h3>Audio</h3><label class="set"><div>Effects volume <b id="volv"></b></div><input type="range" id="vol" min="0" max="1" step="0.05"></label><label class="set"><div>Music volume <b id="musv"></b></div><input type="range" id="mus" min="0" max="1" step="0.05"></label><label class="set"><div>Battle ambience</div><select id="ambience"><option value="1">On</option><option value="0">Off</option></select></label></div>
@@ -315,13 +323,13 @@ img.thumb.tall{height:110px;object-fit:cover}
 <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Move</td></tr><tr><td><kbd>LMB</kbd> / <kbd>RMB</kbd></td><td>Fire / aim down sights</td></tr>
 <tr><td><kbd>Shift</kbd></td><td>Sprint (aiming or firing stops it)</td></tr><tr><td><kbd>Alt</kbd></td><td>Quiet walk — silent footsteps</td></tr>
 <tr><td><kbd>Space</kbd></td><td>Jump</td></tr><tr><td><kbd>C</kbd></td><td>Crouch · slide while sprinting</td></tr><tr><td><kbd>R</kbd></td><td>Reload</td></tr>
-<tr><td><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / wheel</td><td>Primary · secondary · melee</td></tr><tr><td><kbd>4</kbd></td><td>Frag grenade — LMB throw, RMB lob, hold to cook</td></tr>
-<tr><td>hold <kbd>G</kbd></td><td>Quick grenade: cook, release to throw</td></tr><tr><td><kbd>V</kbd></td><td>Quick melee</td></tr><tr><td><kbd>E</kbd></td><td>Class ability</td></tr>
+<tr><td><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / wheel</td><td>Primary · secondary · melee</td></tr><tr><td><kbd>4</kbd> / <kbd>5</kbd></td><td>Hold lethal / tactical in hand — LMB throw, RMB lob</td></tr>
+<tr><td>hold <kbd>G</kbd></td><td>Lethal (frag · semtex · molotov) — release to throw, frags cook</td></tr><tr><td>hold <kbd>Q</kbd></td><td>Tactical (smoke · flashbang) — release to throw</td></tr><tr><td><kbd>V</kbd></td><td>Quick melee</td></tr><tr><td><kbd>E</kbd></td><td>Class ability</td></tr>
 <tr><td><kbd>T</kbd></td><td>First / third person</td></tr><tr><td>hold <kbd>Tab</kbd></td><td>Scoreboard</td></tr><tr><td><kbd>B</kbd></td><td>Armory (survival)</td></tr><tr><td><kbd>Esc</kbd></td><td>Pause</td></tr></table><table class="ktab"><tr><th colspan="2">Controller (Xbox / PlayStation)</th></tr>
 <tr><td><kbd>RT</kbd> / <kbd>LT</kbd></td><td>Fire / aim (snaps onto targets)</td></tr><tr><td><kbd>L3</kbd></td><td>Sprint</td></tr><tr><td><kbd>R3</kbd></td><td>Melee</td></tr>
 <tr><td><kbd>A</kbd></td><td>Jump</td></tr><tr><td><kbd>B</kbd></td><td>Crouch · slide while sprinting</td></tr><tr><td><kbd>X</kbd></td><td>Reload</td></tr><tr><td><kbd>Y</kbd></td><td>Swap weapon</td></tr>
-<tr><td>hold <kbd>RB</kbd></td><td>Cook grenade, release to throw</td></tr><tr><td><kbd>LB</kbd></td><td>Class ability</td></tr><tr><td>D-pad <kbd>◀</kbd><kbd>▶</kbd></td><td>Cycle weapons</td></tr>
-<tr><td>D-pad <kbd>▲</kbd> / <kbd>▼</kbd></td><td>1st/3rd person · armory</td></tr><tr><td>hold <kbd>View</kbd></td><td>Scoreboard</td></tr><tr><td><kbd>Menu</kbd></td><td>Pause</td></tr>
+<tr><td>hold <kbd>RB</kbd> / <kbd>LB</kbd></td><td>Lethal / tactical — release to throw</td></tr><tr><td>D-pad <kbd>◀</kbd><kbd>▶</kbd></td><td>Cycle weapons</td></tr>
+<tr><td>D-pad <kbd>▲</kbd></td><td>Class ability</td></tr><tr><td>D-pad <kbd>▼</kbd></td><td>Armory (survival) · 1st/3rd person</td></tr><tr><td>hold <kbd>View</kbd></td><td>Scoreboard</td></tr><tr><td><kbd>Menu</kbd></td><td>Pause</td></tr>
 <tr><th colspan="2">In menus</th></tr><tr><td>D-pad / stick</td><td>Move highlight</td></tr><tr><td><kbd>A</kbd> / <kbd>B</kbd></td><td>Select / back</td></tr><tr><td><kbd>LB</kbd> / <kbd>RB</kbd></td><td>Switch tab</td></tr><tr><td><kbd>Menu</kbd></td><td>Deploy</td></tr></table></div></section>
     </main>
     <footer class="mfoot"><span class="hints"><kbd>LB</kbd><kbd>RB</kbd> tabs · <kbd>A</kbd> select · <kbd>B</kbd> back · <kbd>Menu</kbd> deploy</span><span class="credit">Character base model: “Soldier” (three.js examples, Mixamo). Surface photos: Poly Haven (CC0). Everything else generated in code.</span></footer>
@@ -413,7 +421,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611191030"></script>
+<script src="game.js?v=202611191420"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>

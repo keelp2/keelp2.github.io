@@ -280,6 +280,11 @@ const sfx = {
     }
     if (o.gait === 'sprint') { N({ type: 'bandpass', f: 4600, q: 8, dur: 0.03, g: 0.06, d: 0.03 }); N({ type: 'bandpass', f: 3800, q: 7, dur: 0.025, g: 0.04, d: 0.07 }); } // gear rattle
   },
+  ring(sec) { // flashbang tinnitus: a high tone, everything else ducked
+    if (!this.ok()) return; const c = this.ctx, t = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.frequency.value = 3600; o.type = 'sine';
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + sec); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + sec + 0.1);
+    const b = this.sfxBus.gain; b.cancelScheduledValues(t); b.setValueAtTime(settings.volume * 0.15, t + 0.02); b.linearRampToValueAtTime(settings.volume, t + sec);
+  },
   boom(dist = 0, pan = 0, big = 1) {
     if (!this.ok()) return; const far = clamp(dist / 120, 0, 1);
     const dest = this.chain(pan, 0.45 + far * 0.5, far > 0.02 ? 6000 - far * 5200 : 0, big / (1 + dist * 0.02)), t = this.ctx.currentTime;
@@ -353,6 +358,19 @@ const ambience = { t: 2,
 // ============================================================ MUSIC — tiny sequencer with silly instruments
 const NOTE = n => 440 * Math.pow(2, (n - 69) / 12); // MIDI -> Hz
 const INSTR = {
+  pad(dest, t, f, d, v) { const c = sfx.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.4; lp.connect(g); g.connect(dest);
+    const a = Math.min(1.4, d * 0.35); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.09, t + a); g.gain.setValueAtTime(v * 0.09, t + d - 0.2); g.gain.linearRampToValueAtTime(0.0001, t + d + 0.8);
+    for (const det of [-9, 0, 8]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d + 0.9); } },
+  strings(dest, t, f, d, v) { const c = sfx.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.connect(g); g.connect(dest);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.11, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d * 0.95);
+    for (const det of [-6, 6]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d); } },
+  sub(dest, t, f, d, v) { const c = sfx.ctx, o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.32, t + 0.08); g.gain.setValueAtTime(v * 0.3, t + d * 0.85); g.gain.linearRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.05); },
+  tom(dest, t, f, d, v) { const c = sfx.ctx, o = c.createOscillator(), g = c.createGain(); o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.55, t + 0.35); g.gain.setValueAtTime(v * 0.75, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.75);
+    const n = c.createBufferSource(), lp = c.createBiquadFilter(), ng = c.createGain(); n.buffer = sfx.nb; lp.type = 'lowpass'; lp.frequency.value = 600; ng.gain.setValueAtTime(v * 0.5, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); n.connect(lp); lp.connect(ng); ng.connect(dest); n.start(t, Math.random()); n.stop(t + 0.2); },
+  hat(dest, t, f, d, v) { const c = sfx.ctx, n = c.createBufferSource(), hp = c.createBiquadFilter(), g = c.createGain(); n.buffer = sfx.nb; hp.type = 'highpass'; hp.frequency.value = 7500; g.gain.setValueAtTime(v * 0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05); n.connect(hp); hp.connect(g); g.connect(dest); n.start(t, Math.random()); n.stop(t + 0.06); },
+  horn(dest, t, f, d, v) { const c = sfx.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(400, t); lp.frequency.linearRampToValueAtTime(1400, t + 0.25); lp.connect(g); g.connect(dest);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.16, t + 0.18); g.gain.setValueAtTime(v * 0.15, t + d * 0.8); g.gain.linearRampToValueAtTime(0.0001, t + d + 0.3);
+    for (const det of [-4, 4]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d + 0.35); } },
   tuba(dest, t, f, d, v) { const c = sfx.ctx, o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 0.97, t); o.frequency.linearRampToValueAtTime(f, t + 0.04);
     lp.type = 'lowpass'; lp.frequency.value = 520; lp.Q.value = 2; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.55, t + 0.025); g.gain.exponentialRampToValueAtTime(v * 0.25, t + d * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
     o.connect(lp); lp.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.05); },
@@ -383,42 +401,47 @@ const INSTR = {
     g.gain.setValueAtTime(v * 0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.05); },
 };
 // Songs: list of [beat, instrument, midi, lengthInBeats, velocity, extra]
-function polkaTheme() { // "The Ballad of Bogwater" — oom-pah polka with a kazoo lead
-  const ev = [], prog = [[48, [60, 64, 67]], [43, [59, 62, 67]], [48, [60, 64, 67]], [41, [60, 65, 69]], [48, [60, 64, 67]], [43, [59, 62, 65]], [48, [60, 64, 67]], [43, [59, 62, 67]]];
-  prog.forEach(([b, ch], bar) => { const s = bar * 4;
-    ev.push([s, 'tuba', b, 0.9, 1], [s + 2, 'tuba', b + 7, 0.9, 0.9]);
-    for (const off of [1, 3]) for (const n of ch) ev.push([s + off, 'accordion', n, 0.5, 0.8]);
-    for (let k = 0; k < 4; k++) ev.push([s + k + 0.5, 'tamb', 0, 0.1, 0.8]);
-    ev.push([s, 'kick', 0, 0.2, 0.6], [s + 2, 'kick', 0, 0.2, 0.6], [s + 1, 'snare', 0, 0.12, 0.35], [s + 3, 'snare', 0, 0.12, 0.35]);
+// ---- score: cinematic military themes (synthesised: string pads, ostinato, sub bass, taiko, brass)
+const CHORDS = { Dm: [50, 53, 57], Bb: [46, 50, 53], F: [41, 45, 48], C: [48, 52, 55], Gm: [43, 46, 50], A: [45, 49, 52] };
+function mainTheme() { // "Breachpoint" — D minor, 84 bpm, 16 bars
+  const ev = [], prog = ['Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Gm', 'A'];
+  prog.forEach((ch, i) => { const b = i * 8, n = CHORDS[ch];
+    for (const x of n) ev.push([b, 'pad', x, 8, 1]);
+    ev.push([b, 'sub', n[0] - 12, 8, 1]);
+    for (let k = 0; k < 16; k++) ev.push([b + k * 0.5, 'strings', [n[0] + 12, n[2] + 12, n[1] + 12, n[2] + 12][k % 4], 0.45, k % 4 === 0 ? 1 : 0.7]);
+    for (const [o, f, vv] of [[0, 110, 1], [1.5, 82, 0.6], [2, 98, 0.8], [4, 110, 1], [5.5, 82, 0.6], [6, 98, 0.7], [7, 92, 0.6], [7.5, 92, 0.6]]) if (i >= 2 || o === 0 || o === 4) ev.push([b + o, 'tom', 0, 0.5, vv * (i >= 2 ? 1 : 0.6)]);
+    if (i >= 4) for (let k = 0; k < 16; k++) ev.push([b + k * 0.5, 'hat', 0, 0.1, k % 2 ? 0.5 : 1]);
   });
-  const mel = [[0, 76, 1], [1, 79, 0.5], [1.5, 79, 0.5], [2, 81, 0.5], [2.5, 79, 0.5], [3, 76, 1], [4, 74, 0.5], [4.5, 74, 0.5], [5, 77, 1], [6, 74, 1], [7, 71, 1],
-    [8, 72, 0.5], [8.5, 74, 0.5], [9, 76, 1], [10, 79, 1], [11, 84, 1], [12, 81, 1], [13, 77, 0.5], [13.5, 76, 0.5], [14, 74, 2],
-    [16, 76, 1], [17, 79, 0.5], [17.5, 79, 0.5], [18, 81, 0.5], [18.5, 79, 0.5], [19, 76, 1], [20, 81, 1], [21, 79, 0.5], [21.5, 77, 0.5], [22, 76, 1], [23, 74, 1],
-    [24, 72, 0.5], [24.5, 76, 0.5], [25, 79, 1], [26, 74, 0.5], [26.5, 71, 0.5], [27, 74, 1], [28, 72, 3], [31, 67, 0.5], [31.5, 71, 0.5]];
-  for (const [b, n, l] of mel) ev.push([b, 'kazoo', n, l * 0.95, 0.9]);
-  ev.push([29, 'boing', 220, 0.6, 0.6]);
-  return { bpm: 150, len: 32, loop: true, ev };
+  // brass theme over the second half
+  [[32, 62, 3], [35, 65, 1], [36, 69, 4], [40, 67, 2], [42, 65, 2], [44, 64, 3], [47, 62, 1], [48, 62, 4], [52, 58, 2], [54, 62, 2], [56, 61, 6], [62, 57, 2]].forEach(([b, n, l]) => { ev.push([b, 'horn', n, l, 1], [b, 'horn', n - 12, l, 0.6]); });
+  for (const t of ev) if (t[1] === 'tom') t[2] = 0; // toms use their own pitch
+  return { bpm: 84, len: 64, loop: true, ev: ev.map(e => e[1] === 'tom' ? [e[0], 'tomhz', [110, 82, 98, 92][Math.floor(e[4] * 10) % 4], e[3], e[4]] : e) };
 }
-function fanfare() { const ev = [];
-  [[0, 0.25], [0.33, 0.25], [0.66, 0.25], [1, 1.5]].forEach(([b, l], i) => { const n = [67, 67, 67, 72][i]; ev.push([b, 'brass', n, l, 1], [b, 'brass', n - 12, l, 0.7]); });
-  for (let i = 0; i < 8; i++) ev.push([i * 0.125, 'snare', 0, 0.08, 0.5]);
-  ev.push([1, 'kick', 0, 0.3, 1], [1, 'snare', 0, 0.6, 0.6], [2.6, 'boing', 330, 0.5, 0.7]);
-  return { bpm: 120, len: 4, loop: false, ev };
+function deploySting() { const ev = [];
+  for (const x of CHORDS.Dm) ev.push([0, 'pad', x, 6, 1.4]); ev.push([0, 'sub', 38, 6, 1.2], [0, 'horn', 50, 3, 1], [0, 'horn', 57, 3, 0.8], [3, 'horn', 53, 3, 1], [3, 'horn', 58, 3, 0.8]);
+  for (let k = 0; k < 24; k++) ev.push([k * 0.25, 'strings', k % 2 ? 62 : 69, 0.22, 0.5 + k / 30]);
+  for (const b of [0, 1.5, 3, 4, 4.5, 5, 5.5]) ev.push([b, 'tomhz', b < 4 ? 90 : 120, 0.5, 1]);
+  return { bpm: 100, len: 7, loop: false, ev };
 }
-function victory() { const ev = [];
-  [[0, 72, 0.5], [0.5, 76, 0.5], [1, 79, 0.5], [1.5, 84, 2]].forEach(([b, n, l]) => { ev.push([b, 'brass', n, l, 1], [b, 'brass', n - 12, l, 0.6]); });
-  for (let i = 0; i < 8; i++) ev.push([2 + i * 0.125, 'kazoo', i % 2 ? 86 : 84, 0.12, 0.7]);
-  ev.push([3.5, 'kazoo', 88, 1, 0.8], [1.5, 'kick', 0, 0.3, 1], [1.5, 'snare', 0, 1.2, 0.5], [3.5, 'bell', 96, 1, 0.8]);
-  return { bpm: 120, len: 6, loop: false, ev };
+function winTheme() { const ev = [];
+  [['F', 0], ['C', 2], ['Dm', 4], ['Bb', 6], ['F', 8]].forEach(([ch, b]) => { const n = CHORDS[ch]; for (const x of n) { ev.push([b, 'horn', x + 12, b === 8 ? 4 : 2, 1], [b, 'pad', x, b === 8 ? 5 : 2, 1]); } ev.push([b, 'sub', n[0] - 12, 2, 1], [b, 'tomhz', 0, 0.5, 1]); ev[ev.length - 1][2] = 100; });
+  [[0, 65], [1, 69], [2, 72], [3, 76], [4, 74], [5, 72], [6, 70], [7, 74], [8, 77]].forEach(([b, n]) => ev.push([b, 'horn', n, b === 8 ? 4 : 1, 1.1]));
+  for (let k = 0; k < 8; k++) ev.push([k, 'hat', 0, 0.1, 1]);
+  return { bpm: 92, len: 13, loop: false, ev };
 }
-function sadTrombone() { const ev = [[0, 'trombone', 67, 0.55, 1], [0.6, 'trombone', 66, 0.55, 1], [1.2, 'trombone', 65, 0.55, 1], [1.8, 'trombone', 64, 2.4, 1, 0.97]]; return { bpm: 90, len: 5, loop: false, ev }; }
-const SONGS = { title: polkaTheme, start: fanfare, win: victory, lose: sadTrombone };
+function loseTheme() { const ev = [];
+  [['Dm', 0], ['Bb', 3], ['Gm', 6], ['A', 9]].forEach(([ch, b]) => { for (const x of CHORDS[ch]) ev.push([b, 'pad', x, 3, 1]); ev.push([b, 'sub', CHORDS[ch][0] - 12, 3, 0.9]); });
+  [[0, 62], [3, 58], [6, 55], [9, 57]].forEach(([b, n]) => ev.push([b, 'horn', n, 2.6, 0.7]));
+  ev.push([0, 'tomhz', 70, 1, 0.8], [6, 'tomhz', 70, 1, 0.6], [12, 'bell', 74, 3, 0.35]);
+  return { bpm: 70, len: 15, loop: false, ev };
+}
+const SONGS = { title: mainTheme, start: deploySting, win: winTheme, lose: loseTheme };
 const music = {
   cur: null, name: '',
   play(name) {
     if (!sfx.ok()) { this.pending = name; return; }
     if (this.name === name && this.cur && SONGS[name]().loop) return;
-    this.stop(); const song = SONGS[name](), c = sfx.ctx, out = c.createGain(); out.gain.value = name === 'title' ? 0.8 : 1; out.connect(sfx.musicBus);
+    this.stop(); const song = SONGS[name](), c = sfx.ctx, out = c.createGain(); out.gain.value = name === 'title' ? 0.75 : 0.9; out.connect(sfx.musicBus);
     const spb = 60 / song.bpm, ev = song.ev.slice().sort((a, b) => a[0] - b[0]);
     const st = { out, t0: c.currentTime + 0.08, i: 0, loopN: 0, timer: 0 };
     const tick = () => {
@@ -426,7 +449,7 @@ const music = {
       for (;;) {
         if (st.i >= ev.length) { if (!song.loop) return; st.i = 0; st.loopN++; }
         const e = ev[st.i], at = st.t0 + (e[0] + st.loopN * song.len) * spb; if (at > horizon) break;
-        if (at > c.currentTime - 0.05) INSTR[e[1]](out, Math.max(at, c.currentTime), e[1] === 'boing' ? e[2] : NOTE(e[2]), e[3] * spb, e[4], e[5]);
+        if (at > c.currentTime - 0.05) INSTR[e[1] === 'tomhz' ? 'tom' : e[1]](out, Math.max(at, c.currentTime), e[1] === 'boing' || e[1] === 'tomhz' ? e[2] : NOTE(e[2]), e[3] * spb, e[4], e[5]);
         st.i++;
       }
     };
@@ -2409,11 +2432,13 @@ class Enemy {
   candidates() { const l = []; if (player.alive && (!MP.active) && !isAlly(this, PLAYER_T)) l.push(PLAYER_T); if (this.bot) for (const e of enemies) if (e !== this && !e.dead && e.bot && !isAlly(this, e)) l.push(e); return l; }
   aimPoint(t, out, head) { const hh = t.isPlayer ? player.h - 0.12 : t.h * (head ? 0.9 : 0.62); return out.set(t.pos.x, t.pos.y + (t.isPlayer ? (head ? hh : hh - 0.45) : hh), t.pos.z); }
   perceive() {
+    if (this.blindT > 0) { this.visible = false; return; }
     const e = this.eye(_ea); let best = null, bs = 1e9;
     for (const c of this.candidates()) {
       const p = this.aimPoint(c, _eb, false), dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz); if (d > this.T.sight) continue;
       const ang = Math.abs(angDiff(this.yaw, Math.atan2(dx, dz)));
       if (ang > (this.alertT > 0 ? 2.4 : 1.25) && d > 4) continue;
+      if (smokeBlocked(e.x, e.y, e.z, p.x, p.y, p.z)) continue;
       if (!los(e.x, e.y, e.z, p.x, p.y, p.z)) { const hp = this.aimPoint(c, _ed, true); if (!los(e.x, e.y, e.z, hp.x, hp.y, hp.z)) continue; }
       const sc = d * (c === this.target ? 0.6 : 1) * (c === this.attacker ? 0.5 : 1); if (sc < bs) { bs = sc; best = c; }
     }
@@ -2453,7 +2478,7 @@ class Enemy {
     }
     const T = this.T, W = this.W;
     if (this.spawnT > 0) { this.spawnT -= dt; this.group.scale.set(1, clamp(1 - this.spawnT / 0.5, 0.05, 1), 1); }
-    this.alertT -= dt; this.nadeCD -= dt; this.jumpCD -= dt;
+    this.alertT -= dt; this.nadeCD -= dt; this.jumpCD -= dt; if (this.blindT > 0) { this.blindT -= dt; this.visible = false; }
     // ---- perception
     this.losT -= dt; if (this.losT <= 0) { this.losT = 0.1 + Math.random() * 0.08; this.perceive(); }
     if (this.target && this.target.dead) { this.target = this.bot ? null : PLAYER_T; this.visible = false; }
@@ -2685,7 +2710,7 @@ function startBotMatch() {
 function botKilled(victim, killer, head) {
   const vs = victim.stat; if (vs) vs.deaths++;
   let kname = 'the swamp';
-  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; if (head) game.heads++; kname = 'You'; sfx.play('kill'); hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
+  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; if (head) game.heads++; statKill(head); kname = 'You'; sfx.play('kill'); hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
     if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time; const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' }; if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]); }
   else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
   if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
@@ -2714,7 +2739,7 @@ function endBotMatch(why) {
   let won;
   if (BD.teams) { const [b, r] = BD.teamKills; won = b > r; $('mpWinner').textContent = b === r ? 'DRAW' : b > r ? 'BLUE TEAM WINS' : 'RED TEAM WINS'; $('mpWhy').textContent = `${why} · Blue ${b} – ${r} Red`; }
   else { won = rows[0].me; $('mpWinner').textContent = rows[0].me ? 'YOU WIN!' : rows[0].name.toUpperCase() + ' WINS'; $('mpWhy').textContent = why; }
-  $('mpBoard').innerHTML = botTable(rows); $('mpToLobby').textContent = 'BACK TO MENU';
+  $('mpBoard').innerHTML = botTable(rows) + `<p class="mysum">${statEnd(BD.teams ? 'TEAM DEATHMATCH' : 'BOT FFA', BD.teams && BD.teamKills[0] === BD.teamKills[1] ? 'draw' : won ? 'win' : 'loss', BD.stats[0].deaths)}</p>`; $('mpToLobby').textContent = 'BACK TO MENU';
   showScreen('mpover'); music.play(won ? 'win' : 'lose');
 }
 function botTable(rows) {
@@ -2759,9 +2784,10 @@ function areaDamage(x, y, z, r, dmg, kb, attacker) { // damages enemies / remote
 function updateClouds(dt) {
   for (let i = clouds.length - 1; i >= 0; i--) {
     const c = clouds[i]; c.t -= dt; c.tick -= dt;
-    if (Math.random() < 0.7) debris.emit(c.x + rand(-c.r, c.r) * 0.8, c.y + rand(0, 1.2), c.z + rand(-c.r, c.r) * 0.8, rand(-0.3, 0.3), rand(0.2, 0.8), rand(-0.3, 0.3), 0.35, 0.8, 0.25, 1.4, -0.05);
+    if (c.fire) { for (let q = 0; q < 3; q++) sparks.emit(c.x + rand(-c.r, c.r) * 0.75, c.y + 0.1, c.z + rand(-c.r, c.r) * 0.75, rand(-0.3, 0.3), rand(1.5, 3.5), rand(-0.3, 0.3), 1, rand(0.35, 0.6), 0.1, rand(0.4, 0.8), -0.2); if (Math.random() < 0.3) debris.emit(c.x + rand(-c.r, c.r) * 0.6, c.y + 1, c.z + rand(-c.r, c.r) * 0.6, 0, 1.2, 0, 0.15, 0.14, 0.13, 2, -0.1); }
+    else if (Math.random() < 0.7) debris.emit(c.x + rand(-c.r, c.r) * 0.8, c.y + rand(0, 1.2), c.z + rand(-c.r, c.r) * 0.8, rand(-0.3, 0.3), rand(0.2, 0.8), rand(-0.3, 0.3), 0.35, 0.8, 0.25, 1.4, -0.05);
     if (c.tick <= 0) { c.tick = 0.25;
-      if (c.owner === MP.myId || !MP.active) { const n = areaDamage(c.x, c.y + 0.8, c.z, c.r, 25 * 0.25, 0, 'player'); if (n) hitMarker(false, false); }
+      if (c.owner === MP.myId || c.owner === 'player' || !MP.active) { const n = areaDamage(c.x, c.y + 0.8, c.z, c.r, (c.fire ? 32 : 25) * 0.25, 0, 'player'); if (n) hitMarker(false, false); }
       if (c.owner !== MP.myId && player.alive && Math.hypot(player.pos.x - c.x, player.pos.z - c.z) < c.r && Math.abs(player.pos.y - c.y) < 2.5) damagePlayer(25 * 0.25 * (c.owner ? 1 : 0), null, c.owner);
     }
     if (c.t <= 0) clouds.splice(i, 1);
@@ -2821,12 +2847,21 @@ const WEAPONS = [
 let inv = [];
 let carry = [2, 0, 9];
 const widx = id => WEAPONS.findIndex(w => w.id === id);
+const EQUIP = {
+  frag: { slot: 'lethal', name: 'FRAG GRENADE', short: 'FRAG', desc: 'Bounces and rolls. Hold to cook — 3.5 s fuse.', fuse: 3.5, cook: true },
+  semtex: { slot: 'lethal', name: 'SEMTEX', short: 'SEMTEX', desc: 'Sticks to walls, floors and people. 2.2 s fuse after it lands.', fuse: 2.2, stick: true },
+  molotov: { slot: 'lethal', name: 'MOLOTOV', short: 'MOLOTOV', desc: 'Shatters on impact and sets the area ablaze for 6 s.', fuse: 6, impact: true },
+  smoke: { slot: 'tactical', name: 'SMOKE GRENADE', short: 'SMOKE', desc: 'A thick smoke screen for 15 s. Blocks line of sight — bots can\'t see through it.', fuse: 1.6 },
+  flash: { slot: 'tactical', name: 'FLASHBANG', short: 'FLASH', desc: 'Blinds and deafens anyone looking toward it, including bots.', fuse: 1.4 },
+};
+const DEFAULT_EQ = { assault: ['frag', 'flash'], scout: ['semtex', 'smoke'], heavy: ['frag', 'smoke'], recon: ['semtex', 'smoke'], wolf: ['frag', 'flash'], witch: ['molotov', 'flash'] };
 const DEFAULT_LO = { assault: ['rifle', 'pistol', 'sword'], scout: ['smg', 'pistol', 'knife'], heavy: ['lmg', 'revolver', 'pan'], recon: ['dmr', 'pistol', 'knife'], wolf: ['shotgun', 'revolver', 'knife'], witch: ['ak', 'pistol', 'pan'] };
 if (!settings.loadouts || typeof settings.loadouts !== 'object') settings.loadouts = {};
 if (!settings.att || typeof settings.att !== 'object') settings.att = {};
 function getLO(c = settings.cls) { // per-class loadout, validated
   const d = DEFAULT_LO[c] || DEFAULT_LO.assault, lo = Object.assign({ primary: d[0], secondary: d[1], melee: d[2] }, settings.loadouts[c] || {});
   for (const slot of ['primary', 'secondary', 'melee']) { const k = widx(lo[slot]); if (k < 0 || WEAPONS[k].slot !== slot) lo[slot] = d[['primary', 'secondary', 'melee'].indexOf(slot)]; }
+  const de = DEFAULT_EQ[c] || DEFAULT_EQ.assault; if (!EQUIP[lo.lethal] || EQUIP[lo.lethal].slot !== 'lethal') lo.lethal = de[0]; if (!EQUIP[lo.tactical] || EQUIP[lo.tactical].slot !== 'tactical') lo.tactical = de[1];
   return lo;
 }
 function setLO(slot, id) { const lo = getLO(); lo[slot] = id; settings.loadouts[settings.cls] = lo; saveSettings(); }
@@ -3131,13 +3166,14 @@ addEventListener('keydown', e => {
   if (e.code === 'Digit3') switchTo(carry[2]);
   if (e.code === 'KeyV') quickMelee();
   if (e.code === 'KeyT') toggleView();
-  if (e.code === 'KeyQ') switchTo(wst.cur === carry[0] ? carry[1] : carry[0]);
-  if (e.code === 'KeyG' && game.state === 'play') nadeQuickStart();
-  if (e.code === 'Digit4' && game.state === 'play') { if (ng.on) switchTo(wst.cur); else nadeEquip(false); }
+  if (e.code === 'KeyG' && game.state === 'play') nadeQuickStart('lethal');
+  if (e.code === 'KeyQ' && game.state === 'play') nadeQuickStart('tactical');
+  if (e.code === 'Digit4' && game.state === 'play') { if (ng.on && ng.slot === 'lethal') switchTo(wst.cur); else nadeEquip(false, 'lethal'); }
+  if (e.code === 'Digit5' && game.state === 'play') { if (ng.on && ng.slot === 'tactical') switchTo(wst.cur); else nadeEquip(false, 'tactical'); }
   if (e.code === 'KeyE' || e.code === 'KeyF') useAbility();
   if (e.code === 'Space') player.jumpBuf = 0.14;
 });
-addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'KeyG' && ng.quick) nadeRelease(); });
+addEventListener('keyup', e => { keys[e.code] = false; if ((e.code === 'KeyG' || e.code === 'KeyQ') && ng.quick) nadeRelease(); });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseL = mouseR = false; });
 renderer.domElement.addEventListener('mousedown', e => {
   if (game.state === 'play' && !locked) { requestLock(); return; }
@@ -3173,6 +3209,35 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 // ============================================================ GAME STATE
+// ---- career stats (saved in this browser)
+const STATS = (() => { let d = null; try { d = JSON.parse(localStorage.getItem('bp_stats') || 'null'); } catch (e) {}
+  return Object.assign({ matches: 0, wins: 0, losses: 0, draws: 0, kills: 0, deaths: 0, heads: 0, shots: 0, hits: 0, time: 0, bestStreak: 0, bestWave: 0, bestScore: 0, runs: 0, weapons: {}, recent: [] }, d || {}); })();
+const saveStats = () => { try { localStorage.setItem('bp_stats', JSON.stringify(STATS)); } catch (e) {} };
+const wstat = id => STATS.weapons[id] || (STATS.weapons[id] = { kills: 0, shots: 0, hits: 0 });
+function statKill(head) { const id = game.lastNadeKill ? 'nade' : WEAPONS[wst.cur].id; wstat(id).kills++; STATS.bestStreak = Math.max(STATS.bestStreak, game.streak || 1); }
+function statEnd(mode, result, deaths) { // result: 'win' | 'loss' | 'draw' | 'run'
+  if (game.statDone) return; game.statDone = true;
+  STATS.matches++; if (result === 'win') STATS.wins++; else if (result === 'loss') STATS.losses++; else if (result === 'draw') STATS.draws++; else STATS.runs++;
+  STATS.kills += game.kills; STATS.deaths += deaths; STATS.heads += game.heads; STATS.shots += game.shots; STATS.hits += game.hits; STATS.time += game.runTime || game.time || 0;
+  if (mode === 'SURVIVAL') { STATS.bestWave = Math.max(STATS.bestWave, game.wave); STATS.bestScore = Math.max(STATS.bestScore, game.score); }
+  STATS.recent.unshift({ mode, map: world ? world.def.name : '', result, k: game.kills, d: deaths, acc: game.shots ? Math.round(game.hits / game.shots * 100) : 0, at: Date.now() }); STATS.recent = STATS.recent.slice(0, 10);
+  saveStats(); renderCareer();
+  return `Your match: ${game.kills} kills · ${deaths} deaths · K/D ${(game.kills / Math.max(1, deaths)).toFixed(2)} · ${game.shots ? Math.round(game.hits / game.shots * 100) : 0}% accuracy`;
+}
+function renderCareer() {
+  const el = $('career'); if (!el) return; const S = STATS, kd = (S.kills / Math.max(1, S.deaths)).toFixed(2), acc = S.shots ? (S.hits / S.shots * 100).toFixed(1) : '0.0', wl = (S.wins / Math.max(1, S.losses)).toFixed(2), hs = S.kills ? Math.round(S.heads / S.kills * 100) : 0;
+  const t = Math.floor(S.time), tp = Math.floor(t / 3600) + 'h ' + Math.floor(t / 60) % 60 + 'm';
+  const big = [['K/D RATIO', kd], ['ACCURACY', acc + '%'], ['WINS', S.wins], ['W/L RATIO', wl], ['KILLS', S.kills], ['DEATHS', S.deaths], ['HEADSHOT %', hs + '%'], ['BEST STREAK', S.bestStreak]];
+  const small = [['Matches', S.matches], ['Losses', S.losses], ['Draws', S.draws], ['Survival runs', S.runs], ['Best wave', S.bestWave], ['Best score', S.bestScore], ['Shots fired', S.shots], ['Time played', tp]];
+  const ws = Object.entries(S.weapons).filter(([id, w]) => w.kills || w.shots).sort((a, b) => b[1].kills - a[1].kills).slice(0, 8);
+  const wname = id => id === 'nade' ? 'GRENADES & EXPLOSIVES' : (WEAPONS.find(w => w.id === id) || { name: id }).name;
+  el.innerHTML = `<div class="cbig">${big.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('')}</div>
+    <div class="ccols"><div><h3>Overview</h3><table class="ktab">${small.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table></div>
+    <div><h3>Weapons</h3><table class="ktab"><tr><th>WEAPON</th><th>KILLS</th><th>ACC</th></tr>${ws.length ? ws.map(([id, w]) => `<tr><td>${esc(wname(id))}</td><td>${w.kills}</td><td>${w.shots ? Math.round(w.hits / w.shots * 100) + '%' : '—'}</td></tr>`).join('') : '<tr><td colspan="3">Play a match to start tracking.</td></tr>'}</table></div>
+    <div><h3>Recent matches</h3><table class="ktab"><tr><th>MODE</th><th>RESULT</th><th>K/D</th><th>ACC</th></tr>${S.recent.length ? S.recent.map(r => `<tr><td>${esc(r.mode)}<br><small>${esc(r.map)}</small></td><td class="r_${r.result}">${r.result.toUpperCase()}</td><td>${r.k}/${r.d}</td><td>${r.acc}%</td></tr>`).join('') : '<tr><td colspan="4">No matches yet.</td></tr>'}</table></div></div>
+    <button class="btn2" id="statReset" style="margin-top:18px">RESET STATS</button>`;
+  $('statReset').onclick = () => { if (confirm('Reset all career stats?')) { for (const k of ['matches', 'wins', 'losses', 'draws', 'kills', 'deaths', 'heads', 'shots', 'hits', 'time', 'bestStreak', 'bestWave', 'bestScore', 'runs']) STATS[k] = 0; STATS.weapons = {}; STATS.recent = []; saveStats(); renderCareer(); } };
+}
 const game = { state: 'menu', time: 0, score: 0, kills: 0, heads: 0, shots: 0, hits: 0, wave: 0, queue: [], spawnT: 0, interT: 0, phase: 'inter', streak: 0, lastKill: -9, shake: 0, runTime: 0 };
 
 function disposeGroup(g) {
@@ -3247,14 +3312,14 @@ function resetRun() {
   barrels.forEach(b => { b.box.dead = false; b.hp = 30; b.fuse = 0; b.mesh.visible = true; });
   const s = world.L.spawn;
   const C = cls();
-  Object.assign(player, { protT: 0, maxHp: C.hp, hp: C.hp, regenCap: C.hp, abilityCD: 0, stimT: 0, shield: 0, shieldT: 0, pulseT: 0, lastDmgT: 99, alive: true, grenades: C.nades, gcd: 0, crouch: 0, sliding: false, slideT: 0, slideCD: 0, h: 1.75, onGround: false, stepSmooth: 0, landKick: 0, yaw: s.yaw, pitch: 0, sprintLock: 0 });
+  Object.assign(player, { protT: 0, maxHp: C.hp, hp: C.hp, regenCap: C.hp, abilityCD: 0, stimT: 0, shield: 0, shieldT: 0, pulseT: 0, lastDmgT: 99, alive: true, grenades: C.nades, tacticals: 2, gcd: 0, crouch: 0, sliding: false, slideT: 0, slideCD: 0, h: 1.75, onGround: false, stepSmooth: 0, landKick: 0, yaw: s.yaw, pitch: 0, sprintLock: 0 });
   player.pos.set(s.x, s.y + 0.05, s.z); player.vel.set(0, 0, 0);
   inv = WEAPONS.map(w => ({ mag: w.mag, res: w.res }));
   carry = loadoutIdx(); rebuildViewmodels(); renderSlots(); setGloves();
   Object.assign(wst, { cur: carry[0], last: carry[1], fireCD: 0, reloadT: 0, reloading: false, switchT: 0, ads: 0, bloom: 0, held: false, consec: 0, sinceShot: 9 });
   vmModels.forEach((m, i) => m.g.visible = i === carry[0]);
   game.mode = 'survival';
-  Object.assign(game, { time: 0, score: 0, kills: 0, heads: 0, shots: 0, hits: 0, wave: 0, queue: [], spawnT: 0, interT: 3, phase: 'inter', streak: 0, lastKill: -9, shake: 0, runTime: 0 });
+  Object.assign(game, { statDone: false, time: 0, score: 0, kills: 0, heads: 0, shots: 0, hits: 0, wave: 0, queue: [], spawnT: 0, interT: 3, phase: 'inter', streak: 0, lastKill: -9, shake: 0, runTime: 0 });
   recoil.p = recoil.y = 0;
   $('feed').innerHTML = ''; hudCache = {};
   showMsg('GET READY', world.def.name, 2.5);
@@ -3302,13 +3367,13 @@ function updateWaves(dt) {
     if (!game.queue.length && alive === 0) {
       const bonus = 250 * game.wave; game.score += bonus; game.phase = 'inter'; game.interT = 8;
       player.hp = Math.min(player.maxHp, player.hp + 25); player.regenCap = Math.min(player.maxHp, Math.max(player.regenCap, Math.ceil(player.hp / 25) * 25));
-      if (player.grenades < cls().nadeMax) player.grenades++;
+      if (player.grenades < cls().nadeMax) player.grenades++; player.tacticals = Math.min(3, (player.tacticals || 0) + 1);
       showMsg('WAVE CLEARED', '+' + bonus + '  ·  +25 HP  ·  +1 GRENADE', 3); sfx.play('clear');
     }
   }
 }
 function onKill(e, head) {
-  game.kills++; if (head) game.heads++;
+  game.kills++; if (head) game.heads++; statKill(head);
   let pts = e.T.score + (head ? Math.round(e.T.score * 0.5) : 0);
   if (game.time - game.lastKill < 2.5) game.streak++; else game.streak = 1;
   game.lastKill = game.time;
@@ -3336,7 +3401,7 @@ function damagePlayer(d, from, attacker, head) {
 }
 const recoil = { p: 0, y: 0 };
 const spring = { x: [0, 0, 0, 0], v: [0, 0, 0, 0] }, camPunch = { x: 0, v: 0 };
-function meleeSwing() { const w = WEAPONS[wst.cur]; if (!w.melee) return; wst.swingT = w.swing; wst.swingHit = false; sfx.play('swing', { vol: 0.8 }); }
+function meleeSwing() { const w = WEAPONS[wst.cur]; if (!w.melee) return; wst.swingT = w.swing; wst.swingHit = false; wst.side = -(wst.side || -1); sfx.play('swing', { vol: 0.8 }); camPunch.v += wst.side * 0.9; }
 function quickMelee() { if (!player.alive || wst.quick || wst.swingT > 0) return; const w = WEAPONS[wst.cur]; if (w.melee) return meleeSwing(); wst.quickFrom = wst.cur; switchTo(carry[2]); wst.switchT = 0.08; wst.quick = 1; }
 function meleeHit(w) {
   aimBasis(); const eye = camera.position, cands = [];
@@ -3401,7 +3466,7 @@ function currentSpread(w) {
 }
 function fire() {
   const w = WEAPONS[wst.cur], s = inv[wst.cur]; if (w.launcher) return fireRocket(w, s); rumble(w.vkick > 1.5 ? 0.5 : 0.25, w.vkick > 1.5 ? 0.9 : 0.35, w.vkick > 1.5 ? 140 : 70);
-  s.mag--; wst.consec++; wst.sinceShot = 0; game.shots++;
+  s.mag--; wst.consec++; wst.sinceShot = 0; game.shots++; wstat(w.id).shots++;
   aimBasis();
   const spread = currentSpread(w), n = w.pellets || 1;
   _o.copy(camera.position);
@@ -3441,7 +3506,7 @@ function fire() {
       break;
     }
   }
-  if (anyHit) game.hits++;
+  if (anyHit) { game.hits++; wstat(w.id).hits++; }
   if (anyHit && !killed) sfx.play('hit');
   for (const v of dmgAcc.values()) dmgNumber(v.p, v.d, v.head);
   if (s.mag > 0 && s.mag <= Math.ceil(w.mag * 0.25)) sfx.play('low');
@@ -3505,7 +3570,7 @@ function spawnRocket(pos, vel, owner) {
   g.position.copy(pos); g.lookAt(pos.clone().add(vel)); fx.add(g); rockets.push({ pos: pos.clone(), vel: vel.clone(), g, t: 5, owner, trail: 0 });
 }
 function fireRocket(w, s) {
-  s.mag--; game.shots++; aimBasis(); wst.fireCD += 60 / w.rpm; wst.sinceShot = 0;
+  s.mag--; game.shots++; wstat(w.id).shots++; aimBasis(); wst.fireCD += 60 / w.rpm; wst.sinceShot = 0;
   const pos = camera.position.clone().addScaledVector(_f, 0.8).addScaledVector(_r, lerp(0.12, 0, wst.ads)).addScaledVector(_u, -0.05), vel = _f.clone().multiplyScalar(48);
   spawnRocket(pos, vel, MP.active ? MP.myId : 'player'); if (MP.active) netSend({ t: 'rocket', p: v3a(pos), v: v3a(vel) });
   sfx.boom(4, 0, 0.35); sfx.play('slide', { vol: 0.8 }); rumble(0.8, 1, 260); noise(player.pos, 45, PLAYER_T);
@@ -3529,29 +3594,50 @@ function updateRockets(dt) {
 }
 // ---- CoD-style frag grenades: [4] equips (LMB throw / RMB underhand), [G] / RB = hold to cook, release to throw
 const NADE_FUSE = 3.5;
-const ng = { on: false, cook: -1, under: false, quick: false, throwT: 0, from: -1, prevL: false, prevR: false, raise: 0 };
-function throwGrenade(fuse = 2.0, under = false) {
-  if (player.grenades <= 0 || !player.alive) return;
-  player.grenades--; player.gcd = 0.5; aimBasis();
+const ng = { on: false, cook: -1, under: false, quick: false, throwT: 0, from: -1, prevL: false, prevR: false, raise: 0, kind: 'frag', slot: 'lethal' };
+function nadeVel(under) { aimBasis(); const d = _f.clone(); d.y += under ? 0.15 : 0.12; d.normalize(); return under ? d.multiplyScalar(9).add(new V3(0, 2.2, 0)).addScaledVector(player.vel, 0.5) : d.multiplyScalar(19).add(new V3(0, 2.4, 0)).addScaledVector(player.vel, 0.6); }
+const NG = { body: new THREE.SphereGeometry(0.075, 12, 9), cyl: new THREE.CylinderGeometry(0.045, 0.045, 0.15, 12), box: new THREE.BoxGeometry(0.11, 0.06, 0.11), neck: new THREE.CylinderGeometry(0.018, 0.035, 0.1, 10) };
+function nadeMesh(kind) { // a recognisable model for each throwable
+  const g = new THREE.Group(), em = MAT({ color: 0x3b4a2a, emissive: 0x000000, roughness: 0.6 }); let m;
+  if (kind === 'smoke') { m = new THREE.Mesh(NG.cyl, MAT({ color: 0x6a7a5a, roughness: 0.6 })); g.add(m); const t = new THREE.Mesh(NG.neck, em); t.position.y = 0.1; t.scale.set(0.6, 0.4, 0.6); g.add(t); }
+  else if (kind === 'flash') { m = new THREE.Mesh(NG.cyl, MAT({ color: 0x22262a, metalness: 0.6, roughness: 0.4 })); g.add(m); const t = new THREE.Mesh(NG.neck, em); t.position.y = 0.1; t.scale.set(0.6, 0.4, 0.6); g.add(t); }
+  else if (kind === 'semtex') { m = new THREE.Mesh(NG.box, MAT({ color: 0x8a8a7a, roughness: 0.7 })); g.add(m); const t = new THREE.Mesh(NG.box, em); t.scale.set(0.35, 0.5, 0.35); t.position.y = 0.04; g.add(t); }
+  else if (kind === 'molotov') { m = new THREE.Mesh(NG.cyl, MAT({ color: 0x5a3a18, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85 })); m.scale.set(0.9, 1.3, 0.9); g.add(m); const n = new THREE.Mesh(NG.neck, MAT({ color: 0x5a3a18, roughness: 0.15 })); n.position.y = 0.14; g.add(n); const rag = new THREE.Mesh(NG.neck, MAT({ color: 0xd8c8a0, emissive: 0xff6010, emissiveIntensity: 0.8 })); rag.position.y = 0.21; rag.scale.set(0.8, 0.5, 0.8); g.add(rag); }
+  else { m = new THREE.Mesh(NG.body, em); m.scale.y = 1.15; g.add(m); const t = new THREE.Mesh(NG.neck, MAT({ color: 0x6a6a60, metalness: 0.7, roughness: 0.4 })); t.position.y = 0.09; t.scale.set(0.5, 0.35, 0.5); g.add(t); }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; }); return { g, em };
+}
+function throwGrenade(fuse = 2.0, under = false, kind = 'frag', slot = 'lethal') {
+  if (!player.alive || (slot === 'tactical' ? player.tacticals : player.grenades) <= 0) return;
+  if (slot === 'tactical') player.tacticals--; else player.grenades--; player.gcd = 0.5; aimBasis();
   const pos = camera.position.clone().addScaledVector(_f, 0.5).addScaledVector(_r, 0.15).add(new V3(0, under ? -0.4 : 0, 0));
-  const vel = under ? _f.clone().multiplyScalar(8).add(new V3(0, 2.6, 0)).addScaledVector(player.vel, 0.5) : _f.clone().multiplyScalar(17).add(new V3(0, 3.5, 0)).addScaledVector(player.vel, 0.6);
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), MAT({ color: 0x3b4a2a, emissive: 0x220000 }));
-  mesh.position.copy(pos); fx.add(mesh); grenades.push({ pos, vel, mesh, t: fuse, owner: MP.myId });
-  if (MP.active) netSend({ t: 'nade', p: v3a(pos), v: v3a(vel), f: Math.round(fuse * 100) / 100 });
+  const vel = nadeVel(under);
+  const nm = nadeMesh(kind); nm.g.position.copy(pos); fx.add(nm.g); grenades.push({ pos, vel, mesh: nm.g, em: nm.em, t: fuse, owner: MP.active ? MP.myId : 'player', kind, spin: new V3(rand(4, 9), rand(-3, 3), rand(-2, 2)) });
+  if (MP.active) netSend({ t: 'nade', p: v3a(pos), v: v3a(vel), f: Math.round(fuse * 100) / 100, k: kind });
   sfx.play('throw'); vm.kick = 0.6; noise(player.pos, 6, PLAYER_T);
 }
-function nadeEquip(quick) {
-  if (!player.alive || player.grenades <= 0 || ng.throwT > 0) { if (player.grenades <= 0) showHint('NO GRENADES', '#ff6b5a'); return false; }
-  if (!ng.on) { ng.on = true; ng.from = wst.cur; ng.raise = 0; wst.reloading = false; wst.ads = 0; sfx.play('switch'); }
-  ng.quick = !!quick; return true;
+function nadeEquip(quick, slot = 'lethal') {
+  const have = slot === 'tactical' ? player.tacticals : player.grenades, kind = getLO()[slot];
+  if (!player.alive || have <= 0 || ng.throwT > 0 || ng.cook >= 0) { if (have <= 0 && player.alive) showHint('NO ' + EQUIP[kind].short + ' LEFT', '#ff6b5a'); return false; }
+  if (!ng.on || ng.slot !== slot) { ng.on = true; ng.from = wst.cur; ng.raise = 0; wst.reloading = false; wst.ads = 0; sfx.play('switch'); }
+  ng.slot = slot; ng.kind = kind; nadeVMKind(kind); ng.quick = !!quick; return true;
 }
-function nadeExit() { if (!ng.on) return; ng.on = false; ng.cook = -1; ng.quick = false; wst.switchT = WEAPONS[wst.cur].swap * 0.6; }
-function nadePull(under) { if (!ng.on || ng.cook >= 0 || ng.throwT > 0 || player.grenades <= 0) return; ng.cook = 0; ng.under = !!under; sfx.play('pin'); }
+function nadeExit() { if (!ng.on) return; ng.on = false; ng.cook = -1; ng.quick = false; arcShow(false); wst.switchT = WEAPONS[wst.cur].swap * 0.6; }
+// dotted throw arc while a grenade is held, ending at the first thing it would hit
+const arcPts = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(60 * 3), 3)), new THREE.PointsMaterial({ color: 0xffffff, size: 0.07, transparent: true, opacity: 0.75, depthWrite: false }));
+arcPts.frustumCulled = false; arcPts.visible = false; scene.add(arcPts);
+const arcEnd = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.32, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffcf6b, transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide })); arcEnd.visible = false; scene.add(arcEnd);
+function arcShow(on) {
+  arcPts.visible = arcEnd.visible = !!on && settings.nadeArc !== false; if (!arcPts.visible) return;
+  aimBasis(); const p = camera.position.clone().addScaledVector(_f, 0.5).addScaledVector(_r, 0.15).add(new V3(0, ng.under ? -0.4 : 0, 0)), v = nadeVel(ng.under), a = arcPts.geometry.attributes.position; let n = 0, hit = false;
+  for (let i = 0; i < 90 && n < 60; i++) { const dt = 0.025; v.y -= G * dt; const q = p.clone().addScaledVector(v, dt); if (pointInBox(q.x, q.y, q.z, 0.08)) { hit = true; break; } p.copy(q); if (i % 2 === 0) a.setXYZ(n++, p.x, p.y, p.z); }
+  for (let k = n; k < 60; k++) a.setXYZ(k, p.x, p.y, p.z); a.needsUpdate = true; arcEnd.position.copy(p); arcEnd.visible = hit;
+}
+function nadePull(under) { if (!ng.on || ng.cook >= 0 || ng.throwT > 0 || (ng.slot === 'tactical' ? player.tacticals : player.grenades) <= 0) return; ng.cook = 0; ng.under = !!under; sfx.play('pin'); }
 function nadeRelease() {
-  if (!ng.on || ng.cook < 0) return; const fuse = Math.max(0.05, NADE_FUSE - ng.cook); ng.cook = -1;
-  throwGrenade(fuse, ng.under); ng.throwT = 0.45;
+  if (!ng.on || ng.cook < 0) return; const E = EQUIP[ng.kind], fuse = E.cook ? Math.max(0.05, E.fuse - ng.cook) : E.fuse; ng.cook = -1;
+  throwGrenade(fuse, ng.under, ng.kind, ng.slot); ng.throwT = 0.45; arcShow(false);
 }
-function nadeQuickStart() { if (nadeEquip(true)) nadePull(false); }
+function nadeQuickStart(slot = 'lethal') { if (nadeEquip(true, slot)) nadePull(false); }
 function updateNade(dt) {
   ng.raise = Math.min(1, ng.raise + dt * 5);
   if (ng.throwT > 0) { ng.throwT -= dt; if (ng.throwT <= 0) { if (ng.quick || player.grenades <= 0) nadeExit(); } return; }
@@ -3560,10 +3646,10 @@ function updateNade(dt) {
   if (!ng.quick && ng.raise > 0.6) { if (L && !ng.prevL) nadePull(false); else if (R && !ng.prevR) nadePull(true); if (ng.cook >= 0 && ((!ng.under && !L) || (ng.under && !R))) nadeRelease(); }
   ng.prevL = L; ng.prevR = R;
   if (ng.cook >= 0) {
-    ng.cook += dt; const left = NADE_FUSE - ng.cook;
-    $('hint').textContent = 'COOKING · ' + Math.max(0, left).toFixed(1) + 's'; $('hint').style.color = left < 1.2 ? '#ff5a4a' : '#ffcf6b'; hud.hintT = 0.15;
-    if (Math.floor(ng.cook * 2) !== Math.floor((ng.cook - dt) * 2)) sfx.play('tick');
-    if (left <= 0) { ng.cook = -1; player.grenades--; explosion(player.pos.clone().add(new V3(0, 1, 0)), 6.5, 160, MP.active ? MP.myId : 'player'); damagePlayer(500, null, null); nadeExit(); }
+    ng.cook += dt; const E = EQUIP[ng.kind], left = E.fuse - ng.cook; arcShow(true);
+    if (E.cook) { $('hint').textContent = 'COOKING · ' + Math.max(0, left).toFixed(1) + 's'; $('hint').style.color = left < 1.2 ? '#ff5a4a' : '#ffcf6b'; hud.hintT = 0.15;
+      if (Math.floor(ng.cook * 2) !== Math.floor((ng.cook - dt) * 2)) sfx.play('tick'); }
+    if (E.cook && left <= 0) { arcShow(false); ng.cook = -1; player.grenades--; explosion(player.pos.clone().add(new V3(0, 1, 0)), 6.5, 160, MP.active ? MP.myId : 'player'); damagePlayer(500, null, null); nadeExit(); }
   }
 }
 // first-person grenade in hand
@@ -3574,7 +3660,13 @@ const nadeVM = new THREE.Group(); { const body = new THREE.Mesh(new THREE.Sphere
   const hand = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.06, 0.09), gloveMat); hand.position.set(0.012, -0.03, 0.02); nadeVM.add(hand);
   const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.042, 0.42, 10), sleeveMat); arm.position.set(0.05, -0.11, 0.2); arm.rotation.x = 1.15; nadeVM.add(arm);
   nadeVM.visible = false; vmScene.add(nadeVM); }
+function nadeVMKind(kind) { const b = nadeVM.children[0], c = { frag: 0x3e4a30, semtex: 0x8a8a7a, molotov: 0x5a3a18, smoke: 0x6a7a5a, flash: 0x22262a }[kind] || 0x3e4a30;
+  b.material.color.setHex(c); b.scale.set(kind === 'molotov' ? 0.8 : 1, kind === 'frag' ? 1.15 : kind === 'molotov' ? 2.2 : kind === 'semtex' ? 0.7 : 1.7, kind === 'molotov' ? 0.8 : 1); }
+const trailMesh = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.4, 24, 1, 0, 1.6), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+trailMesh.position.set(0.02, -0.12, -0.5); trailMesh.renderOrder = 3; vmScene.add(trailMesh);
+function knifeTrail(side, k) { trailMesh.material.opacity = k * 0.22; trailMesh.visible = k > 0.01; trailMesh.rotation.set(-0.25, 0, side > 0 ? 2.1 : -0.55); trailMesh.scale.set(side, 1, 1); }
 function updateNadeVM(dt) {
+  if (!(WEAPONS[wst.cur].id === 'knife' && wst.swingT > 0)) trailMesh.visible = false;
   nadeVM.visible = ng.on && player.alive; vmRoot.visible = !ng.on; if (!ng.on) return;
   const P = player, bob = Math.sin(P.bob || 0) * 0.01, t = ng.throwT > 0 ? 1 - ng.throwT / 0.45 : 0, cook = ng.cook >= 0 ? 1 : 0, low = 1 - ng.raise;
   let x = 0.16, y = -0.15 - low * 0.25 + bob, z = -0.36, rx = 0, rz = 0;
@@ -3584,23 +3676,77 @@ function updateNadeVM(dt) {
   nadeVM.children[0].visible = !(t > 0.35); nadeVM.children[1].visible = nadeVM.children[2].visible = !(t > 0.35);
 }
 function pointInBox(x, y, z, r) { for (const b of world.boxes) if (!b.dead && x + r > b.x0 && x - r < b.x1 && y + r > b.y0 && y - r < b.y1 && z + r > b.z0 && z - r < b.z1) return true; return false; }
+const smokes = [];
 function updateGrenades(dt) {
   for (let i = grenades.length - 1; i >= 0; i--) {
-    const g = grenades[i]; g.t -= dt; g.vel.y -= G * dt;
-    const axes = ['x', 'y', 'z'];
-    for (const a of axes) {
-      g.pos[a] += g.vel[a] * dt;
-      if (pointInBox(g.pos.x, g.pos.y, g.pos.z, 0.1)) {
-        g.pos[a] -= g.vel[a] * dt;
-        if (Math.abs(g.vel[a]) > 2.5) sfx.play('bounce', spatial(g.pos));
-        g.vel[a] *= -0.4; for (const o of axes) if (o !== a) g.vel[o] *= 0.75;
+    const g = grenades[i], K = EQUIP[g.kind] || EQUIP.frag; g.t -= dt;
+    if (g.att) { if (g.att.dead) g.att = null; else g.pos.set(g.att.pos.x + g.off.x, g.att.pos.y + g.off.y, g.att.pos.z + g.off.z); }
+    else if (!g.stuck) {
+      g.vel.y -= G * dt; let hitAny = false;
+      for (const a of ['x', 'y', 'z']) {
+        g.pos[a] += g.vel[a] * dt;
+        if (pointInBox(g.pos.x, g.pos.y, g.pos.z, 0.08)) {
+          g.pos[a] -= g.vel[a] * dt; hitAny = true;
+          if (Math.abs(g.vel[a]) > 2.2) sfx.play('bounce', spatial(g.pos));
+          if (K.stick) { g.stuck = true; g.vel.set(0, 0, 0); g.t = Math.min(g.t, K.fuse); sfx.play('bounce', spatial(g.pos)); break; }
+          g.vel[a] *= a === 'y' ? -0.3 : -0.42; for (const o of ['x', 'y', 'z']) if (o !== a) g.vel[o] *= a === 'y' ? 0.72 : 0.8; // bounce, lose speed
+          if (a === 'y' && Math.abs(g.vel.y) < 1.2) { g.vel.y = 0; g.vel.x *= Math.max(0, 1 - 3.5 * dt); g.vel.z *= Math.max(0, 1 - 3.5 * dt); } // rolls to a stop
+        }
       }
+      if (K.impact && hitAny && !g.burst) { g.burst = true; g.t = 0; }
+      if (K.stick && !g.stuck) for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead) continue; const c = new V3(e.pos.x, e.pos.y + e.h * 0.55, e.pos.z); if (c.distanceTo(g.pos) < 0.55) { g.stuck = true; g.att = e; g.off = g.pos.clone().sub(e.pos); g.vel.set(0, 0, 0); if (g.owner === 'player' || g.owner === MP.myId) showHint('STUCK!', '#ff6b5a'); } }
+      const sp = g.vel.length(); if (g.spin) { g.mesh.rotation.x += g.spin.x * dt * Math.min(1, sp / 6); g.mesh.rotation.z += g.spin.z * dt * Math.min(1, sp / 6); }
     }
-    g.mesh.position.copy(g.pos); g.mesh.material.emissive.setRGB(Math.floor(g.t * (g.t < 0.8 ? 12 : 4)) % 2 ? 0.8 : 0.1, 0, 0);
-    if (g.t <= 0) { fx.remove(g.mesh); g.mesh.geometry.dispose(); g.mesh.material.dispose(); grenades.splice(i, 1);
-      if (g.brew) { clouds.push({ x: g.pos.x, y: g.pos.y - 0.1, z: g.pos.z, r: 4, t: 5, tick: 0, owner: g.owner }); sfx.play('brew', spatial(g.pos)); }
-      else explosion(g.pos.clone(), 6.5 * (g.owner === MP.myId && settings.cls === 'witch' ? 1.2 : 1), 160, g.owner); }
+    g.mesh.position.copy(g.pos);
+    const em = g.em || (g.mesh.material && g.mesh.material.emissive ? g.mesh.material : null); if (em && (K === EQUIP.frag || K === EQUIP.semtex)) em.emissive.setRGB(Math.floor(g.t * (g.t < 0.8 ? 12 : 4)) % 2 ? 0.8 : 0.05, 0, 0);
+    if (g.t <= 0) { fx.remove(g.mesh); if (g.mesh.isMesh) { g.mesh.geometry.dispose(); g.mesh.material.dispose(); } grenades.splice(i, 1); detonate(g); }
   }
+  updateSmokes(dt); updateNadeIndicator();
+}
+function detonate(g) {
+  const p = g.pos.clone(), k = g.kind || 'frag';
+  if (g.brew) { clouds.push({ x: p.x, y: p.y - 0.1, z: p.z, r: 4, t: 5, tick: 0, owner: g.owner }); sfx.play('brew', spatial(p)); return; }
+  if (k === 'molotov') { const sp = spatial(p); sfx.boom(sp.dist + 8, sp.pan, 0.35); sfx.play('slide', { vol: 0.6 }); clouds.push({ x: p.x, y: p.y - 0.1, z: p.z, r: 3.6, t: 6.5, tick: 0, owner: g.owner, fire: true }); noise(p, 25, null); return; }
+  if (k === 'smoke') { const sp = spatial(p); sfx.play('slide', Object.assign({ vol: 0.9 }, sp)); makeSmoke(p); return; }
+  if (k === 'flash') { flashBang(p, g.owner); return; }
+  explosion(p, 6.5 * (g.owner === MP.myId && settings.cls === 'witch' ? 1.2 : 1), 160, g.owner);
+}
+function makeSmoke(p) {
+  const n = 110, pos = new Float32Array(n * 3), seed = [];
+  for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, r = Math.sqrt(Math.random()), h = Math.random(); seed.push([Math.cos(a) * r, h, Math.sin(a) * r, rand(0.6, 1.2)]); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 5.5, map: getTex('puff'), color: 0xc4c6c8, transparent: true, opacity: 0.0, depthWrite: false })); pts.frustumCulled = false; fx.add(pts);
+  smokes.push({ x: p.x, y: p.y, z: p.z, r: 0.5, t: 15, age: 0, pts, seed });
+}
+function updateSmokes(dt) {
+  for (let i = smokes.length - 1; i >= 0; i--) {
+    const s = smokes[i]; s.t -= dt; s.age += dt; s.r = Math.min(6.2, 0.5 + s.age * 3.2); const a = s.pts.geometry.attributes.position, drift = s.age * 0.15;
+    s.seed.forEach((q, k) => a.setXYZ(k, s.x + q[0] * s.r + Math.sin(s.age * 0.3 + k) * 0.3 + drift, s.y + 0.3 + q[1] * Math.min(4.2, s.r * 0.75) * q[3], s.z + q[2] * s.r)); a.needsUpdate = true;
+    s.pts.material.opacity = Math.min(0.95, s.age * 1.2) * Math.min(1, s.t / 2.5);
+    if (s.t <= 0) { fx.remove(s.pts); s.pts.geometry.dispose(); s.pts.material.dispose(); smokes.splice(i, 1); }
+  }
+}
+function smokeBlocked(ax, ay, az, bx, by, bz) { // does a sight line pass through dense smoke?
+  for (const s of smokes) { if (s.age < 0.6 || s.t < 1.5) continue; const cx = s.x, cy = s.y + 1.6, cz = s.z, dx = bx - ax, dy = by - ay, dz = bz - az, L2 = dx * dx + dy * dy + dz * dz || 1;
+    const t = clamp(((cx - ax) * dx + (cy - ay) * dy + (cz - az) * dz) / L2, 0, 1), px = ax + dx * t - cx, py = ay + dy * t - cy, pz = az + dz * t - cz; if (px * px + py * py * 2.2 + pz * pz < (s.r * 0.82) ** 2) return true; }
+  return false;
+}
+function flashBang(p, owner) {
+  const sp = spatial(p); sfx.boom(sp.dist * 0.6, sp.pan, 0.55); sfx.play('hit', { vol: 1.6 }); noise(p, 40, null);
+  sparks.burst ? sparks.burst(p.x, p.y, p.z, 40, 14, 1, 1, 1, 0.4, 0.3) : 0;
+  if (player.alive) { aimBasis(); const d = camera.position.distanceTo(p), dir = p.clone().sub(camera.position).normalize(), facing = Math.max(0, dir.dot(_f));
+    if (d < 26 && los(camera.position.x, camera.position.y, camera.position.z, p.x, p.y + 0.15, p.z) && !smokeBlocked(camera.position.x, camera.position.y, camera.position.z, p.x, p.y, p.z)) {
+      const k = (1 - d / 26) * (0.25 + 0.75 * facing); if (k > 0.04) { hud.flashT = Math.max(hud.flashT || 0, 0.4 + 3.6 * k); sfx.ring(0.4 + 3.6 * k); rumble(0.6, 0.6, 300); } } }
+  for (const e of enemies) { if (e.dead) continue; const ey = e.pos.y + e.h * 0.9, d = Math.hypot(e.pos.x - p.x, ey - p.y, e.pos.z - p.z); if (d > 22) continue; if (!los(e.pos.x, ey, e.pos.z, p.x, p.y + 0.15, p.z)) continue;
+    const ang = Math.abs(angDiff(e.yaw, Math.atan2(p.x - e.pos.x, p.z - e.pos.z))), k = (1 - d / 22) * (ang < 1.4 ? 1 : 0.35); if (k > 0.08) { e.blindT = Math.max(e.blindT || 0, 0.8 + 3.2 * k); e.visible = false; } }
+}
+// CoD-style danger indicator for live grenades near you
+const nadeInd = [...Array(3)].map(() => { const d = document.createElement('div'); d.className = 'nind'; d.innerHTML = '<b>●</b><small>GRENADE</small>'; document.getElementById('hud').appendChild(d); return d; });
+function updateNadeIndicator() {
+  let k = 0; if (player.alive && game.state === 'play') for (const g of grenades) { if (k >= 3) break; const K = EQUIP[g.kind] || EQUIP.frag; if (K.slot === 'tactical' && g.kind !== 'flash') continue; const d = Math.hypot(g.pos.x - player.pos.x, g.pos.z - player.pos.z); if (d > 9 || g.kind === 'molotov') continue;
+    const a = Math.atan2(g.pos.x - player.pos.x, g.pos.z - player.pos.z) - Math.atan2(-Math.sin(player.yaw), -Math.cos(player.yaw)), el = nadeInd[k++], r = 110;
+    el.style.display = 'block'; el.style.transform = `translate(${Math.sin(-a) * r}px, ${-Math.cos(a) * r}px)`; el.style.opacity = String(0.5 + 0.5 * (1 - d / 9)); }
+  for (; k < 3; k++) nadeInd[k].style.display = 'none';
 }
 function explosion(p, radius, dmg, owner) { game.nadeDmg = game.lastNadeKill = true; try { explosion0(p, radius, dmg, owner); } finally { game.nadeDmg = game.lastNadeKill = false; } }
 function explosion0(p, radius, dmg, owner) {
@@ -3734,7 +3880,9 @@ function updateCamera(dt) {
   if (!P.alive) y -= 0.5;
   z += spring.x[0] * 0.045; rx += spring.x[1] * 0.012; ry += spring.x[2] * 0.012; rz += spring.x[3] * 0.012;
   if (w.melee && wst.swingT > 0) { const p = 1 - wst.swingT / w.swing, k = Math.sin(Math.min(1, p / 0.7) * Math.PI);
-    if (w.id === 'knife') { z -= k * 0.22; x -= k * 0.08; rx += k * 0.3; ry += k * 0.6; }
+    if (w.id === 'knife') { const S = wst.side || 1, e = (a, b) => smooth(a, b, p), wind = e(0, 0.2) * (1 - e(0.2, 0.32)), cut = e(0.2, 0.42) * (1 - e(0.55, 1)), back = e(0.42, 1);
+      x += S * (0.1 * wind - 0.2 * cut * (1 - back * 0.6)); y += 0.07 * wind - 0.05 * cut; z += 0.04 * wind - 0.2 * cut; rz += S * (0.7 * wind - 0.9 * cut); ry += S * (-0.5 * wind + 0.9 * cut); rx += -0.35 * wind + 0.4 * cut;
+      knifeTrail(S, p > 0.2 && p < 0.5 ? Math.sin((p - 0.2) / 0.3 * Math.PI) : 0); }
     else if (w.id === 'pan') { rx += -1.2 + Math.min(1, p / 0.45) * 2.0 - (p > 0.45 ? (p - 0.45) * 1.5 : 0); y += 0.12 * (1 - p); z -= k * 0.1; }
     else { ry += 1.1 - Math.min(1, p / 0.6) * 2.4; x += 0.15 - Math.min(1, p / 0.6) * 0.35; rz += 0.6 * k; z -= k * 0.08; } }
   else if (w.melee) { rx += 0.25; ry += 0.3; rz -= 0.2; }
@@ -3756,7 +3904,7 @@ function updateCamera(dt) {
 }
 
 // ============================================================ HUD
-const hud = { vig: 0, hitT: 0, msgT: 0, streakT: 0, hintT: 0 };
+const hud = { vig: 0, hitT: 0, msgT: 0, streakT: 0, hintT: 0, flashT: 0 };
 let hudCache = {};
 const setText = (id, v) => { if (hudCache[id] !== v) { hudCache[id] = v; $(id).innerHTML = v; } };
 function showMsg(h, p, t) { $('msgh').textContent = h; $('msgp').textContent = p || ''; hud.msgT = t; }
@@ -3830,7 +3978,8 @@ function updateHUD(dt) {
   if (showInv) { hud.invT = (hud.invT || 0) - dt; if (hud.invT <= 0) { hud.invT = 0.4; renderInventory(); } }
   const canArm = game.phase === 'inter' && player.alive;
   if (hudCache.arm !== canArm) { hudCache.arm = canArm; $('armhint').style.opacity = canArm ? 1 : 0; }
-  setText('nades', 'GRENADES ' + ('●'.repeat(player.grenades) + '○'.repeat(Math.max(0, cls().nadeMax - player.grenades))));
+  if (hud.flashT > 0 || hud.flashOn) { hud.flashT = Math.max(0, hud.flashT - dt); const fo = $('flashov'); fo.style.opacity = String(Math.min(1, hud.flashT / 1.3)); hud.flashOn = hud.flashT > 0; }
+  { const lo = getLO(); setText('nades', EQUIP[lo.lethal].short + ' ' + '●'.repeat(player.grenades) + '○'.repeat(Math.max(0, cls().nadeMax - player.grenades)) + ' · ' + EQUIP[lo.tactical].short + ' ' + '●'.repeat(player.tacticals || 0)); }
   // crosshair
   const spread = currentSpread(w), px = Math.tan(spread) * (innerHeight / 2) / Math.tan(camera.fov * Math.PI / 360);
   const gap = 4 + px, xh = $('xh');
@@ -3881,6 +4030,12 @@ function statBars(w) {
 }
 const CAT_ORDER = ['AR', 'SMG', 'LMG', 'SHOTGUN', 'MARKSMAN', 'SNIPER', 'PISTOL', 'LAUNCHER', 'MELEE'];
 const CAT_NAMES = { AR: 'ASSAULT RIFLES', SMG: 'SUBMACHINE GUNS', LMG: 'LIGHT MACHINE GUNS', SHOTGUN: 'SHOTGUNS', MARKSMAN: 'MARKSMAN RIFLES', SNIPER: 'SNIPER RIFLES', PISTOL: 'HANDGUNS', LAUNCHER: 'LAUNCHERS', MELEE: 'MELEE' };
+function renderEquip(el, onChange) {
+  const lo = getLO(), h = document.createElement('div'); h.className = 'lslot'; h.textContent = 'EQUIPMENT  ·  lethal [G] / [4]  ·  tactical [Q] / [5]'; el.appendChild(h);
+  for (const slot of ['lethal', 'tactical']) { const ch = document.createElement('div'); ch.className = 'lcat'; ch.textContent = slot.toUpperCase(); el.appendChild(ch); const row = document.createElement('div'); row.className = 'wcards'; el.appendChild(row);
+    for (const id in EQUIP) { const E = EQUIP[id]; if (E.slot !== slot) continue; const b = document.createElement('button'); b.className = 'wcard' + (lo[slot] === id ? ' on' : ''); b.innerHTML = `<b>${E.name}</b><span>${E.desc}</span>`;
+      b.onclick = () => { setLO(slot, id); renderLoadout(el, onChange); onChange && onChange(); }; row.appendChild(b); } }
+}
 function renderLoadout(el, onChange) {
   el.innerHTML = '';
   const lo = getLO(); const hd = document.createElement('div'); hd.className = 'lohead'; hd.textContent = 'Loadout for ' + cls().name + ' — each class remembers its own'; el.appendChild(hd);
@@ -3908,6 +4063,7 @@ function renderLoadout(el, onChange) {
       el.appendChild(ab);
     }
   }
+  renderEquip(el, onChange);
 }
 function applyLoadoutMidRun() {
   const nc = loadoutIdx();
@@ -3934,7 +4090,7 @@ function finishDeath() {
   $('overmap').textContent = world.def.name + ' · ' + { easy: 'RECRUIT', normal: 'VETERAN', hard: 'ELITE' }[settings.difficulty];
   $('s_score').textContent = game.score; $('s_wave').textContent = game.wave; $('s_kills').textContent = game.kills; $('s_hs').textContent = game.heads;
   $('s_acc').textContent = (game.shots ? Math.round(game.hits / game.shots * 100) : 0) + '%';
-  const t = Math.floor(game.runTime); $('s_time').textContent = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  const t = Math.floor(game.runTime); $('s_time').textContent = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); statEnd('SURVIVAL', 'run', 1);
   const key = 'bp_best_' + settings.map + '_' + settings.difficulty; let best = 0; try { best = +localStorage.getItem(key) || 0; } catch (e) {}
   if (game.score > best) { try { localStorage.setItem(key, game.score); } catch (e) {} $('newbest').textContent = 'NEW BEST SCORE'; } else $('newbest').textContent = 'BEST: ' + best;
   showScreen('over');
@@ -4168,14 +4324,14 @@ function handleGame(d) {
     case 'rocket': { const p = arrV3(d.p), v = arrV3(d.v); if (p && v && v.length() < 80) { spawnRocket(p, v, d.id); const sp = spatial(p); sfx.boom(sp.dist + 4, sp.pan, 0.3); } break; }
     case 'nade': {
       const p = arrV3(d.p), v = arrV3(d.v); if (!p || !v) break;
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), MAT({ color: 0x3b4a2a, emissive: 0x220000 }));
-      mesh.position.copy(p); fx.add(mesh); grenades.push({ pos: p, vel: v, mesh, t: d.brew ? 1.3 : d.f !== undefined ? clamp(num(d.f), 0.05, NADE_FUSE) : 2.0, owner: d.id, brew: !!d.brew });
+      const kind = EQUIP[d.k] ? d.k : 'frag', nm = nadeMesh(kind); nm.g.position.copy(p); fx.add(nm.g);
+      grenades.push({ pos: p, vel: v, mesh: nm.g, em: nm.em, t: d.brew ? 1.3 : d.f !== undefined ? clamp(num(d.f), 0.05, 6) : 2.0, owner: d.id, brew: !!d.brew, kind, spin: new V3(6, 1, 0) });
       break;
     }
   }
 }
 function mpKillConfirm(victim, head) {
-  game.kills++; if (head) game.heads++;
+  game.kills++; if (head) game.heads++; statKill(head);
   if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time;
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
   if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]);
@@ -4277,7 +4433,7 @@ function mpSpawnPointOld() {
 }
 function mpRespawn() { ng.on = false; ng.cook = -1; ng.throwT = 0;
   const C = cls(), [x, y, z] = mpSpawnPoint();
-  Object.assign(player, { maxHp: C.hp, hp: C.hp, regenCap: C.hp, alive: true, grenades: C.nades, shield: 0, shieldT: 0, stimT: 0, crouch: 0, sliding: false, h: 1.75, onGround: false, stepSmooth: 0, pitch: 0, protT: game.time + 1.5, lastDmgT: 99 });
+  Object.assign(player, { maxHp: C.hp, hp: C.hp, regenCap: C.hp, alive: true, grenades: C.nades, tacticals: 2, shield: 0, shieldT: 0, stimT: 0, crouch: 0, sliding: false, h: 1.75, onGround: false, stepSmooth: 0, pitch: 0, protT: game.time + 1.5, lastDmgT: 99 });
   player.pos.set(x, y, z); player.vel.set(0, 0, 0); player.yaw = Math.atan2(x, z); // face the map centre
   inv = WEAPONS.map(w => ({ mag: w.mag, res: w.res })); setGloves();
   wst.cur = carry[0]; wst.reloading = false; wst.switchT = 0.3; vmModels.forEach((m, i) => m.g.visible = i === wst.cur);
@@ -4316,7 +4472,7 @@ function endMatch(d) {
   const rows = Object.entries(MP.players).sort((a, b) => b[1].kills - a[1].kills || a[1].deaths - b[1].deaths);
   $('mpWinner').textContent = rows.length ? `${rows[0][1].name} WINS` : 'MATCH OVER';
   $('mpWhy').textContent = d.why ? String(d.why).slice(0, 80) : '';
-  $('mpBoard').innerHTML = scoreTable(rows);
+  $('mpBoard').innerHTML = scoreTable(rows) + `<p class="mysum">${statEnd('MULTIPLAYER', rows.length && rows[0][0] === MP.myId ? 'win' : 'loss', MP.players[MP.myId] ? MP.players[MP.myId].deaths : 0)}</p>`;
   showScreen('mpover'); music.play(rows.length && rows[0][0] === MP.myId ? 'win' : 'lose');
 }
 function scoreTable(rows) {
@@ -4475,7 +4631,7 @@ function aaTarget(cone) {
   for (const list of [enemies, remoteList]) for (const e of list) {
     if (e.dead || (game.mode === 'botdm' && isAlly(PLAYER_T, e))) continue; const tx = e.pos.x, ty = e.pos.y + e.h * 0.62, tz = e.pos.z, dx = tx - camera.position.x, dy = ty - camera.position.y, dz2 = tz - camera.position.z, d = Math.hypot(dx, dy, dz2);
     if (d > 80 || d < 0.5) continue; const c = (dx * _f.x + dy * _f.y + dz2 * _f.z) / d; if (c < cone || c < bd) continue;
-    if (!los(camera.position.x, camera.position.y, camera.position.z, tx, ty, tz)) continue; bd = c; best = { x: tx, y: ty, z: tz, d };
+    if (!los(camera.position.x, camera.position.y, camera.position.z, tx, ty, tz) || smokeBlocked(camera.position.x, camera.position.y, camera.position.z, tx, ty, tz)) continue; bd = c; best = { x: tx, y: ty, z: tz, d };
   }
   return best;
 }
@@ -4507,14 +4663,14 @@ function pollGamepad(dt) {
     if (gp.slideStand && gp.crouch && !player.sliding && gp.prevSliding) { gp.crouch = false; gp.slideStand = false; } gp.prevSliding = player.sliding;
     if (gp.crouch !== gp.crouchPrev) { keys.KeyC = gp.crouch; gp.crouchPrev = gp.crouch; }
     if (pr(2)) startReload(); if (pr(3)) switchTo(wst.cur === carry[0] ? carry[1] : carry[0]);
-    if (pr(5)) nadeQuickStart(); if (rl(5) && ng.quick) nadeRelease(); if (pr(4)) useAbility(); if (pr(11)) quickMelee();
+    if (pr(5)) nadeQuickStart('lethal'); if (pr(4)) nadeQuickStart('tactical'); if ((rl(5) || rl(4)) && ng.quick) nadeRelease(); if (pr(11)) quickMelee();
     if (pr(10)) { gp.sprint = !gp.sprint; gp.crouch = false; }
     if (gp.my > -0.35 || gp.ads || gp.fire) gp.sprint = false; // releasing the stick, aiming or firing ends a sprint
     if (gp.sprint) keys.ShiftLeft = true; else if (gp.wasSprint) keys.ShiftLeft = false; gp.wasSprint = gp.sprint;
     mouseL = gp.fire || mL; mouseR = gp.ads || mR;
     // D-pad: up = 1st/3rd person · left/right = cycle weapons · down = armory (survival)
     if (pr(14) || pr(15)) { const k = carry.indexOf(wst.cur); switchTo(carry[(k + (pr(14) ? 2 : 1)) % 3]); }
-    if (pr(12)) toggleView(); if (pr(13)) openArmory();
+    if (pr(12)) useAbility(); if (pr(13)) { if (game.mode === 'survival' && game.phase === 'inter') openArmory(); else toggleView(); }
     // View (hold) = scoreboard · Menu = pause
     if (b(8)) { keys.Tab = true; gp.viewHeld = true; } else if (gp.viewHeld) { keys.Tab = false; gp.viewHeld = false; }
     if (pr(9)) { if (document.pointerLockElement) document.exitPointerLock(); pauseGame(); }
@@ -4678,7 +4834,7 @@ function initUI() {
     const slot = document.querySelector(`.pvslot[data-pv="${name}"]`); if (slot && $('pvbox').parentNode !== slot) slot.appendChild($('pvbox')); menuTab = name; if (gp.focus) gpFocus(null); sfx.play('switch'); };
   tabs.forEach(t => t.onclick = () => showTab(t.dataset.tab)); window.menuShowTab = showTab;
   window.menuCycleTab = d => { const i = tabs.findIndex(t => t.dataset.tab === menuTab); showTab(tabs[(i + d + tabs.length) % tabs.length].dataset.tab); };
-  mapInfo(); $('mpname2').textContent = (settings.name || 'OPERATOR').toUpperCase(); $('mclass').textContent = cls().name + ' · ' + WEAPONS[widx(getLO().primary)].short;
+  renderCareer(); mapInfo(); $('mpname2').textContent = (settings.name || 'OPERATOR').toUpperCase(); $('mclass').textContent = cls().name + ' · ' + WEAPONS[widx(getLO().primary)].short;
   for (const [id, key, def] of [['bots', 'bots', 5], ['botDiff', 'botDiff', 'normal'], ['botMode', 'botMode', 'ffa']]) { const el = $(id); el.value = settings[key] || def; el.onchange = () => { settings[key] = id === 'bots' ? +el.value : el.value; saveSettings(); }; }
   renderLoadout($('loadout'));
   const cl = $('classes');
@@ -4713,5 +4869,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
