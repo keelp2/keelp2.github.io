@@ -36,6 +36,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #top .box{padding:6px 14px;text-align:center;min-width:92px}
 #top small{display:block;font-size:10px;letter-spacing:.18em;color:var(--mut)}
 #top b{font-size:20px;font-variant-numeric:tabular-nums}
+.gpfocus{outline:3px solid #ffcf6b!important;outline-offset:2px;box-shadow:0 0 18px rgba(255,207,107,.55)!important;position:relative;z-index:2}
 #feed{position:absolute;top:14px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;font-size:15px;font-weight:600;z-index:5}
 #feed div{background:rgba(10,12,18,.62);padding:5px 12px;border-radius:4px;border-right:3px solid rgba(255,255,255,.25);transition:opacity .4s;display:flex;align-items:center;gap:9px;text-shadow:0 1px 2px #000;animation:feedIn .18s ease-out}
 #feed div.me{background:rgba(120,70,10,.62);border-right-color:#ffcf6b;box-shadow:0 0 0 1px rgba(255,207,107,.45)}
@@ -234,7 +235,7 @@ img.thumb.tall{height:110px;object-fit:cover}
     <div class="mgrid">
       <div class="mleft">
         <h1>BREACH<span>POINT</span></h1>
-        <div class="tag">Fairy-tale frontlines · survival · bot matches · multiplayer</div>
+        <div class="tag">Modern combat · survival · bot matches · multiplayer</div>
         <h3>Map</h3>
         <div class="cards" id="maps"></div>
         <h3>Class</h3>
@@ -247,7 +248,7 @@ img.thumb.tall{height:110px;object-fit:cover}
         <div class="grid3">
           <label class="set"><div>Mouse sensitivity <b id="sensv"></b></div><input type="range" id="sens" min="0.2" max="3" step="0.05"></label>
           <label class="set"><div>Field of view <b id="fovv"></b></div><input type="range" id="fov" min="70" max="105" step="1"></label>
-          <label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (weak CPUs)</option><option value="medium">Medium — balanced</option><option value="high">High — shadows</option></select></label>
+          <label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (old laptops)</option><option value="medium">Medium — shadows, balanced (most laptops)</option><option value="high">High — realistic lighting (gaming PC)</option><option value="ultra">Ultra — + ambient occlusion, max shadows (strong GPU)</option></select></label>
           <label class="set"><div>Effects volume <b id="volv"></b></div><input type="range" id="vol" min="0" max="1" step="0.05"></label>
           <label class="set"><div>Music volume <b id="musv"></b></div><input type="range" id="mus" min="0" max="1" step="0.05"></label>
           <label class="set"><div>Battle ambience</div><select id="ambience"><option value="1">On</option><option value="0">Off</option></select></label>
@@ -256,6 +257,8 @@ img.thumb.tall{height:110px;object-fit:cover}
           <label class="set"><div>Crosshair colour</div><select id="xcolor"><option value="#ffffff">White</option><option value="#5dff9a">Green</option><option value="#ffe14d">Yellow</option><option value="#ff4fd8">Pink</option><option value="#4fd8ff">Cyan</option></select></label>
           <label class="set"><div>Aim down sights</div><select id="adsToggle"><option value="0">Hold</option><option value="1">Toggle</option></select></label>
           <label class="set"><div>Invert look Y</div><select id="invertY"><option value="0">Off</option><option value="1">On</option></select></label>
+          <label class="set"><div>Controller aim assist</div><select id="aimAssist"><option value="1">On</option><option value="0">Off</option></select></label>
+          <label class="set"><div>Controller vibration</div><select id="rumble"><option value="1">On</option><option value="0">Off</option></select></label>
           <label class="set"><div>Bot match mode</div><select id="botMode"><option value="ffa">Free-for-all</option><option value="tdm">Team deathmatch (you + bots vs bots)</option></select></label>
           <label class="set"><div>Bot match: bots</div><select id="bots"><option value="3">3 bots</option><option value="5">5 bots</option><option value="7">7 bots</option><option value="9">9 bots</option><option value="11">11 bots</option></select></label>
           <label class="set"><div>Bot skill</div><select id="botDiff"><option value="easy">Rookie</option><option value="normal">Regular</option><option value="hard">Elite</option></select></label>
@@ -268,7 +271,7 @@ img.thumb.tall{height:110px;object-fit:cover}
         <div id="best"></div>
         <div class="controls">
           <b>Keyboard &amp; mouse</b><br><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>LMB</kbd> fire · <kbd>RMB</kbd> aim · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump · <kbd>C</kbd> crouch / slide · <kbd>R</kbd> reload · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> weapons · <kbd>V</kbd> quick melee · <kbd>G</kbd> grenade · <kbd>E</kbd> ability · <kbd>T</kbd> 1st/3rd person · hold <kbd>Tab</kbd> inventory/scores · <kbd>B</kbd> armory · <kbd>Esc</kbd> pause<br>
-          <b>Controller</b> (Xbox / PlayStation)<br>sticks move/aim · <kbd>RT</kbd> fire · <kbd>LT</kbd> aim · <kbd>A</kbd> jump · <kbd>B</kbd> crouch/slide · <kbd>X</kbd> reload · <kbd>Y</kbd> swap · <kbd>LB</kbd> grenade · <kbd>RB</kbd> ability · <kbd>L3</kbd> sprint · <kbd>R3</kbd> melee · <kbd>View</kbd> camera · <kbd>Menu</kbd> pause · <kbd>A</kbd> in menus deploys survival
+          <b>Controller</b> (Xbox / PlayStation)<br>CoD-style layout · <kbd>RT</kbd> fire · <kbd>LT</kbd> aim (snaps to targets) · <kbd>L3</kbd> sprint · <kbd>R3</kbd> melee · <kbd>A</kbd> jump · <kbd>B</kbd> crouch (slide while sprinting) · <kbd>X</kbd> reload · <kbd>Y</kbd> swap · <kbd>RB</kbd> grenade · <kbd>LB</kbd> ability · D-pad <kbd>◀▶</kbd> weapons · <kbd>▲</kbd> 1st/3rd person · <kbd>▼</kbd> armory · hold <kbd>View</kbd> scores · <kbd>Menu</kbd> pause<br>Menus: D-pad/stick to move · <kbd>A</kbd> select · <kbd>B</kbd> back · <kbd>◀▶</kbd> change settings · <kbd>Menu</kbd> deploy
         </div>
       </div>
     </div>
@@ -354,7 +357,8 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611181930"></script>
-<script type="module" src="lib/assets.js?v=202611180508"></script>
+<script src="game.js?v=202611182330"></script>
+<script type="module" src="lib/assets.js?v=202611182330"></script>
+<script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
 </html>
