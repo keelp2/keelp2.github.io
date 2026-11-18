@@ -61,6 +61,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 #buymenu h4{margin:0 0 8px;padding-bottom:8px;border-bottom:2px solid;display:flex;justify-content:space-between;letter-spacing:.14em}#buymenu h4 span{color:#9cff8a}#buymenu .bi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:5px;font-size:13px}#buymenu .bi.on{background:rgba(255,138,61,.22)}#buymenu .bi b{flex:1;font-weight:700}#buymenu .bi i{font-style:normal;color:#9cff8a;font-weight:800}#buymenu .bi.poor i{color:#ff6b5a}#buymenu .bi.poor b{opacity:.55}#buymenu .bi em{font-style:normal;font-size:10px;color:#ffcf6b;letter-spacing:.1em}#buymenu kbd{min-width:16px;text-align:center;font-family:inherit;color:#ffb27a}#buymenu small{display:block;margin-top:8px;color:#9aa3ad;font-size:11px;text-align:center}
 .armk{position:absolute;left:0;top:0;display:none;text-align:center;pointer-events:none;margin:-18px 0 0 -18px;width:36px}.armk b{display:block;width:30px;height:30px;line-height:30px;margin:0 auto;border-radius:50%;background:rgba(8,10,14,.7);border:2px solid var(--c);color:var(--c);font-size:16px}.armk small{font-size:10px;font-weight:800;color:#fff;text-shadow:0 1px 3px #000}
 .cashpop{color:#9cff8a!important;top:calc(50% - 6px)!important}
+#revive{position:absolute;left:50%;top:58%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .2s;pointer-events:none;text-shadow:0 2px 6px #000}#revive b{display:block;font-size:18px;letter-spacing:.12em}#revive small{display:block;font-size:12px;color:#dfe6ee;margin-top:3px}#revive kbd{background:#fff;color:#111;border-radius:3px;padding:0 5px;font-family:inherit}.rring{display:block;width:54px;height:54px;border-radius:50%;margin:8px auto 0;-webkit-mask:radial-gradient(circle,transparent 19px,#000 20px);mask:radial-gradient(circle,transparent 19px,#000 20px)}
+#hud.downed::after{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 35%,rgba(120,0,0,.55) 100%);filter:saturate(.3)}
+#mpsb{position:absolute;left:50%;top:14%;transform:translateX(-50%);min-width:min(560px,92vw);background:rgba(10,12,16,.9);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;display:none;pointer-events:none}#mpsb h4{margin:0 0 8px;letter-spacing:.18em;font-size:13px;color:#ffb27a}
 #mtoast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,10px);background:rgba(12,14,19,.94);border:1px solid #ff8a3d;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;letter-spacing:.06em;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:90}#mtoast.on{opacity:1;transform:translate(-50%,0)}
 #lvlup.on{opacity:1;transform:translate(-50%,0)}#lvlup small{display:block;font-size:11px;letter-spacing:.35em;color:#ffb27a;font-weight:800}#lvlup b{display:block;font-size:30px;font-weight:900;letter-spacing:.08em}#lvlup i{font-style:normal;font-size:12px;letter-spacing:.25em;color:#cfd6e0}
 #hint{position:absolute;top:58%;left:0;right:0;text-align:center;font-size:14px;letter-spacing:.15em;color:#ffcf6b;text-shadow:0 1px 4px #000;opacity:0}
@@ -318,7 +321,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 <body>
 <div id="game"></div>
 
-<div id="hud"><div id="flashov"></div><div id="cash"></div><div id="interact"></div>
+<div id="hud"><div id="flashov"></div><div id="cash"></div><div id="interact"></div><div id="revive"></div><div id="mpsb"></div>
   <canvas id="radar" width="170" height="170"></canvas>
   <div id="vig"></div>
   <div id="scope"><b></b></div>
@@ -443,7 +446,7 @@ img.thumb.tall{height:110px;object-fit:cover}
       <h3>Players (<span id="mpCount">1</span>/8)</h3>
       <div id="mpPlayers"></div>
       <div id="mpHostCtl" style="display:none">
-        <label class="set"><div>Map</div><select id="mpMap"></select></label>
+        <label class="set"><div>Mode</div><select id="mpMode"><option value="ffa">Free-for-all</option><option value="tdm">Team Deathmatch</option><option value="surv">Survival co-op</option></select></label><label class="set"><div>Map</div><select id="mpMap"></select></label>
         <label class="set"><div>Kill limit</div><select id="mpLimit"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option><option value="75">75</option><option value="100">100</option></select></label>
         <label class="set"><div>Time limit</div><select id="mpTime"><option value="300">5 min</option><option value="480" selected>8 min</option><option value="720">12 min</option><option value="900">15 min</option><option value="1200">20 min</option><option value="1800">30 min</option></select></label>
         <label class="set"><div>Bots</div><select id="mpBots"><option value="0">None</option><option value="1">1 bot</option><option value="2">2 bots</option><option value="3">3 bots</option><option value="4">4 bots</option><option value="5">5 bots</option><option value="6">6 bots</option></select></label><label class="set"><div>Lobby</div><select id="mpPublic"><option value="0">Private — code only</option><option value="1">Public — anyone can join</option></select></label><label class="set"><div>Health</div><select id="mpHealth"><option value="core">Core — 150 HP</option><option value="classic">Classic — 100 HP</option><option value="hardcore">Hardcore — 40 HP</option></select></label>
@@ -500,7 +503,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611212200"></script>
+<script src="game.js?v=202611220100"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
