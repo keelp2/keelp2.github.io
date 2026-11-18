@@ -124,6 +124,33 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
 #abil.ready{border-color:rgba(109,200,255,.6)}#abil.ready small{color:#8fd3ff}
 #abbar{position:absolute;left:0;right:0;bottom:0;height:2px}#abfill{height:100%;background:#6dc8ff}
 #shfill{position:absolute;left:0;top:0;bottom:0;background:rgba(109,200,255,.85);width:0}
+#dnums{position:absolute;left:0;top:0;width:0;height:0}
+.dn{position:absolute;left:0;top:0;font-weight:800;font-size:17px;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;opacity:0;white-space:nowrap;will-change:transform}
+.dn.head{color:#ff5a4a;font-size:21px}
+.btnrow{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.btnrow .big{margin-top:18px}
+#mpbtn{background:#2b3240;color:#fff;border:1px solid var(--acc)}
+.mpin{width:100%;background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:10px;font:inherit;font-size:15px}
+#mpcode{text-transform:uppercase;letter-spacing:.3em;font-weight:700;text-align:center}
+.codebox{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:rgba(255,122,26,.08);border:1px solid rgba(255,122,26,.35);border-radius:8px;padding:12px 16px}
+.codebox small{letter-spacing:.2em;color:var(--mut);font-size:11px}
+.codebox b{font-size:32px;letter-spacing:.3em;color:var(--acc)}
+.codebox button{margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:6px;padding:8px 12px}
+.pl{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.pl i,.sb i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.pl span{color:var(--mut);font-size:12px}
+.pl em{font-style:normal;font-size:10px;letter-spacing:.15em;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.08)}
+.pl em.you{background:rgba(255,122,26,.25)}
+#mpHostCtl{grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+#mpHostCtl select{width:100%}
+#mpStatus{margin-top:10px;min-height:18px;font-size:13px;text-align:center}
+#mpWait{margin-top:14px;text-align:center;color:var(--mut);letter-spacing:.15em;font-size:13px}
+.big:disabled{background:#3a3f4a;color:#9aa3b0;cursor:not-allowed;filter:none}
+.note{font-size:11px;color:var(--mut);line-height:1.5;margin-top:12px}
+.sb{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
+.sb th{font-size:10px;letter-spacing:.15em;color:var(--mut);text-align:left;padding:4px 6px;font-weight:600}
+.sb td{padding:6px;border-top:1px solid var(--line)}
+.sb tr.me td{background:rgba(255,122,26,.12)}
 @media (max-width:700px){.cards{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}h1{font-size:32px}#radar{display:none}}
 </style>
 </head>
@@ -139,11 +166,12 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
   <div id="hit"><i style="transform:rotate(45deg) translateY(-9px)"></i><i style="transform:rotate(135deg) translateY(-9px)"></i><i style="transform:rotate(225deg) translateY(-9px)"></i><i style="transform:rotate(315deg) translateY(-9px)"></i></div>
   <div id="dirs"><div></div><div></div><div></div><div></div></div>
   <div id="top">
-    <div class="box"><small>WAVE</small><b id="wave">1</b></div>
+    <div class="box"><small id="wavel">WAVE</small><b id="wave">1</b></div>
     <div class="box"><small id="leftl">HOSTILES</small><b id="left">0</b></div>
-    <div class="box"><small>SCORE</small><b id="score">0</b></div>
+    <div class="box"><small id="scorel">SCORE</small><b id="score">0</b></div>
   </div>
   <div id="feed"></div>
+  <div id="dnums"></div>
   <div id="msg"><h2 id="msgh"></h2><p id="msgp"></p></div>
   <div id="streak"></div>
   <div id="hint"></div>
@@ -184,12 +212,12 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
       <label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (weak CPUs)</option><option value="medium">Medium — balanced</option><option value="high">High — shadows</option></select></label>
       <label class="set"><div>Volume <b id="volv"></b></div><input type="range" id="vol" min="0" max="1" step="0.05"></label>
     </div>
-    <button class="big" id="play">DEPLOY</button>
+    <div class="btnrow"><button class="big" id="play">SURVIVAL (SOLO)</button><button class="big" id="mpbtn">MULTIPLAYER</button></div>
     <div id="best"></div>
     <div class="controls">
       <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Mouse</kbd> aim · <kbd>LMB</kbd> fire · <kbd>RMB</kbd> aim down sights ·
       <kbd>Shift</kbd> sprint (hold breath when scoped) · <kbd>Space</kbd> jump · <kbd>C</kbd> crouch — press while sprinting to <b>slide</b> ·
-      <kbd>R</kbd> reload · <kbd>1</kbd> primary · <kbd>2</kbd> secondary · <kbd>Q</kbd>/wheel swap · <kbd>G</kbd> grenade · <kbd>E</kbd> class ability · hold <kbd>Tab</kbd> inventory · <kbd>B</kbd> armory (between waves) · <kbd>Esc</kbd> pause<br>
+      <kbd>R</kbd> reload · <kbd>1</kbd> primary · <kbd>2</kbd> secondary · <kbd>Q</kbd>/wheel swap · <kbd>G</kbd> grenade · <kbd>E</kbd> class ability · hold <kbd>Tab</kbd> inventory · <kbd>B</kbd> armory (survival, between waves) · hold <kbd>Tab</kbd> in multiplayer for the scoreboard · <kbd>Esc</kbd> pause<br>
       Tips: headshots deal up to 2.4× damage (red hitmarker + ding) · health regenerates to the next 25-point block · shoot red barrels · green pads launch you to high ground · snipers show a red laser before firing — break line of sight!
     </div>
   </div>
@@ -201,6 +229,46 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
     <div class="tag">Swap weapons between waves · new weapons come fully loaded · press B to return</div>
     <div id="armlist"></div>
     <button class="big" id="armback">BACK TO THE FIGHT</button>
+  </div>
+</div>
+
+<div id="mp" class="screen">
+  <div class="panel" style="max-width:640px">
+    <h1 style="font-size:34px">MULTI<span>PLAYER</span></h1>
+    <div class="tag">Free-for-all deathmatch · 2–8 players · uses your class & loadout from the main menu</div>
+    <label class="set" style="margin-bottom:6px"><div>Your name</div><input class="mpin" id="mpname" maxlength="16"></label>
+    <div id="mpJoin">
+      <div class="grid2" style="margin-top:8px">
+        <div><h3>Host a game</h3><button class="big" id="mpHost" style="margin-top:0">CREATE LOBBY</button></div>
+        <div><h3>Join a friend</h3><input class="mpin" id="mpcode" maxlength="5" placeholder="CODE"><button class="btn2" id="mpJoinBtn">JOIN</button></div>
+      </div>
+    </div>
+    <div id="mpLobby" style="display:none">
+      <div class="codebox" style="margin-top:10px"><small>LOBBY CODE</small><b id="mpCodeTxt"></b><button id="mpCopy">Copy invite link</button></div>
+      <h3>Players (<span id="mpCount">1</span>/8)</h3>
+      <div id="mpPlayers"></div>
+      <div id="mpHostCtl" style="display:none">
+        <label class="set"><div>Map</div><select id="mpMap"></select></label>
+        <label class="set"><div>Kill limit</div><select id="mpLimit"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select></label>
+        <label class="set"><div>Time limit</div><select id="mpTime"><option value="300">5 min</option><option value="480" selected>8 min</option><option value="720">12 min</option></select></label>
+      </div>
+      <div id="mpInfo" style="margin-top:10px;font-size:12px;color:#ffb27a;text-align:center"></div>
+      <button class="big" id="mpStart" disabled>WAITING FOR PLAYERS (1/2)</button>
+      <div id="mpWait">WAITING FOR THE HOST TO START…</div>
+      <button class="btn2" id="mpLeave">LEAVE LOBBY</button>
+    </div>
+    <div id="mpStatus"></div>
+    <button class="btn2" id="mpBack">BACK TO MAIN MENU</button>
+    <p class="note">Matches are peer-to-peer (WebRTC): players connect directly to the host, so people in your lobby can see your IP address. Only share lobby codes with people you trust. Keep this tab open while hosting — closing it ends the lobby.</p>
+  </div>
+</div>
+
+<div id="mpover" class="screen">
+  <div class="panel small" style="max-width:520px">
+    <h1 style="font-size:34px" id="mpWinner">MATCH OVER</h1>
+    <div class="tag" id="mpWhy"></div>
+    <div id="mpBoard"></div>
+    <button class="big" id="mpToLobby">BACK TO LOBBY</button>
   </div>
 </div>
 
@@ -232,6 +300,7 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
 </div>
 
 <script src="three.min.js"></script>
+<script src="peerjs.min.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
