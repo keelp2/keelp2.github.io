@@ -621,6 +621,7 @@ const MATDEF = {
   leaf: { t: 'leaves', vc: true }, rock: { t: 'cliff', s: 2 }, mushcap: { t: 'mushcap' }, stem: { c: 0xe8dcc0 }, reed: { c: 0x8a9a5a }, metal: { c: 0x3a3a40 },
   wood: { t: 'planks', s: 1 }, banner: { t: 'stripes' }, staves: { t: 'staves' }, mountain: { c: 0xffffff, fogless: true }, snow: { c: 0xf4f6fa, fogless: true },
   gold: { c: 0xc9a227 }, red: { c: 0x9a2a2a }, white: { c: 0xf0ece4 },
+  plasterA: { t: 'plaster', c: 0xecd6b0, s: 3 }, plasterB: { t: 'plaster', c: 0xdcb88e, s: 3 }, sandstone: { t: 'castle', c: 0xdcc49a, s: 3 }, palmleaf: { t: 'leaves', vc: true },
 };
 function matFor(key, theme) {
   const def = Object.assign({}, MATDEF[key] || {}, (theme.mats || {})[key] || {});
@@ -705,6 +706,11 @@ const PROPT = {
   cart: () => [['wood', PG.box, M4(0, 0.75, 0, 0, 0, 0, 1.4, 0.15, 2.4)], ['wood', PG.box, M4(0.68, 1.0, 0, 0, 0, 0, 0.06, 0.4, 2.4)], ['wood', PG.box, M4(-0.68, 1.0, 0, 0, 0, 0, 0.06, 0.4, 2.4)],
     ['wood', PG.cyl, M4(0.78, 0.45, 0.6, 0, 0, Math.PI / 2, 0.45, 0.08, 0.45)], ['wood', PG.cyl, M4(-0.78, 0.45, 0.6, 0, 0, Math.PI / 2, 0.45, 0.08, 0.45)], ['wood', PG.box, M4(0, 0.6, -1.6, 0, 0, 0, 0.08, 0.08, 1.2)],
     ['hay', PG.blob, M4(0, 1.05, 0.2, 0, 0, 0, 0.55, 0.3, 0.9)]],
+  palm: () => { const out = [], lean = rand(-0.18, 0.18), h = rand(5.5, 7);
+    for (let i = 0; i < 6; i++) { const t = i / 6; out.push(['bark', PG.cylT, M4(lean * h * (t + 1 / 12), h * (t + 1 / 12), 0, 0, 0, -lean, 0.2 - t * 0.06, h / 6 + 0.05, 0.2 - t * 0.06), tint(0x9a7a58, 0.08)]); }
+    const tx = lean * h, lc = tint(0x5a8a3a, 0.12);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * 6.28 + rand(-0.2, 0.2), r = rand(1.6, 2.2); out.push(['leaf', PG.blob, M4(tx + Math.cos(a) * r * 0.8, h - 0.3 - r * 0.25, Math.sin(a) * r * 0.8, 0, -a, 0.45, r, 0.12, 0.45), tint(lc, 0.08)]); }
+    out.push(['bark', PG.sph, M4(tx, h, 0, 0, 0, 0, 0.35, 0.3, 0.35), tint(0x6a5030)]); return out; },
   keg: () => [['staves', PG.cylT, M4(0, 0.45, 0, 0, 0, 0, 0.33, 0.9, 0.33)], ['metal', PG.cyl, M4(0, 0.2, 0, 0, 0, 0, 0.32, 0.04, 0.32)], ['metal', PG.cyl, M4(0, 0.75, 0, 0, 0, 0, 0.3, 0.04, 0.3)]],
   well: () => [['stonewall', PG.cyl, M4(0, 0.45, 0, 0, 0, 0, 0.9, 0.9, 0.9)], ['dark', PG.cyl, M4(0, 0.91, 0, 0, 0, 0, 0.75, 0.02, 0.75)], ['wood', PG.box, M4(0.8, 1.4, 0, 0, 0, 0, 0.1, 1.9, 0.1)], ['wood', PG.box, M4(-0.8, 1.4, 0, 0, 0, 0, 0.1, 1.9, 0.1)], ['thatch', gableGeo(1.9, 1.4, 0.6, 0.15), M4(0, 2.3, 0, 0, Math.PI / 2, 0)]],
   statue: () => [['stone', PG.box, M4(0, 0.5, 0, 0, 0, 0, 1, 1, 1)], ['stone', PG.cylT, M4(0, 1.5, 0, 0, 0, 0, 0.28, 1.1, 0.28)], ['stone', PG.sph, M4(0, 2.25, 0, 0, 0, 0, 0.2, 0.22, 0.2)], ['stone', PG.cyl8, M4(0.28, 2.0, 0, 0, 0, -0.6, 0.06, 0.7, 0.06)], ['gold', PG.sph, M4(0.5, 2.35, 0, 0, 0, 0, 0.09, 0.09, 0.09)]],
@@ -1068,7 +1074,7 @@ function stairTower(L, x0, z0, s, m) {
   L.links.pop();
   L.box(half, f1 - 0.25, iz0, ix1, f1, iz1, 'planks'); L.box(ix0, f1 - 0.25, iz0 + 1.0 + run, half, f1, iz1, 'planks');
   L.stairs(ec, iz0 + 1.0 + run, 'nz', ix1 - half, f1, f2, run, 'planks');                 // flight 2 (east half, southward)
-  L.links.pop(); L.links.push([wc, 0, iz0 + 0.45, wc, f2, iz0 + 1.25, run * 2 + 3, [[wc, f1, iz0 + 1.0 + run + 0.3], [ec, f1, iz0 + 1.0 + run + 0.3]]]); // one link up both flights via the landing
+  L.links.pop(); L.links.push([wc, 0, iz0 + 0.45, wc, f2, iz0 + 1.25, run * 2 + 3, [[wc, f1, iz0 + 1.0 + run + 0.3], [ec, f1, iz0 + 1.0 + run + 0.3], [ec, f2, iz0 + 1.15]]]); // one link up both flights via the landing
   L.box(ix0, f2 - 0.25, iz0, half, f2, iz1, 'planks');                                        // belfry floor
   L.box(x0 - 0.3, H, z0 - 0.3, x1 + 0.3, H + 0.3, z1 + 0.3, 'stone');
   L.prop('coneroof', (x0 + x1) / 2, H + 0.3, (z0 + z1) / 2, 1, { r: s * 0.78, h: 5, mat: 'slate' });
@@ -1149,6 +1155,75 @@ function buildMillbrook(L) {
   L.barrels = [[-14, -10], [14, 4], [-30, 12], [22, -16], [46, 28], [-46, -28], [6, 22], [-6, -24]];
 }
 
+// ---------------------------------------------------------------- MAP 5: OLD QUARTER (tactical two-site layout)
+function solid(L, x0, z0, x1, z1, h, m, o = {}) { // a building block that frames the lanes: walls, windows, parapet, awnings
+  L.box(x0, 0, z0, x1, h, z1, m);
+  L.box(x0 - 0.12, h, z0 - 0.12, x1 + 0.12, h + 0.35, z1 + 0.12, o.trim || 'sandstone', { col: false });
+  const win = (x, z, nx, nz) => { L.box(x - 0.55 * Math.abs(nz), 2.3, z - 0.55 * Math.abs(nx), x + 0.55 * Math.abs(nz), 3.6, z + 0.55 * Math.abs(nx), Math.random() < 0.25 ? 'glass' : 'dark', { col: false }); };
+  for (let x = x0 + 2.5; x < x1 - 1.5; x += rand(4, 7)) { if (h > 4) { win(x, z0 - 0.03, 0, -1); win(x, z1 + 0.03, 0, 1); } }
+  for (let z = z0 + 2.5; z < z1 - 1.5; z += rand(4, 7)) { if (h > 4) { win(x0 - 0.03, z, -1, 0); win(x1 + 0.03, z, 1, 0); } }
+  if (o.roof) L.prop('gable', (x0 + x1) / 2, h + 0.35, (z0 + z1) / 2, 1, { w: x1 - x0, d: z1 - z0, h: Math.min(x1 - x0, z1 - z0) * 0.3, oh: 0.3, axis: x1 - x0 >= z1 - z0 ? 'x' : 'z', mat: 'tiles' });
+}
+function doorway(L, x0, x1, z, gap0, gap1, h = 5.5, m = 'plasterB', th = 0.7) { // wall across a lane with an opening + lintel
+  L.box(x0, 0, z - th / 2, gap0, h, z + th / 2, m); L.box(gap1, 0, z - th / 2, x1, h, z + th / 2, m); L.box(gap0, 3.2, z - th / 2, gap1, h, z + th / 2, m);
+  L.box(gap0 - 0.25, 3.2, z - th / 2 - 0.1, gap1 + 0.25, 3.5, z + th / 2 + 0.1, 'sandstone', { col: false });
+  L.box(gap0 - 0.05, 0, z - th / 2 - 0.9, gap0 + 0.1, 3.1, z - th / 2, 'planks', { col: false }); L.box(gap1 - 0.1, 0, z - th / 2 - 0.9, gap1 + 0.05, 3.1, z - th / 2, 'planks', { col: false }); // open door leaves
+}
+function crates(L, x, z, n = 1, big = false) { const s = big ? 1.6 : 1.2; L.B(x, z, s, s, s, 0, 'crate'); if (n > 1) L.B(x + 0.05, z - 0.05, s, s, s, s, 'crate'); }
+function buildOldQuarter(L) {
+  L.bounds = [-52, -46, 52, 46]; L.ground = 'cobble'; L.groundScale = 3.2; L.groundTint = 0xf0dcbc; L.grass = 0.05; L.big = true; L.padStyle = 'rune';
+  L.box(-56, -1, -50, 56, 0, 50, 'floor').noRender = true;
+  L.box(-53, 0, -47, 53, 9, -46, 'plasterB'); L.box(-53, 0, 46, 53, 9, 47, 'plasterB'); L.box(-53, 0, -46, -52, 9, 46, 'plasterB'); L.box(52, 0, -46, 53, 9, 46, 'plasterB');
+  // ---- building blocks that define the lanes
+  solid(L, -52, -46, -30, -34, 7, 'plasterA'); solid(L, 46, -46, 52, -34, 7, 'plasterA');          // T street ends
+  solid(L, 5, -34, 30, -8, 6, 'plasterA', { roof: true });                                          // between mid and long
+  solid(L, 21, -8, 30, 12, 6.5, 'plasterB');                                                        // long A inner wall
+  solid(L, 44, -34, 52, 12, 7, 'plasterB'); solid(L, 46, 12, 52, 33, 7, 'plasterA');               // east edge
+  solid(L, 5, 6, 18, 34, 6, 'plasterA', { roof: true });                                           // between mid and A
+  L.box(18, 0, 32, 24, 5.5, 33, 'plasterB'); L.box(30, 0, 32, 46, 5.5, 33, 'plasterB');            // A site north wall (CT ramp gap 24..30)
+  solid(L, 30, 33, 52, 46, 8, 'plasterB'); solid(L, -52, 31, -34, 46, 8, 'plasterB');
+  solid(L, -20, -34, -5, 12, 6, 'plasterA', { roof: true });                                       // between B and mid
+  solid(L, -20, 16, -5, 34, 6, 'plasterB');                                                         // between connector and CT
+  L.box(-48, 0, 30, -32, 5.5, 31, 'plasterB'); L.box(-27, 0, 30, -20, 5.5, 31, 'plasterB'); solid(L, -27, 31, -20, 34, 5.5, 'plasterB'); // B site north wall + B doors gap (-32..-27)
+  solid(L, -52, -34, -36, 2, 7, 'plasterB'); solid(L, -36, -34, -26, -8, 7, 'plasterA'); solid(L, -52, 2, -48, 31, 7, 'plasterA');
+  // mid walls & doors
+  doorway(L, -5, 5, 6.3, -1.3, 1.3, 5.5, 'plasterB');
+  L.box(5, 0, -8, 5.6, 5, -6.5, 'plasterB'); L.box(5, 0, -1.5, 5.6, 5, 6, 'plasterB');                // mid → catwalk room opening (z -6.5..-1.5)
+  crates(L, 2.5, -16, 2); crates(L, -3, -24); crates(L, 3, 18); crates(L, -3.2, 26, 2);
+  // ---- A side: long lane, long doors, site with platform, catwalk
+  doorway(L, 30, 44, -18, 35.2, 38.6, 6, 'plasterB');
+  crates(L, 41.5, -30, 2, true); crates(L, 32.5, -26); crates(L, 42, -6, 2); crates(L, 32, 2);
+  L.B(37, 25, 10, 10, 1.2, 0, 'sandstone'); L.stairs(37, 17, 'pz', 4, 0, 1.2, 3, 'sandstone'); L.stairs(29, 25, 'px', 4, 0, 1.2, 3, 'sandstone'); // A platform
+  crates(L, 34, 27, 2, true); crates(L, 40, 22); crates(L, 27, 15, 2); crates(L, 44, 30); crates(L, 24, 28);
+  L.box(5.6, 0, -8, 21, 0.01, 6, 'floor').noRender = true;                                          // catwalk room
+  L.stairs(19.5, 0, 'pz', 3, 0, 2.4, 6, 'sandstone'); L.B(19.5, 10, 3, 8, 2.4, 0, 'sandstone');      // catwalk up to the short-A ledge
+  L.box(18, 2.4, 6, 18.12, 3.3, 14, 'planks', { col: false }); L.box(20.88, 2.4, 6, 21, 3.3, 14, 'planks', { col: false });
+  crates(L, 8, -5); crates(L, 14, 4);
+  // ---- B side: tunnels, upper tunnel room, site
+  L.box(-26.4, 3.2, -34, -19.6, 3.6, -8, 'roof'); L.box(-36.4, 3.2, -8, -19.6, 3.6, 2, 'roof');      // tunnel roofs
+  L.box(-36, 0, 2, -32, 3.2, 2.5, 'plasterB'); L.box(-26, 0, 2, -20, 3.2, 2.5, 'plasterB');           // tunnel exit framing (gap -32..-26)
+  for (const [x, z] of [[-23, -30], [-23, -18], [-28, -4], [-23, -4]]) L.glow(x, 2.9, z, 0xffb060, 1.1);
+  crates(L, -24.5, -14); crates(L, -33.5, -5, 2);
+  L.B(-44, 26, 8, 8, 1.2, 0, 'sandstone'); L.stairs(-37.5, 26, 'nx', 3, 0, 1.2, 2.5, 'sandstone');  // B back platform
+  L.prop('cart', -33, 16, 0, 1, { ry: 0.5 }); L.B(-33, 16, 2, 3, 1.4, 0, 'wood').noRender = true;
+  crates(L, -26, 8, 2, true); crates(L, -42, 12); crates(L, -24, 24); crates(L, -38, 6, 2);
+  // ---- connector mid ↔ B
+  crates(L, -12, 14);
+  // decoration: arches, awnings, lanterns, palms, kegs
+  for (const [x0, x1, z] of [[-5, 5, 34], [24, 30, 33.5], [-32, -27, 31], [30, 44, -34], [-26, -20, -34]]) L.box(x0 - 0.3, 5, z - 0.4, x1 + 0.3, 5.8, z + 0.4, 'sandstone', { col: false });
+  const awn = [0xb33a3a, 0x2f6fae, 0x3f8f4a, 0xd98a2b, 0x8a4ab0];
+  for (const [x, z, w, d] of [[-10, -35, 4, 1.4], [12, -35, 4, 1.4], [-6, 33, 1.4, 4], [40, 11.8, 3, 1.2], [-40, 2.6, 3, 1.2], [6.2, 20, 1.4, 3]]) L.B(x, z, w, d, 0.1, 3.2, 'cloth', { col: false, tint: pick(awn) });
+  for (const [x, z] of [[-2, -38], [20, -38], [-24, -42], [36, -42], [-14, 40], [14, 40], [-30, 38], [26, 42], [38, 30], [-44, 18], [-1, 0], [34, -12]]) L.prop('lantern', x, 0, z, 1);
+  for (const [x, z] of [[8, 40], [-8, 42], [40, 18], [-46, 8], [-18, -42], [28, -42]]) { L.B(x, z, 0.5, 0.5, 4, 0, 'bark').noRender = true; L.prop('palm', x, 0, z, rand(0.9, 1.15)); }
+  for (const [x, z] of [[43, 26], [-47, 20], [10, -40], [-11, 30]]) { L.prop('keg', x, 0, z); }
+  mountains(L, [0xc2a882, 0xb39a76, 0xcab28c], false);
+  L.spawn = { x: 0, y: 0, z: 40, yaw: 0 };
+  L.teamSpawns = [[[-20, 40], [-10, 40], [0, 40], [10, 40], [20, 40], [-28, 38], [26, 38]], [[-24, -40], [-12, -40], [0, -40], [12, -40], [24, -40], [36, -40], [-28, -38]]];
+  L.enemySpawns = L.teamSpawns[1].concat([[37, -28], [-23, -28], [-40, 20], [43, 16], [0, -30], [24, 40], [-24, 40]]);
+  L.pickups = [['health', 0, 0, -10], ['ammo', 37, 1.2, 25], ['health', -34, 0, 24], ['ammo', 19.5, 2.4, 11], ['health', -28, 0, -2], ['ammo', 37, 0, -26], ['ammo', 0, 0, 38], ['health', 13, 0, -2]];
+  L.barrels = [[40, -10], [-30, 10], [12, -6], [-10, 14], [30, 20]];
+}
+
 const MAPS = [
   {
     name: 'MILLBROOK VILLAGE', desc: 'Large three-lane map: river crossings, a climbable bell tower, two-storey houses, a barn with a hayloft.', tag: 'Large · all ranges · multi-floor', build: buildMillbrook,
@@ -1180,6 +1255,14 @@ const MAPS = [
       skyTop: 0x0c1030, skyBottom: 0x7a4058, sunColor: 0xc8d4ff, sunDir: [-0.3, 0.42, -0.6], fog: 0x2e2640, fogNear: 26, fogFar: 120, stars: true,
       hemiSky: 0x8a90c8, hemiGround: 0x3a2a2a, hemi: 1.5, sun: 1.25, sunLight: 0xb0bcff, shadowSun: [-0.3, 1, -0.5], farGround: 0x221c2a, clouds: 8, cloudColor: 0x6a5a7a,
       mats: { castle: { c: 0xb8b0b0 }, stone: { c: 0xc8c0c0 } },
+    },
+  },
+  {
+    name: 'OLD QUARTER', desc: 'Tactical two-site town in the desert sun: long A, mid doors, B tunnels and a catwalk. Built for Team Deathmatch.', tag: 'Competitive · lanes & angles', build: buildOldQuarter,
+    theme: {
+      skyTop: 0x3f86d6, skyBottom: 0xf4e2c0, sunColor: 0xfff0d0, sunDir: [0.4, 0.7, -0.35], fog: 0xe8dcc4, fogNear: 70, fogFar: 240,
+      hemiSky: 0xe8f0ff, hemiGround: 0xa08a64, hemi: 1.3, sun: 2.8, sunLight: 0xfff0d8, shadowSun: [0.4, 1, -0.35], farGround: 0xc8b08a, clouds: 6, cloudColor: 0xffffff,
+      mats: {},
     },
   },
 ];
@@ -1288,6 +1371,7 @@ class Nav {
             eTo.push(m); eC.push((diag ? 1.414 : 1) * cs + Math.abs(dh) * 0.4);
           } else if (dh < -0.6 && dh > -4.6 && !diag) { // drop down a ledge (one way)
             if (this.blocked(cx + DI[d] * cs * 0.9, h1 + 0.47, cz + DJ[d] * cs * 0.9, R, HT - 0.45)) continue;
+            { let floor = false; for (let q = cellStart[nk]; q < cellStart[nk + 1]; q++) if (q !== m && this.nodeH[q] > h2 + 0.3 && this.nodeH[q] < h1 + 0.6) floor = true; if (floor) continue; } // something solid between the ledge and the landing
             eTo.push(m); eC.push(2.5);
           }
         }
@@ -1311,7 +1395,7 @@ class Nav {
     for (let r = 0; r <= maxR; r++) {
       for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
         if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue; const i = ci + di, j = cj + dj; if (i < 0 || j < 0 || i >= this.W || j >= this.H) continue;
-        const k = j * this.W + i; for (let m = this.cellStart[k]; m < this.cellStart[k + 1]; m++) { const h = this.nodeH[m], dy = h - y; const sc = Math.hypot(di, dj) * cs + (dy > 0.7 ? dy * 3 : Math.abs(dy) * 1.2) + (this.eS && this.eS[m + 1] === this.eS[m] ? 6 : 0); if (sc < bs) { bs = sc; best = m; } }
+        const k = j * this.W + i; for (let m = this.cellStart[k]; m < this.cellStart[k + 1]; m++) { const h = this.nodeH[m], dy = h - y; const sc = Math.hypot(di, dj) * cs + (Math.abs(dy) > 0.7 ? Math.abs(dy) * 3 : Math.abs(dy) * 1.2) + (this.eS && this.eS[m + 1] === this.eS[m] ? 6 : 0); if (sc < bs) { bs = sc; best = m; } }
       }
       if (best >= 0 && bs < (r + 1.5) * cs) break;
     }
@@ -1330,7 +1414,7 @@ class Nav {
     }
     if (this.closed[t] !== st) return null;
     const ids = []; for (let n = t; n !== -1; n = this.from[n]) ids.push(n); ids.reverse();
-    const out = []; for (let i = 1; i < ids.length; i++) { const v = this.via.get(ids[i - 1] + ',' + ids[i]); if (v) for (const p of v) out.push(p); out.push(this.nodePos(ids[i])); }
+    const out = []; for (let i = 1; i < ids.length; i++) { const v = this.via.get(ids[i - 1] + ',' + ids[i]); if (v) for (const p of v) out.push([p[0], p[1], p[2], 1]); out.push(this.nodePos(ids[i])); }
     return out;
   }
   freeAt(x, y, z) { const k = this.cellIdx(x, z); if (k < 0) return false; for (let m = this.cellStart[k]; m < this.cellStart[k + 1]; m++) if (Math.abs(this.nodeH[m] - y) < 0.6) return true; return false; }
@@ -1925,11 +2009,14 @@ class Enemy {
   followPath(dt) { // returns desired horizontal direction
     const nav = world.nav; if (!this.goal) return null;
     this.repathT -= dt;
+    if (this.repathT <= 0 && this.path && this.pi < this.path.length && (Math.abs(this.path[this.pi][1] - this.pos.y) > 0.3 || this.path[this.pi][3] || (this.pi > 0 && this.path[this.pi - 1][3])) && !this.forceRepath) this.repathT = 0.4; // climbing a staircase: keep the current route
+    this.forceRepath = false;
     if (this.repathT <= 0 || !this.path) { this.repathT = rand(0.7, 1.2); this.path = nav.pathTo(this.pos.x, this.pos.y, this.pos.z, this.goal.x, this.goal.y, this.goal.z); this.pi = 0; }
     if (!this.path || this.pi >= this.path.length) return null;
     for (let k = 0; k < 2 && this.pi + 1 < this.path.length; k++) { const q = this.path[this.pi + 1]; if (Math.abs(q[1] - this.pos.y) < 0.3 && nav.lineFreeAt(this.pos.x, this.pos.y, this.pos.z, q[0], q[1], q[2])) this.pi++; else break; }
     const w = this.path[this.pi], wx = w[0] - this.pos.x, wz = w[2] - this.pos.z, wd = Math.hypot(wx, wz);
     if (wd < 0.45 && Math.abs(w[1] - this.pos.y) < 1.4) { this.pi++; return null; }
+    if (wd < 0.8 && w[1] - this.pos.y >= 1.4) { this.path = null; this.repathT = 0; return null; } // waypoint on another floor right here: re-plan
     return [wx / wd, wz / wd];
   }
   update(dt) {
@@ -1991,6 +2078,7 @@ class Enemy {
         }
         if (goal) {
           this.setGoal(goal, this.pos.distanceTo(goal) > 12); const d = this.followPath(dt); spd = T.speed * (this.run ? 1 : 0.7); wantRun = this.run;
+          if (!d && !this.path && this.repathT > 0 && this.pos.distanceTo(goal) >= 2.2) { if (goal === this.roam) this.roam = null; else if (goal === this.investigate) this.investigate = null; } // unreachable spot: pick another
           if (d) { mx = d[0]; mz = d[1]; } else if (this.pos.distanceTo(goal) < 2.2) { // arrived: look around
             if (this.investigate) { this.investigate = null; this.lookT = rand(1.5, 3); this.state = 'hunt'; }
           }
@@ -2006,7 +2094,7 @@ class Enemy {
     this.stepSmooth = 0; moveBody(this, dt);
     if (this.pos.y < -10) { this.hp = 0; this.die(false, true); return true; }
     this.stuckT += dt;
-    if (this.stuckT > 1.0) { const moved = Math.hypot(this.pos.x - this.lastPos.x, this.pos.z - this.lastPos.z); if (ml > 0.3 && spd > 0 && moved < 0.25) { this.repathT = 0; this.path = null; this.vel.x += rand(-3, 3); this.vel.z += rand(-3, 3); this.strafe *= -1; if (this.onGround && Math.random() < 0.4) this.vel.y = 6; } this.lastPos.copy(this.pos); this.stuckT = 0; }
+    if (this.stuckT > 1.0) { const moved = Math.hypot(this.pos.x - this.lastPos.x, this.pos.z - this.lastPos.z); if (ml > 0.3 && spd > 0 && moved < 0.25) { this.repathT = 0; this.path = null; this.forceRepath = true; this.vel.x += rand(-3, 3); this.vel.z += rand(-3, 3); this.strafe *= -1; if (this.onGround && Math.random() < 0.4) this.vel.y = 6; } this.lastPos.copy(this.pos); this.stuckT = 0; }
     // ---- aim (human-like: limited turn speed, settling error, recoil)
     const hs = Math.hypot(this.vel.x, this.vel.z);
     let dYaw, dPitch;
@@ -2114,8 +2202,8 @@ function botProfile(i) {
   const prims = WEAPONS.filter(w => w.slot === 'primary').map(w => w.id), weapon = Math.random() < 0.5 ? lo[0] : pick(prims);
   return { name: BOT_NAMES[i % BOT_NAMES.length], cls: c, color: PCOLORS[(i + 1) % PCOLORS.length], T: { model: C.model, name: BOT_NAMES[i % BOT_NAMES.length], hp: C.hp, speed: 4.6 * C.speed, scale: CHAR[C.model].scale, weapon, sight: 90, reaction: 0.35, score: 0 } };
 }
-function dmSpawnPoint(avoid, near) {
-  const L = world.L, cands = L.enemySpawns.map(([x, z]) => [x, 0.05, z]).concat([[L.spawn.x, L.spawn.y + 0.05, L.spawn.z]]);
+function dmSpawnPoint(avoid, near, list) {
+  const L = world.L, cands = list ? list.map(([x, z]) => [x, 0.05, z]) : L.enemySpawns.map(([x, z]) => [x, 0.05, z]).concat([[L.spawn.x, L.spawn.y + 0.05, L.spawn.z]]);
   let best = cands[0], bs = -1e9;
   for (const c of cands) { let md = 1e9; for (const p of avoid) md = Math.min(md, Math.hypot(p.x - c[0], p.z - c[2]));
     let sc = Math.min(md, 60) + rand(0, 10); if (near && near.length) { let nd = 1e9; for (const p of near) nd = Math.min(nd, Math.hypot(p.x - c[0], p.z - c[2])); sc = (md > 14 ? 100 : md) - nd * 0.8 + rand(0, 4); }
@@ -2124,7 +2212,7 @@ function dmSpawnPoint(avoid, near) {
 }
 const TEAMC = [0x3fa7ff, 0xff5a5a];
 function combatants() { return enemies.filter(e => !e.dead).map(e => ({ pos: e.pos, team: e.team })).concat(player.alive ? [{ pos: player.pos, team: BD.teams ? 0 : -1 }] : []); }
-function teamSpawn(team) { const all = combatants(); if (!BD.teams) return dmSpawnPoint(all.map(c => c.pos)); return dmSpawnPoint(all.filter(c => c.team !== team).map(c => c.pos), all.filter(c => c.team === team).map(c => c.pos)); }
+function teamSpawn(team) { const all = combatants(); if (!BD.teams) return dmSpawnPoint(all.map(c => c.pos)); const ts = world.L.teamSpawns; if (ts && ts[team]) return dmSpawnPoint(all.filter(c => c.team !== team).map(c => c.pos), null, ts[team]); return dmSpawnPoint(all.filter(c => c.team !== team).map(c => c.pos), all.filter(c => c.team === team).map(c => c.pos)); }
 function spawnBot(st) {
   const [x, y, z] = teamSpawn(st.team);
   const k = world.nav.nearestFree(x + rand(-2, 2), z + rand(-2, 2), 6), [cx, cz] = k >= 0 ? world.nav.center(k) : [x, z];
@@ -2156,15 +2244,15 @@ function botKilled(victim, killer, head) {
     if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time; const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' }; if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]); }
   else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
   if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
-  const tc = t => (BD.teams && t >= 0 ? `<span style="color:${t ? '#ff7a7a' : '#7ac4ff'}">` : '<span>');
-  addFeed(`${tc(killer && killer.team)}${esc(kname)}</span> ${head ? '◎' : '✕'} ${tc(victim.team)}${esc(victim.name)}</span>`, head);
+  const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null), mine = killer === PLAYER_T;
+  killFeed(kname, tc(killer ? (mine ? 0 : killer.team) : -1), mine ? (game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short) : killer && killer.W ? killer.W.short : '', head, victim.name, tc(victim.team), mine);
   if (vs) BD.respawn.push({ st: vs, t: 3 });
   checkBotEnd();
 }
 function botPlayerDie() {
   const k = BD.lastAttacker instanceof Enemy ? BD.lastAttacker : null; BD.stats[0].deaths++;
   if (k && k.stat) k.stat.kills++; if (BD.teams && k) BD.teamKills[k.team]++;
-  addFeed(`${esc(k ? k.name : 'You')} ✕ ${esc(BD.stats[0].name)}`, false);
+  { const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null); killFeed(k ? k.name : null, k ? tc(k.team) : null, k && k.W ? k.W.short : '', !!BD.lastHead, BD.stats[0].name, tc(0), true); }
   player.alive = false; MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
   showMsg('ELIMINATED', k ? 'by ' + k.name : '', 3); checkBotEnd();
 }
@@ -2729,7 +2817,7 @@ function onKill(e, head) {
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
   if (game.streak >= 2) { const b = 50 * game.streak; pts += b; showStreak((names[Math.min(game.streak, 5)] || 'RAMPAGE') + '  +' + b); }
   game.score += pts;
-  addFeed(`${head ? '◎ ' : '✕ '}${e.T.name}  <b>+${pts}</b>`, head);
+  killFeed(settings.name || 'You', '#ffd27a', game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short, head, e.T.name + '  +' + pts, null, true);
   sfx.play('kill'); hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
   const r = Math.random();
   if (r < 0.22) pickups.push(new Pickup('ammo', e.pos.x, e.pos.y, e.pos.z, true));
@@ -2739,7 +2827,7 @@ function onKill(e, head) {
 // ============================================================ PLAYER COMBAT
 function damagePlayer(d, from, attacker, head) {
   if (!player.alive || game.time < player.protT) return;
-  if (attacker instanceof Enemy) BD.lastAttacker = attacker;
+  if (attacker instanceof Enemy) { BD.lastAttacker = attacker; BD.lastHead = !!head; }
   if (MP.active && attacker) { MP.lastAttacker = attacker; MP.lastAttackT = game.time; MP.lastHead = !!head; }
   if (player.shield > 0) { const a = Math.min(player.shield, d); player.shield -= a; d -= a; if (d <= 0) { sfx.play('hit'); hud.vig = Math.min(1, hud.vig + 0.05); return; } }
   player.hp -= d; player.lastDmgT = 0; player.regenCap = Math.max(25, Math.ceil(player.hp / 25) * 25);
@@ -2938,7 +3026,8 @@ function updateGrenades(dt) {
       else explosion(g.pos.clone(), 6.5 * (g.owner === MP.myId && settings.cls === 'witch' ? 1.2 : 1), 160, g.owner); }
   }
 }
-function explosion(p, radius, dmg, owner) {
+function explosion(p, radius, dmg, owner) { game.nadeDmg = game.lastNadeKill = true; try { explosion0(p, radius, dmg, owner); } finally { game.nadeDmg = game.lastNadeKill = false; } }
+function explosion0(p, radius, dmg, owner) {
   spawnBoom(p, radius * 0.75);
   sparks.burst(p.x, p.y, p.z, 50, 12, 1, 0.6, 0.2, 0.7, 0.6);
   debris.burst(p.x, p.y, p.z, 24, 6, 0.15, 0.13, 0.12, 1.4, 0.2, 0, 0.5, 0);
@@ -3096,10 +3185,17 @@ function showMsg(h, p, t) { $('msgh').textContent = h; $('msgp').textContent = p
 function showStreak(t) { $('streak').textContent = t; hud.streakT = 1.6; }
 function showHint(t, c) { const el = $('hint'); el.textContent = t; el.style.color = c || '#ffcf6b'; hud.hintT = 1.4; }
 function hitMarker(kill, head) { const h = $('hit'); h.classList.toggle('head', !!head || kill); hud.hitT = kill ? 0.35 : 0.18; hud.hitScale = kill ? 1.5 : 1; if (head && !kill) sfx.play('head'); }
-function addFeed(html, hs) {
-  const f = $('feed'), d = document.createElement('div'); d.innerHTML = html; if (hs) d.className = 'hs'; f.prepend(d);
-  while (f.children.length > 5) f.lastChild.remove();
-  setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 3500);
+function addFeed(html, hs, mine) {
+  const f = $('feed'), d = document.createElement('div'); d.innerHTML = html; d.className = (hs ? 'hs' : '') + (mine ? ' me' : ''); f.prepend(d);
+  while (f.children.length > 6) f.lastChild.remove();
+  setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 6000);
+}
+// killer [WEAPON] (◎ = headshot) victim
+const wShort = id => { const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
+function killFeed(killer, kc, weapon, head, victim, vc, mine) {
+  const nm = (n, c) => `<span class="fn"${c ? ` style="color:${c}"` : ''}>${esc(n)}</span>`;
+  const mid = `<span class="fw">${esc(weapon || '✕')}</span>${head ? '<span class="fh">◎</span>' : ''}`;
+  addFeed(killer ? `${nm(killer, kc)} ${mid} ${nm(victim, vc)}` : `${mid} ${nm(victim, vc)}`, head, mine);
 }
 const dmgDirs = [...document.querySelectorAll('#dirs div')].map(el => ({ el, t: 0, a: 0 })); let dmgI = 0;
 function addDmgDir(a) { const d = dmgDirs[dmgI]; dmgI = (dmgI + 1) % dmgDirs.length; d.a = a; d.t = 1.2; }
@@ -3151,8 +3247,9 @@ function updateHUD(dt) {
   $('mag').classList.toggle('low', s.mag <= Math.ceil(w.mag * 0.25));
   const slots = $('slots').children; for (let i = 0; i < slots.length; i++) { const on = +slots[i].dataset.w === wst.cur; if (slots[i].classList.contains('on') !== on) slots[i].classList.toggle('on', on); }
   // inventory overlay (hold Tab) + armory hint
-  const showInv = !!keys.Tab && player.alive;
-  if (hudCache.inv !== showInv) { hudCache.inv = showInv; $('invp').style.display = showInv ? 'block' : 'none'; if (showInv) renderInventory(); }
+  const showInv = !!keys.Tab && (player.alive || MP.active || game.mode === 'botdm');
+  if (hudCache.inv !== showInv) { hudCache.inv = showInv; $('invp').style.display = showInv ? 'block' : 'none'; }
+  if (showInv) { hud.invT = (hud.invT || 0) - dt; if (hud.invT <= 0) { hud.invT = 0.4; renderInventory(); } }
   const canArm = game.phase === 'inter' && player.alive;
   if (hudCache.arm !== canArm) { hudCache.arm = canArm; $('armhint').style.opacity = canArm ? 1 : 0; }
   setText('nades', 'GRENADES ' + ('●'.repeat(player.grenades) + '○'.repeat(Math.max(0, cls().nadeMax - player.grenades))));
@@ -3480,11 +3577,11 @@ function handleGame(d) {
       break;
     }
     case 'hit':
-      if (d.to === MP.myId && player.alive) damagePlayer(clamp(num(d.dmg), 0, 250), r ? r.pos : null, d.id, !!d.head);
+      if (d.to === MP.myId && player.alive) { if (typeof d.w === 'string') MP.lastWeapon = d.w.slice(0, 12); } if (d.to === MP.myId && player.alive) damagePlayer(clamp(num(d.dmg), 0, 250), r ? r.pos : null, d.id, !!d.head);
       break;
     case 'die': {
       const victim = d.id, killer = typeof d.by === 'string' ? d.by : victim;
-      addFeed(killer === victim ? `✕ ${esc(pname(victim))}` : `${esc(pname(killer))} ${d.head ? '◎' : '✕'} ${esc(pname(victim))}`, !!d.head);
+      killFeed(killer === victim ? null : pname(killer), null, wShort(d.w), !!d.head && killer !== victim, pname(victim), null, killer === MP.myId || victim === MP.myId);
       if (killer === MP.myId && victim !== MP.myId) mpKillConfirm(victim, !!d.head);
       break;
     }
@@ -3580,7 +3677,7 @@ class Remote {
   }
   damage(d, head) {
     if (this.dead) return false;
-    netSend({ t: 'hit', to: this.id, dmg: Math.round(d), head: !!head }); this.flashT = 0.12; return false;
+    netSend({ t: 'hit', to: this.id, dmg: Math.round(d), head: !!head, w: game.nadeDmg ? 'nade' : WEAPONS[wst.cur].id }); this.flashT = 0.12; return false;
   }
 }
 function clearRemotes() { for (const r of remotes.values()) if (world) world.group.remove(r.group); remotes.clear(); remoteList = []; }
@@ -3667,7 +3764,7 @@ function updateMP(dt) {
 function mpDie() {
   player.alive = false; MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
   const by = MP.lastAttacker && game.time - MP.lastAttackT < 8 ? MP.lastAttacker : MP.myId;
-  netSend({ t: 'die', by, head: MP.lastHead });
+  netSend({ t: 'die', by, head: MP.lastHead, w: by === MP.myId ? '' : MP.lastWeapon || '' });
   showMsg('ELIMINATED', by === MP.myId ? 'Respawning…' : 'by ' + pname(by), 3);
 }
 // ---- lobby UI
@@ -3938,5 +4035,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();

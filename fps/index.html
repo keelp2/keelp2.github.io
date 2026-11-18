@@ -36,9 +36,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 #top .box{padding:6px 14px;text-align:center;min-width:92px}
 #top small{display:block;font-size:10px;letter-spacing:.18em;color:var(--mut)}
 #top b{font-size:20px;font-variant-numeric:tabular-nums}
-#feed{position:absolute;top:14px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:13px}
-#feed div{background:var(--panel);padding:4px 10px;border-radius:4px;border-left:3px solid var(--acc);transition:opacity .4s}
-#feed .hs{color:#ff9b6b}
+#feed{position:absolute;top:14px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;font-size:15px;font-weight:600;z-index:5}
+#feed div{background:rgba(10,12,18,.62);padding:5px 12px;border-radius:4px;border-right:3px solid rgba(255,255,255,.25);transition:opacity .4s;display:flex;align-items:center;gap:9px;text-shadow:0 1px 2px #000;animation:feedIn .18s ease-out}
+#feed div.me{background:rgba(120,70,10,.62);border-right-color:#ffcf6b;box-shadow:0 0 0 1px rgba(255,207,107,.45)}
+#feed .fw{font-size:11px;letter-spacing:.08em;color:#d8dde6;background:rgba(255,255,255,.1);padding:2px 6px;border-radius:3px}
+#feed .fh{color:#ff6b5a;font-size:16px}
+@keyframes feedIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
 #msg{position:absolute;top:24%;left:0;right:0;text-align:center;opacity:0;text-shadow:0 2px 12px rgba(0,0,0,.8)}
 #msg h2{margin:0;font-size:52px;letter-spacing:.12em;font-weight:800}
 #msg p{margin:4px 0 0;font-size:16px;color:#ffd3b0;letter-spacing:.1em}
@@ -351,7 +354,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611180514"></script>
+<script src="game.js?v=202611181930"></script>
 <script type="module" src="lib/assets.js?v=202611180508"></script>
 </body>
 </html>
