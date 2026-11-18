@@ -1856,11 +1856,12 @@ const ETYPES = {
 const BOT_NAMES = ['Sir Lancelot', 'Gretel', 'Hansel', 'Rumpel', 'Goldilocks', 'Jack', 'Red Hood', 'Old King Cole', 'Little John', 'Rapunzel', 'Tom Thumb', 'Bo Peep', 'Sir Galahad', 'Pied Piper', 'Snowdrop', 'Woodcutter', 'Grumpkin', 'Mother Goose', 'Thumbelina', 'Prince Charming'];
 const BOT_SKILL = { easy: 0.6, normal: 0.92, hard: 1.25 }, BOT_DMG = { easy: 0.55, normal: 0.8, hard: 1.0 };
 const PREF_RANGE = { shotgun: [3, 9], smg: [5, 14], pistol: [6, 15], revolver: [6, 16], rifle: [10, 26], ak: [10, 24], lmg: [12, 30], dmr: [20, 45], sniper: [25, 60] };
-const PLAYER_T = { isPlayer: true, get pos() { return player.pos; }, get vel() { return player.vel; }, get h() { return player.h + 0.07; }, get dead() { return !player.alive; }, s: 1, name: 'You' };
+const isAlly = (a, b) => !!(BD.teams && game.mode === 'botdm' && a && b && a.team >= 0 && a.team === b.team);
+const PLAYER_T = { get team() { return BD.teams ? 0 : -1; }, isPlayer: true, get pos() { return player.pos; }, get vel() { return player.vel; }, get h() { return player.h + 0.07; }, get dead() { return !player.alive; }, s: 1, name: 'You' };
 // noise: wakes bots up and pulls them toward fights
 function noise(p, radius, src) {
   for (const e of enemies) {
-    if (e.dead || e === src) continue; const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z); if (d > radius) continue;
+    if (e.dead || e === src || isAlly(src, e)) continue; const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z); if (d > radius) continue;
     if (e.visible) continue; e.alertT = 4;
     if (!e.bot || src === PLAYER_T || !e.target) { e.investigate = new V3(p.x + rand(-3, 3) * d / radius, p.y, p.z + rand(-3, 3) * d / radius); if (src) e.target = src; e.lostT = Math.min(e.lostT, 1); e.repathT = 0; }
   }
@@ -1896,7 +1897,7 @@ class Enemy {
   get canSee() { return this.visible; }
   eye(out) { return out.set(this.pos.x, this.pos.y + 1.62 * this.s, this.pos.z); }
   gunPos(out) { if (this.muzzlePt) { this.muzzlePt.getWorldPosition(out); return out; } return this.eye(out); }
-  candidates() { const l = []; if (player.alive && (!MP.active)) l.push(PLAYER_T); if (this.bot) for (const e of enemies) if (e !== this && !e.dead && e.bot) l.push(e); return l; }
+  candidates() { const l = []; if (player.alive && (!MP.active) && !isAlly(this, PLAYER_T)) l.push(PLAYER_T); if (this.bot) for (const e of enemies) if (e !== this && !e.dead && e.bot && !isAlly(this, e)) l.push(e); return l; }
   aimPoint(t, out, head) { const hh = t.isPlayer ? player.h - 0.12 : t.h * (head ? 0.9 : 0.62); return out.set(t.pos.x, t.pos.y + (t.isPlayer ? (head ? hh : hh - 0.45) : hh), t.pos.z); }
   perceive() {
     const e = this.eye(_ea); let best = null, bs = 1e9;
@@ -1984,6 +1985,7 @@ class Enemy {
         }
         let goal = this.investigate || (t ? this.lastKnown : null);
         if (!goal && this.bot) { // roam
+          if ((!this.roam || this.pos.distanceTo(this.roam) < 2) && isAlly(this, PLAYER_T) && player.alive && Math.random() < 0.6) this.roam = new V3(player.pos.x + rand(-6, 6), player.pos.y, player.pos.z + rand(-6, 6));
           if (!this.roam || this.pos.distanceTo(this.roam) < 2) { const n = world.nav.randomNode(); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } }
           goal = this.roam;
         }
@@ -2064,7 +2066,7 @@ class Enemy {
       const hit = raycast(o, d, 300, this.bot, this);
       // the player's hitboxes
       let pt = -1, ph = false;
-      if (player.alive && !MP.active && (this.bot || this.target === PLAYER_T)) {
+      if (player.alive && !MP.active && (this.bot || this.target === PLAYER_T) && !isAlly(this, PLAYER_T)) {
         const P = player.pos, hh = player.h + 0.07;
         const th = rayAABB(o.x, o.y, o.z, d.x, d.y, d.z, P.x - 0.2, P.y + hh * 0.8, P.z - 0.2, P.x + 0.2, P.y + hh * 1.02, P.z + 0.2, hit.t);
         if (th >= 0) { pt = th; ph = true; } const tb = rayAABB(o.x, o.y, o.z, d.x, d.y, d.z, P.x - 0.33, P.y, P.z - 0.33, P.x + 0.33, P.y + hh * 0.8, P.z + 0.33, pt >= 0 ? pt : hit.t); if (tb >= 0) { pt = tb; ph = false; }
@@ -2072,7 +2074,7 @@ class Enemy {
       const range = pt >= 0 ? pt : hit.t, [r0, r1, rmin] = W.range, fall = range <= r0 ? 1 : range >= r1 ? rmin : lerp(1, rmin, (range - r0) / (r1 - r0));
       if (!end) end = o.clone().addScaledVector(d, Math.min(range, 120));
       if (pt >= 0) { hitP = true; headP = headP || ph; dmgP += W.dmg * fall * (ph ? 1.6 : 1) * this.dmgMul; }
-      else if (hit.enemy) hit.enemy.damage(W.dmg * fall * (hit.head ? W.head : 1) * (this.bot ? BOT_DMG[settings.botDiff || 'normal'] : 1), hit.head, { x: d.x * 1.5, z: d.z * 1.5 }, this);
+      else if (hit.enemy && !isAlly(this, hit.enemy)) hit.enemy.damage(W.dmg * fall * (hit.head ? W.head : 1) * (this.bot ? BOT_DMG[settings.botDiff || 'normal'] : 1), hit.head, { x: d.x * 1.5, z: d.z * 1.5 }, this);
       else if (hit.box && hit.t < 300 && i < 2) { _eo.copy(o).addScaledVector(d, hit.t); if (hit.box.barrel) hit.box.barrel.hit(W.dmg); else if (Math.random() < 0.5) sparks.burst(_eo.x, _eo.y, _eo.z, 3, 3, 1, 0.75, 0.4, 0.2, 1, hit.nx, hit.ny, hit.nz); }
       // near miss on the player: supersonic crack
       if (!hitP && player.alive && i === 0) { const ph2 = playerHead(_eb), w = _ea.subVectors(ph2, o), proj = w.dot(d); if (proj > 2 && proj < range) { const miss = w.addScaledVector(d, -proj).length(); if (miss < 1.6) sfx.play('whiz', { vol: 0.7, pan: rand(-0.5, 0.5) }); } }
@@ -2087,6 +2089,7 @@ class Enemy {
     if (this.dead) return false;
     this.hp -= d; this.flashT = 0.12; this.losT = 0; this.alertT = 5;
     const src = attacker === 'player' || attacker === undefined ? PLAYER_T : attacker instanceof Enemy ? attacker : null;
+    if (isAlly(src, this)) { this.hp += d; return false; } // friendly fire is off
     if (src && !this.visible && (this.bot || src === PLAYER_T)) { this.target = src; this.attacker = src; this.lastKnown.copy(src.pos); this.investigate = src.pos.clone(); this.lostT = 0; this.repathT = 0; this.yaw += angDiff(this.yaw, Math.atan2(src.pos.x - this.pos.x, src.pos.z - this.pos.z)) * 0.5; }
     if (impulse) { this.vel.x += impulse.x; this.vel.z += impulse.z; }
     if (this.aimT > 0 && head) this.aimT += 0.35;
@@ -2111,29 +2114,40 @@ function botProfile(i) {
   const prims = WEAPONS.filter(w => w.slot === 'primary').map(w => w.id), weapon = Math.random() < 0.5 ? lo[0] : pick(prims);
   return { name: BOT_NAMES[i % BOT_NAMES.length], cls: c, color: PCOLORS[(i + 1) % PCOLORS.length], T: { model: C.model, name: BOT_NAMES[i % BOT_NAMES.length], hp: C.hp, speed: 4.6 * C.speed, scale: CHAR[C.model].scale, weapon, sight: 90, reaction: 0.35, score: 0 } };
 }
-function dmSpawnPoint(avoid) {
+function dmSpawnPoint(avoid, near) {
   const L = world.L, cands = L.enemySpawns.map(([x, z]) => [x, 0.05, z]).concat([[L.spawn.x, L.spawn.y + 0.05, L.spawn.z]]);
-  let best = cands[0], bs = -1;
-  for (const c of cands) { let md = 1e9; for (const p of avoid) md = Math.min(md, Math.hypot(p.x - c[0], p.z - c[2])); const sc = Math.min(md, 60) + rand(0, 10); if (sc > bs) { bs = sc; best = c; } }
+  let best = cands[0], bs = -1e9;
+  for (const c of cands) { let md = 1e9; for (const p of avoid) md = Math.min(md, Math.hypot(p.x - c[0], p.z - c[2]));
+    let sc = Math.min(md, 60) + rand(0, 10); if (near && near.length) { let nd = 1e9; for (const p of near) nd = Math.min(nd, Math.hypot(p.x - c[0], p.z - c[2])); sc = (md > 14 ? 100 : md) - nd * 0.8 + rand(0, 4); }
+    if (sc > bs) { bs = sc; best = c; } }
   return best;
 }
+const TEAMC = [0x3fa7ff, 0xff5a5a];
+function combatants() { return enemies.filter(e => !e.dead).map(e => ({ pos: e.pos, team: e.team })).concat(player.alive ? [{ pos: player.pos, team: BD.teams ? 0 : -1 }] : []); }
+function teamSpawn(team) { const all = combatants(); if (!BD.teams) return dmSpawnPoint(all.map(c => c.pos)); return dmSpawnPoint(all.filter(c => c.team !== team).map(c => c.pos), all.filter(c => c.team === team).map(c => c.pos)); }
 function spawnBot(st) {
-  const avoid = enemies.filter(e => !e.dead).map(e => e.pos).concat(player.alive ? [player.pos] : []); const [x, y, z] = dmSpawnPoint(avoid);
-  const k = world.nav.nearestFree(x, z, 6), [cx, cz] = k >= 0 ? world.nav.center(k) : [x, z];
-  const e = new Enemy('bot', cx, cz, 1, { T: st.T, name: st.name, sash: st.color, y: 0 }); e.stat = st; enemies.push(e);
+  const [x, y, z] = teamSpawn(st.team);
+  const k = world.nav.nearestFree(x + rand(-2, 2), z + rand(-2, 2), 6), [cx, cz] = k >= 0 ? world.nav.center(k) : [x, z];
+  const e = new Enemy('bot', cx, cz, 1, { T: st.T, name: st.name, sash: st.color, y: 0 }); e.stat = st; e.team = st.team; enemies.push(e);
+  if (BD.teams && st.team === 0) { e.tag = makeNameTag(st.name, TEAMC[0]); e.tag.position.y = 2.25 / e.s; e.inner.add(e.tag); }
 }
 function startBotMatch() {
   sfx.init(); music.play('start'); resize();
   if (!world || world.def !== MAPS[settings.map] || world.shadows !== QUALITY[settings.quality].shadows) { loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows; }
   resetRun(); game.mode = 'botdm'; game.phase = 'dm';
   BD.limit = settings.botLimit || 20; BD.time = 480; BD.matchT = BD.time; BD.respawn = [];
-  const n = clamp(settings.bots || 5, 1, 11);
-  BD.stats = [{ name: settings.name || 'You', me: true, cls: settings.cls, kills: 0, deaths: 0, color: PCOLORS[0] }];
-  for (let i = 0; i < n; i++) { const p = botProfile(i + Math.floor(Math.random() * 6)); p.name = BOT_NAMES[(i * 3 + 5) % BOT_NAMES.length]; p.T.name = p.name; p.kills = 0; p.deaths = 0; BD.stats.push(p); }
-  for (const st of BD.stats) if (!st.me) spawnBot(st);
-  const [x, y, z] = dmSpawnPoint(enemies.map(e => e.pos)); player.pos.set(x, y, z); player.yaw = Math.atan2(x, z); player.protT = game.time + 1.5;
+  const n = clamp(settings.bots || 5, 1, 11), teams = BD.teams = settings.botMode === 'tdm'; BD.teamKills = [0, 0];
+  if (teams) BD.limit = settings.botLimit || 30;
+  BD.stats = [{ name: settings.name || 'You', me: true, cls: settings.cls, kills: 0, deaths: 0, color: teams ? TEAMC[0] : PCOLORS[0], team: teams ? 0 : -1 }];
+  const allies = teams ? Math.floor(n / 2) : 0;
+  for (let i = 0; i < n; i++) { const p = botProfile(i + Math.floor(Math.random() * 6)); p.name = BOT_NAMES[(i * 3 + 5) % BOT_NAMES.length]; p.T.name = p.name; p.kills = 0; p.deaths = 0; p.team = teams ? (i < allies ? 0 : 1) : -1; if (teams) p.color = TEAMC[p.team]; BD.stats.push(p); }
+  const L = world.L; player.alive = true; player.pos.set(L.spawn.x, L.spawn.y + 0.05, L.spawn.z);
+  for (const st of BD.stats) if (!st.me && st.team === 1) spawnBot(st);
+  if (teams) { const [x, y, z] = teamSpawn(0); player.pos.set(x, y, z); } else { const [x, y, z] = dmSpawnPoint(enemies.map(e => e.pos)); player.pos.set(x, y, z); }
+  for (const st of BD.stats) if (!st.me && st.team !== 1) spawnBot(st);
+  player.yaw = Math.atan2(player.pos.x, player.pos.z); player.protT = game.time + 1.5;
   game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock(); hudCache = {};
-  showMsg('BOT DEATHMATCH', `FIRST TO ${BD.limit} KILLS · ${n} BOTS`, 3);
+  showMsg(teams ? 'TEAM DEATHMATCH' : 'BOT DEATHMATCH', teams ? `BLUE (${allies + 1}) vs RED (${n - allies}) · FIRST TEAM TO ${BD.limit}` : `FIRST TO ${BD.limit} KILLS · ${n} BOTS`, 3.5);
 }
 function botKilled(victim, killer, head) {
   const vs = victim.stat; if (vs) vs.deaths++;
@@ -2141,30 +2155,34 @@ function botKilled(victim, killer, head) {
   if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; if (head) game.heads++; kname = 'You'; sfx.play('kill'); hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
     if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time; const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' }; if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]); }
   else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
-  addFeed(`${esc(kname)} ${head ? '◎' : '✕'} ${esc(victim.name)}`, head);
+  if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
+  const tc = t => (BD.teams && t >= 0 ? `<span style="color:${t ? '#ff7a7a' : '#7ac4ff'}">` : '<span>');
+  addFeed(`${tc(killer && killer.team)}${esc(kname)}</span> ${head ? '◎' : '✕'} ${tc(victim.team)}${esc(victim.name)}</span>`, head);
   if (vs) BD.respawn.push({ st: vs, t: 3 });
   checkBotEnd();
 }
 function botPlayerDie() {
   const k = BD.lastAttacker instanceof Enemy ? BD.lastAttacker : null; BD.stats[0].deaths++;
-  if (k && k.stat) k.stat.kills++;
+  if (k && k.stat) k.stat.kills++; if (BD.teams && k) BD.teamKills[k.team]++;
   addFeed(`${esc(k ? k.name : 'You')} ✕ ${esc(BD.stats[0].name)}`, false);
   player.alive = false; MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
   showMsg('ELIMINATED', k ? 'by ' + k.name : '', 3); checkBotEnd();
 }
-function checkBotEnd() { const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); if (top.kills >= BD.limit) endBotMatch(top.name + ' reached the kill limit'); }
+function checkBotEnd() { if (BD.teams) { for (const t of [0, 1]) if (BD.teamKills[t] >= BD.limit) endBotMatch((t ? 'Red' : 'Blue') + ' team reached ' + BD.limit + ' kills'); return; } const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); if (top.kills >= BD.limit) endBotMatch(top.name + ' reached the kill limit'); }
 function updateBotMatch(dt) {
   BD.matchT -= dt; if (BD.matchT <= 0) return endBotMatch('Time limit reached');
   for (let i = BD.respawn.length - 1; i >= 0; i--) { BD.respawn[i].t -= dt; if (BD.respawn[i].t <= 0) { spawnBot(BD.respawn[i].st); BD.respawn.splice(i, 1); } }
-  if (!player.alive) { MP.respawnT -= dt; game.deadT = (game.deadT || 0) + dt; if (MP.respawnT <= 0) { mpRespawn(); const [x, y, z] = dmSpawnPoint(enemies.filter(e => !e.dead).map(e => e.pos)); player.pos.set(x, y, z); player.yaw = Math.atan2(x, z); } }
+  if (!player.alive) { MP.respawnT -= dt; game.deadT = (game.deadT || 0) + dt; if (MP.respawnT <= 0) { mpRespawn(); const [x, y, z] = teamSpawn(0); player.pos.set(x, y, z); player.yaw = Math.atan2(x, z); } }
 }
 function endBotMatch(why) {
   if (game.state !== 'play' && game.state !== 'paused') return;
   game.state = 'mpover'; if (document.pointerLockElement) document.exitPointerLock();
-  const rows = BD.stats.slice().sort((a, b) => b.kills - a.kills || a.deaths - b.deaths);
-  $('mpWinner').textContent = rows[0].me ? 'YOU WIN!' : rows[0].name.toUpperCase() + ' WINS'; $('mpWhy').textContent = why;
+  const rows = BD.stats.slice().sort((a, b) => (BD.teams ? a.team - b.team : 0) || b.kills - a.kills || a.deaths - b.deaths);
+  let won;
+  if (BD.teams) { const [b, r] = BD.teamKills; won = b > r; $('mpWinner').textContent = b === r ? 'DRAW' : b > r ? 'BLUE TEAM WINS' : 'RED TEAM WINS'; $('mpWhy').textContent = `${why} · Blue ${b} – ${r} Red`; }
+  else { won = rows[0].me; $('mpWinner').textContent = rows[0].me ? 'YOU WIN!' : rows[0].name.toUpperCase() + ' WINS'; $('mpWhy').textContent = why; }
   $('mpBoard').innerHTML = botTable(rows); $('mpToLobby').textContent = 'BACK TO MENU';
-  showScreen('mpover'); music.play(rows[0].me ? 'win' : 'lose');
+  showScreen('mpover'); music.play(won ? 'win' : 'lose');
 }
 function botTable(rows) {
   return `<table class="sb"><tr><th>#</th><th>PLAYER</th><th>CLASS</th><th>K</th><th>D</th></tr>` + rows.map((p, i) => `<tr class="${p.me ? 'me' : ''}"><td>${i + 1}</td><td><i style="background:#${new THREE.Color(p.color).getHexString()}"></i>${esc(p.name)}${p.me ? '' : ' 🤖'}</td><td>${esc(CLASSES[p.cls] ? CLASSES[p.cls].name : '')}</td><td>${p.kills}</td><td>${p.deaths}</td></tr>`).join('') + '</table>';
@@ -2199,7 +2217,7 @@ const clouds = [];
 function areaDamage(x, y, z, r, dmg, kb, attacker) { // damages enemies / remote players around a point (not the local player)
   let n = 0;
   for (const list of [enemies, remoteList]) for (const e of list) {
-    if (e.dead) continue; const cx = e.pos.x, cy = e.pos.y + e.h * 0.5, cz = e.pos.z, d = Math.hypot(cx - x, cy - y, cz - z); if (d > r) continue;
+    if (e.dead || isAlly(attacker === 'player' ? PLAYER_T : attacker, e)) continue; const cx = e.pos.x, cy = e.pos.y + e.h * 0.5, cz = e.pos.z, d = Math.hypot(cx - x, cy - y, cz - z); if (d > r) continue;
     const f = 1 - (d / r) * 0.5, dx = (cx - x) / (d || 1), dz = (cz - z) / (d || 1);
     if (e.damage(dmg * f, false, { x: dx * kb * f, z: dz * kb * f }, attacker) !== undefined) n++;
   }
@@ -2738,7 +2756,7 @@ function meleeHit(w) {
   aimBasis(); const eye = camera.position, cands = [];
   for (const list of [enemies, remoteList]) for (const e of list) {
     if (e.dead) continue; const cx = e.pos.x, cy = e.pos.y + e.h * 0.6, cz = e.pos.z, dx = cx - eye.x, dy = cy - eye.y, dz = cz - eye.z, d = Math.hypot(dx, dy, dz);
-    if (d > w.reach + 0.5) continue; if ((dx * _f.x + dy * _f.y + dz * _f.z) / d < 0.7) continue; if (!los(eye.x, eye.y, eye.z, cx, cy, cz)) continue; cands.push([d, e]);
+    if (d > w.reach + 0.5 || isAlly(PLAYER_T, e)) continue; if ((dx * _f.x + dy * _f.y + dz * _f.z) / d < 0.7) continue; if (!los(eye.x, eye.y, eye.z, cx, cy, cz)) continue; cands.push([d, e]);
   }
   cands.sort((a, b) => a[0] - b[0]); let hits = 0;
   for (const [, e] of cands.slice(0, w.cleave || 1)) {
@@ -2818,6 +2836,7 @@ function fire() {
       _hp.copy(origin).addScaledVector(_d, hit.t);
       const dist = travelled + hit.t; if (!firstEnd) firstEnd = _hp.clone();
       if (i < 3 || n === 1) spawnTracer(i === 0 ? muzzleW : origin, _hp, 0xffe2a0, 360, 0.02);
+      if (hit.enemy && isAlly(PLAYER_T, hit.enemy)) break; // teammate: no friendly fire
       if (hit.enemy) {
         const [r0, r1, rmin] = w.range; const fall = dist <= r0 ? 1 : dist >= r1 ? rmin : lerp(1, rmin, (dist - r0) / (r1 - r0));
         const dmg = w.dmg * fall * (hit.head ? w.head * cls().headMul : 1) * dmgMul;
@@ -2932,12 +2951,12 @@ function explosion(p, radius, dmg, owner) {
     if (d < radius) {
       let f = 1 - d / radius; if (!los(p.x, p.y + 0.2, p.z, cx, cy, cz)) f *= 0.35;
       const dir = { x: (cx - p.x) / (d || 1) * 9 * f, z: (cz - p.z) / (d || 1) * 9 * f };
-      const atk = owner instanceof Enemy ? owner : 'player'; if (!e.damage(dmg * f, false, dir, atk) && f > 0 && atk === 'player') hitMarker(false, false);
+      const atk = owner instanceof Enemy ? owner : 'player'; if (isAlly(atk === 'player' ? PLAYER_T : atk, e)) continue; if (!e.damage(dmg * f, false, dir, atk) && f > 0 && atk === 'player') hitMarker(false, false);
     }
   }
   if (player.alive && dp < radius) {
     let f = 1 - dp / radius; const ph = playerHead(new V3()); if (!los(p.x, p.y + 0.2, p.z, ph.x, ph.y - 0.6, ph.z)) f *= 0.35;
-    damagePlayer(dmg * f * (owner instanceof Enemy ? 0.6 : MP.active && owner !== MP.myId ? 1 : 0.45), p, owner);
+    if (!isAlly(owner, PLAYER_T)) damagePlayer(dmg * f * (owner instanceof Enemy ? 0.6 : MP.active && owner !== MP.myId ? 1 : 0.45), p, owner);
     const dx = player.pos.x - p.x, dy = player.pos.y + 0.9 - p.y, dz = player.pos.z - p.z, l = Math.hypot(dx, dy, dz) || 1;
     player.vel.x += dx / l * 11 * f; player.vel.y += Math.max(3, dy / l * 11) * f; player.vel.z += dz / l * 11 * f; player.onGround = false;
   }
@@ -3100,6 +3119,7 @@ function drawRadar() {
   }
   for (const e of enemies) {
     if (e.dead) continue; const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z, d = Math.hypot(dx, dz);
+    if (isAlly(PLAYER_T, e)) { g.fillStyle = '#4fb4ff'; g.beginPath(); g.arc(dx * R, dz * R, 3.2, 0, 7); g.fill(); continue; }
     if (game.time - e.lastFired < 2 || d < (settings.cls === 'wolf' ? 20 : 12) || e.aimT > 0 || player.pulseT > 0) { g.fillStyle = e.T.sniper ? '#ff3030' : '#ff5a4a'; g.beginPath(); g.arc(dx * R, dz * R, e.T.scale > 1.1 ? 4.5 : 3.2, 0, 7); g.fill(); }
   }
   g.restore();
@@ -3112,14 +3132,15 @@ function updateHUD(dt) {
   const alive = enemies.filter(e => !e.dead).length;
   if (MP.active || game.mode === 'botdm') {
     const bd = game.mode === 'botdm', t = Math.max(0, Math.ceil(bd ? BD.matchT : MP.matchT)); setText('wavel', 'TIME'); setText('wave', Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'));
-    let lead = null; for (const p of bd ? BD.stats : Object.values(MP.players)) if (!lead || p.kills > lead.kills) lead = p;
+    if (bd && BD.teams) { setText('leftl', 'BLUE · YOU'); setText('left', `<span style="color:#7ac4ff">${BD.teamKills[0]}</span> / ${BD.limit}`); setText('scorel', 'RED'); setText('score', `<span style="color:#ff7a7a">${BD.teamKills[1]}</span> / ${BD.limit}`); }
+    else { let lead = null; for (const p of bd ? BD.stats : Object.values(MP.players)) if (!lead || p.kills > lead.kills) lead = p;
     setText('leftl', 'LEADER'); setText('left', lead ? esc(lead.name.slice(0, 10)) + ' ' + lead.kills : '–');
-    setText('scorel', 'YOUR KILLS'); setText('score', (bd ? BD.stats[0].kills : game.kills) + ' / ' + (bd ? BD.limit : MP.limit));
+    setText('scorel', 'YOUR KILLS'); setText('score', (bd ? BD.stats[0].kills : game.kills) + ' / ' + (bd ? BD.limit : MP.limit)); }
     if (!player.alive) { $('hint').textContent = 'RESPAWNING IN ' + Math.max(0, Math.ceil(MP.respawnT)); $('hint').style.color = '#ffcf6b'; hud.hintT = 0.3; }
   } else { setText('wavel', 'WAVE'); setText('scorel', 'SCORE'); setText('wave', String(game.wave || '–')); }
   if (MP.active || game.mode === 'botdm') {} else if (game.phase === 'inter') { setText('leftl', 'NEXT WAVE'); setText('left', Math.ceil(Math.max(0, game.interT)) + 's'); }
   else { setText('leftl', 'HOSTILES'); setText('left', String(alive + game.queue.length)); }
-  if (!MP.active) setText('score', String(game.score));
+  if (!MP.active && game.mode !== 'botdm') setText('score', String(game.score));
   setText('hpn', String(Math.ceil(player.hp))); setText('regen', String(player.regenCap));
   const hpf = $('hpfill'); const hpw = (player.hp / player.maxHp * 100) + '%';
   $('shfill').style.width = (player.shield / 60 * 100) + '%';
@@ -3883,7 +3904,7 @@ function initUI() {
   $('play').onclick = startGame;
   $('mpbtn').onclick = openMpScreen;
   $('botbtn').onclick = startBotMatch;
-  for (const [id, key, def] of [['bots', 'bots', 5], ['botDiff', 'botDiff', 'normal']]) { const el = $(id); el.value = settings[key] || def; el.onchange = () => { settings[key] = id === 'bots' ? +el.value : el.value; saveSettings(); }; }
+  for (const [id, key, def] of [['bots', 'bots', 5], ['botDiff', 'botDiff', 'normal'], ['botMode', 'botMode', 'ffa']]) { const el = $(id); el.value = settings[key] || def; el.onchange = () => { settings[key] = id === 'bots' ? +el.value : el.value; saveSettings(); }; }
   renderLoadout($('loadout'));
   const cl = $('classes');
   const renderClasses = window.renderClassesUI = () => { cl.innerHTML = ''; for (const k in CLASSES) { const C = CLASSES[k]; const b = document.createElement('button'); b.className = 'wcard cls' + (settings.cls === k ? ' on' : '');
