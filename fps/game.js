@@ -1295,7 +1295,7 @@ function resetRun() {
   barrels.forEach(b => { b.box.dead = false; b.hp = 30; b.fuse = 0; b.mesh.visible = true; });
   const s = world.L.spawn;
   const C = cls();
-  Object.assign(player, { maxHp: C.hp, hp: C.hp, regenCap: C.hp, abilityCD: 0, stimT: 0, shield: 0, shieldT: 0, pulseT: 0, lastDmgT: 99, alive: true, grenades: C.nades, gcd: 0, crouch: 0, sliding: false, slideT: 0, slideCD: 0, h: 1.75, onGround: false, stepSmooth: 0, landKick: 0, yaw: s.yaw, pitch: 0, sprintLock: 0 });
+  Object.assign(player, { protT: 0, maxHp: C.hp, hp: C.hp, regenCap: C.hp, abilityCD: 0, stimT: 0, shield: 0, shieldT: 0, pulseT: 0, lastDmgT: 99, alive: true, grenades: C.nades, gcd: 0, crouch: 0, sliding: false, slideT: 0, slideCD: 0, h: 1.75, onGround: false, stepSmooth: 0, landKick: 0, yaw: s.yaw, pitch: 0, sprintLock: 0 });
   player.pos.set(s.x, s.y + 0.05, s.z); player.vel.set(0, 0, 0);
   inv = WEAPONS.map(w => ({ mag: w.mag, res: w.res }));
   carry = loadoutIdx(); renderSlots();
@@ -1762,7 +1762,7 @@ function updateHUD(dt) {
 // ============================================================ FLOW
 function showScreen(id) { for (const s of ['menu', 'pause', 'over', 'armory', 'mp', 'mpover']) $(s).classList.toggle('on', s === id); $('hud').classList.toggle('on', id === null || id === 'pause'); }
 function startGame() {
-  sfx.init(); resize(); if (MP.peer) mpCleanup();
+  sfx.init(); resize(); if (MP.peer) { sayBye(); mpCleanup(); }
   if (!world || world.def !== MAPS[settings.map] || world.shadows !== QUALITY[settings.quality].shadows) { loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows; }
   resetRun(); game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock();
 }
@@ -1806,7 +1806,7 @@ function openArmory() {
   if (document.pointerLockElement) document.exitPointerLock();
   renderLoadout($('armlist'), applyLoadoutMidRun); showScreen('armory');
 }
-function toMenu() { if (MP.active) { mpCleanup(); clearRemotes(); } game.state = 'menu'; showScreen('menu'); if (document.pointerLockElement) document.exitPointerLock(); renderBest(); }
+function toMenu() { $('ping').style.display = 'none'; if (MP.active) { sayBye(); mpCleanup(); clearRemotes(); } game.state = 'menu'; showScreen('menu'); if (document.pointerLockElement) document.exitPointerLock(); renderBest(); }
 function die() {
   if (MP.active) return mpDie();
   player.alive = false; game.state = 'dying'; game.dieT = 1.6; mouseL = mouseR = false; wst.reloading = false;
@@ -1847,7 +1847,7 @@ function updateDmgNumbers(dt) {
 // ============================================================ MULTIPLAYER (peer-to-peer via WebRTC / PeerJS)
 // Topology: the lobby host is the hub. Clients send to the host, the host stamps the sender id and relays.
 // Damage is applied by the victim's own client (so class abilities like Overshield work), scores are kept by the host.
-const MP = { active: false, peer: null, isHost: false, conns: new Map(), host: null, myId: '', code: '', players: {}, map: 0, limit: 20, time: 480, matchT: 0, sendT: 0, joined: false, lastAttacker: null, lastAttackT: -99, lastHead: false, pickPending: -1, respawnT: 0, nextColor: 1 };
+const MP = { seen: {}, lastHost: 0, active: false, peer: null, isHost: false, conns: new Map(), uconns: new Map(), mesh: new Map(), hostU: null, seq: 0, pingTimer: 0, host: null, myId: '', code: '', players: {}, map: 0, limit: 20, time: 480, matchT: 0, sendT: 0, joined: false, lastAttacker: null, lastAttackT: -99, lastHead: false, pickPending: -1, respawnT: 0, nextColor: 1 };
 const remotes = new Map();
 const PCOLORS = [0xff7a1a, 0x3fa7ff, 0x5dff9a, 0xff4fd8, 0xffd23a, 0xa07aff, 0xff5a5a, 0x4fffe8];
 const PREFIX = 'breachpoint-v1-';
@@ -1871,15 +1871,31 @@ function meInfo() { return { name: cleanName(settings.name), cls: settings.cls, 
 function mpCleanup() {
   clearRemotes();
   try { if (MP.peer) MP.peer.destroy(); } catch (e) {}
-  Object.assign(MP, { active: false, peer: null, isHost: false, host: null, myId: '', code: '', players: {}, joined: false, nextColor: 1 });
-  MP.conns = new Map();
+  clearInterval(MP.pingTimer);
+  Object.assign(MP, { active: false, peer: null, isHost: false, host: null, hostU: null, myId: '', code: '', players: {}, joined: false, nextColor: 1, pingTimer: 0 });
+  MP.conns = new Map(); MP.uconns = new Map(); MP.mesh = new Map(); MP.seen = {};
 }
 function hostLobby() {
   if (typeof Peer === 'undefined') return setMpStatus('Networking library failed to load.', true);
   mpCleanup(); MP.isHost = true; MP.code = makeCode(); setMpStatus('Creating lobby…');
   const peer = MP.peer = new Peer(PREFIX + MP.code, peerOpts());
-  peer.on('open', id => { MP.myId = id; MP.players = { [id]: meInfo() }; setMpStatus(''); mpView('lobby'); renderLobby(); });
+  peer.on('open', id => {
+    MP.myId = id; MP.players = { [id]: meInfo() }; MP.players[id].ping = 0; setMpStatus(''); mpView('lobby'); renderLobby();
+    let tick = 0;
+    MP.pingTimer = setInterval(() => { // measure round-trip time to every client, share results every 2s
+      const now = performance.now();
+      for (const id in MP.players) if (id !== MP.myId && now - (MP.seen[id] || now) > 7000) { const c = MP.conns.get(id); dropPlayer(id); try { c && c.close(); } catch (e) {} } // silent for 7s = gone
+      for (const id of MP.conns.keys()) sendTo(id, { t: 'pi', c: now }, true);
+      if (++tick % 2 === 0) { const p = {}; for (const id in MP.players) p[id] = MP.players[id].ping | 0; bcast({ t: 'pings', p }); if (!MP.active) renderLobby(); }
+    }, 1000);
+  });
   peer.on('connection', conn => {
+    if (conn.metadata && conn.metadata.ch === 'u') { // fast lane: unordered channel for positions + pings
+      conn.on('open', () => MP.uconns.set(conn.peer, conn));
+      conn.on('data', d => hostRecv(conn.peer, d));
+      conn.on('close', () => MP.uconns.delete(conn.peer));
+      return;
+    }
     conn.on('open', () => {
       if (Object.keys(MP.players).length >= 8 || MP.active) { conn.send({ t: 'full', why: MP.active ? 'Match already in progress — try again when it ends.' : 'Lobby is full (8 players).' }); setTimeout(() => conn.close(), 400); return; }
       MP.conns.set(conn.peer, conn);
@@ -1905,33 +1921,70 @@ function joinLobby(raw) {
   peer.on('open', id => {
     MP.myId = id;
     const c = MP.host = peer.connect(PREFIX + code, { reliable: true });
-    const to = setTimeout(() => { if (!MP.joined) setMpStatus('Could not reach lobby ' + code + '. Check the code and try again.', true); }, 10000);
-    c.on('open', () => c.send({ t: 'hello', name: settings.name, cls: settings.cls }));
-    c.on('data', d => { if (!MP.joined) { MP.joined = true; clearTimeout(to); } clientRecv(d); });
+    const to = MP.joinTO = setTimeout(() => { if (!MP.joined && MP.peer === peer) setMpStatus('Could not reach lobby ' + code + '. Check the code and try again.', true); }, 10000);
+    c.on('open', () => {
+      c.send({ t: 'hello', name: settings.name, cls: settings.cls });
+      const u = MP.hostU = peer.connect(PREFIX + code, { reliable: false, metadata: { ch: 'u' } });
+      u.on('data', clientRecv);
+    });
+    c.on('data', d => {
+      if (!MP.joined) { MP.joined = true; clearTimeout(to); MP.lastHost = performance.now(); MP.pingTimer = setInterval(() => { if (performance.now() - MP.lastHost > 7000) hostGone(); }, 1000); }
+      clientRecv(d);
+    });
     c.on('close', hostGone);
   });
+  peer.on('connection', conn => { // direct client<->client links for movement (skips the host hop)
+    if (!conn.metadata || conn.metadata.ch !== 'm') return conn.close();
+    conn.on('open', () => { if (MP.players[conn.peer]) MP.mesh.set(conn.peer, conn); else conn.close(); });
+    conn.on('data', d => meshRecv(conn.peer, d));
+    conn.on('close', () => MP.mesh.delete(conn.peer));
+  });
   peer.on('error', e => {
+    clearTimeout(MP.joinTO);
     if (e.type !== 'peer-unavailable') { try { peer.destroy(); } catch (x) {} MP.peer = null; }
     setMpStatus(e.type === 'peer-unavailable' ? 'Lobby ' + code + ' not found. Check the code.' : e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error' ? 'Could not reach the matchmaking server. Check your connection and try again.' : 'Network error: ' + e.type, true);
   });
 }
-function leaveLobby() { mpCleanup(); mpView('join'); setMpStatus(''); }
-function hostGone() {
+function sayBye() {
   if (!MP.peer) return;
+  try { if (MP.isHost) bcast({ t: 'bye' }); else if (MP.host && MP.host.open) MP.host.send({ t: 'bye' }); } catch (e) {}
+}
+addEventListener('pagehide', () => { sayBye(); try { MP.peer && MP.peer.destroy(); } catch (e) {} });
+function leaveLobby() { sayBye(); mpCleanup(); mpView('join'); setMpStatus(''); }
+function hostGone() {
+  if (!MP.peer || MP.isHost) return;
   const wasActive = MP.active; mpCleanup();
   if (wasActive || game.state === 'mpover') { toMenu(); }
   openMpScreen(); setMpStatus('The host left the lobby.', true);
 }
-function bcast(msg, except) { for (const [id, c] of MP.conns) if (id !== except && c.open) { try { c.send(msg); } catch (e) {} } }
+function sendTo(id, msg, fast) {
+  const u = fast && MP.uconns.get(id), c = u && u.open ? u : MP.conns.get(id);
+  if (c && c.open) { try { c.send(msg); } catch (e) {} }
+}
+function bcast(msg, except, fast) { for (const id of MP.conns.keys()) if (id !== except) sendTo(id, msg, fast); }
 function netSend(msg) {
   msg.id = MP.myId;
-  if (MP.isHost) { bcast(msg); if (msg.t === 'die') hostDeath(msg); if (msg.t === 'pickreq') hostPick(MP.myId, msg.k); }
-  else if (MP.host && MP.host.open) { try { MP.host.send(msg); } catch (e) {} }
+  const fast = msg.t === 'st';
+  if (fast) msg.q = ++MP.seq;
+  if (MP.isHost) { bcast(msg, null, fast); if (msg.t === 'die') hostDeath(msg); if (msg.t === 'pickreq') hostPick(MP.myId, msg.k); return; }
+  const c = fast && MP.hostU && MP.hostU.open ? MP.hostU : MP.host;
+  if (c && c.open) { try { c.send(msg); } catch (e) {} }
+  if (fast) for (const m of MP.mesh.values()) if (m.open) { try { m.send(msg); } catch (e) {} }
+}
+function meshRecv(from, d) { if (d && typeof d === 'object' && d.t === 'st' && MP.players[from]) { d.id = from; handleGame(d); } }
+function connectMesh() { // each client links directly to every other client (lower id dials) — falls back to host relay if it fails
+  for (const id in MP.players) {
+    if (id === MP.myId || id === MP.hostId || MP.mesh.has(id) || id < MP.myId) continue;
+    const c = MP.peer.connect(id, { reliable: false, metadata: { ch: 'm' } });
+    c.on('open', () => MP.mesh.set(id, c)); c.on('data', d => meshRecv(id, d)); c.on('close', () => MP.mesh.delete(id));
+  }
 }
 function lobbyMsg() { return { t: 'lobby', players: MP.players, map: MP.map, limit: MP.limit, time: MP.time, hostId: MP.myId }; }
 function broadcastLobby() { bcast(lobbyMsg()); renderLobby(); }
 function hostRecv(from, d) {
   if (!d || typeof d !== 'object' || typeof d.t !== 'string') return;
+  MP.seen[from] = performance.now();
+  if (d.t === 'bye') { const c = MP.conns.get(from); dropPlayer(from); try { c && c.close(); } catch (e) {} return; }
   if (d.t === 'hello') {
     if (MP.players[from] || !MP.conns.has(from)) return;
     MP.players[from] = { name: cleanName(d.name), cls: CLASSES[d.cls] ? d.cls : 'assault', kills: 0, deaths: 0, color: MP.nextColor++ % PCOLORS.length };
@@ -1940,9 +1993,10 @@ function hostRecv(from, d) {
   if (d.t === 'info') { const p = MP.players[from]; if (p) { p.name = cleanName(d.name); p.cls = CLASSES[d.cls] ? d.cls : p.cls; broadcastLobby(); } return; }
   if (!MP.players[from]) return;
   d.id = from;
+  if (d.t === 'po') { const rtt = performance.now() - num(d.c, 0); if (rtt >= 0 && rtt < 5000) { const p = MP.players[from]; p.ping = p.ping ? lerp(p.ping, rtt, 0.3) : rtt; } return; }
   if (d.t === 'pickreq') return hostPick(from, d.k);
   if (!['st', 'shot', 'hit', 'die', 'nade'].includes(d.t)) return;
-  bcast(d, from);
+  bcast(d, from, d.t === 'st');
   if (d.t === 'die') hostDeath(d);
   handleGame(d);
 }
@@ -1954,17 +2008,21 @@ function dropPlayer(id) {
 }
 function clientRecv(d) {
   if (!d || typeof d !== 'object' || typeof d.t !== 'string') return;
+  MP.lastHost = performance.now();
+  if (d.t === 'bye') return hostGone();
   switch (d.t) {
+    case 'pi': { const c = MP.hostU && MP.hostU.open ? MP.hostU : MP.host; if (c && c.open) c.send({ t: 'po', c: d.c }); return; }
+    case 'pings': if (d.p && typeof d.p === 'object') { for (const id in d.p) if (MP.players[id]) MP.players[id].ping = clamp(num(d.p[id]) | 0, 0, 9999); if (!MP.active) renderLobby(); } return;
     case 'full': setMpStatus(d.why ? String(d.why).slice(0, 80) : 'Lobby unavailable.', true); return;
     case 'lobby': {
-      const ps = {}; if (d.players && typeof d.players === 'object') for (const id of Object.keys(d.players).slice(0, 8)) { const p = d.players[id] || {}; ps[id] = { name: cleanName(p.name), cls: CLASSES[p.cls] ? p.cls : 'assault', kills: num(p.kills) | 0, deaths: num(p.deaths) | 0, color: num(p.color) | 0 }; }
+      const ps = {}; if (d.players && typeof d.players === 'object') for (const id of Object.keys(d.players).slice(0, 8)) { const p = d.players[id] || {}; ps[id] = { name: cleanName(p.name), cls: CLASSES[p.cls] ? p.cls : 'assault', kills: num(p.kills) | 0, deaths: num(p.deaths) | 0, color: num(p.color) | 0, ping: num(p.ping) | 0 }; }
       MP.players = ps; MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 100); MP.time = clamp(num(d.time, 480) | 0, 60, 1800); MP.hostId = String(d.hostId || '');
       if (!MP.active && game.state !== 'mpover') { setMpStatus(''); mpView('lobby'); } renderLobby(); return;
     }
     case 'start': startMatch(d); return;
     case 'end': endMatch(d); return;
     case 'score': if (d.players && typeof d.players === 'object') for (const id in d.players) if (MP.players[id]) { MP.players[id].kills = num(d.players[id].kills) | 0; MP.players[id].deaths = num(d.players[id].deaths) | 0; } return;
-    case 'left': { const n = pname(d.id); delete MP.players[d.id]; removeRemote(d.id); if (MP.active) addFeed(esc(n) + ' left the match'); renderLobby(); return; }
+    case 'left': { const n = pname(d.id); const m = MP.mesh.get(d.id); if (m) { try { m.close(); } catch (e) {} MP.mesh.delete(d.id); } delete MP.players[d.id]; removeRemote(d.id); if (MP.active) addFeed(esc(n) + ' left the match'); renderLobby(); return; }
     case 'picked': handlePicked(d); return;
     default: handleGame(d);
   }
@@ -2046,17 +2104,23 @@ class Remote {
   }
   push(d) {
     const p = arrV3(d.p); if (!p) return;
-    this.snaps.push({ t: performance.now(), x: p.x, y: p.y, z: p.z, yaw: num(d.yaw), h: clamp(num(d.h, 1.75), 1, 1.8), alive: !!d.alive });
+    const q = num(d.q, 0); if (q && q <= (this.lastQ || 0)) return; this.lastQ = q; // unordered channel + mesh/relay duplicates
+    const now = performance.now();
+    if (this.lastArr) { const iv = Math.min(now - this.lastArr, 500); this.ivAvg = lerp(this.ivAvg || 33, iv, 0.1); this.jit = lerp(this.jit || 5, Math.abs(iv - this.ivAvg), 0.1); }
+    this.lastArr = now;
+    this.delay = clamp((this.ivAvg || 33) + (this.jit || 5) * 2.5 + 8, 40, 220); // just enough buffer to hide this connection's jitter
+    this.snaps.push({ t: now, x: p.x, y: p.y, z: p.z, yaw: num(d.yaw), h: clamp(num(d.h, 1.75), 1, 1.8), alive: !!d.alive });
     if (this.snaps.length > 40) this.snaps.shift();
   }
   update(dt) {
     const n = this.snaps.length; if (!n) return;
-    const rt = performance.now() - 110; let a = this.snaps[n - 1], b = a, k = 0;
-    for (let i = n - 1; i > 0; i--) if (this.snaps[i - 1].t <= rt) { a = this.snaps[i - 1]; b = this.snaps[i]; k = clamp((rt - a.t) / Math.max(1, b.t - a.t), 0, 1); break; }
+    const rt = performance.now() - (this.delay || 80); let a = this.snaps[n - 1], b = a, k = 0;
+    if (n > 1 && rt > this.snaps[n - 1].t) { a = this.snaps[n - 2]; b = this.snaps[n - 1]; k = 1 + Math.min(rt - b.t, 100) / Math.max(1, b.t - a.t); k = Math.min(k, 1.5); } // brief extrapolation if a packet is late
+    else for (let i = n - 1; i > 0; i--) if (this.snaps[i - 1].t <= rt) { a = this.snaps[i - 1]; b = this.snaps[i]; k = clamp((rt - a.t) / Math.max(1, b.t - a.t), 0, 1); break; }
     const px = this.pos.x, pz = this.pos.z;
     if (Math.hypot(b.x - a.x, b.z - a.z) > 6) k = 1; // teleport (respawn) — don't interpolate across the map
     this.pos.set(lerp(a.x, b.x, k), lerp(a.y, b.y, k), lerp(a.z, b.z, k));
-    this.yaw = a.yaw + angDiff(a.yaw, b.yaw) * k; this.h = b.h + 0.07;
+    this.yaw = a.yaw + angDiff(a.yaw, b.yaw) * Math.min(k, 1); this.h = b.h + 0.07;
     const alive = b.alive;
     if (alive && this.dead) { this.dead = false; this.group.rotation.x = 0; this.bodyMat.color.setHex(PCOLORS[(MP.players[this.id] || { color: 0 }).color % PCOLORS.length]); }
     if (!alive && !this.dead) { this.dead = true; this.deadT = 0; this.fallDir = Math.random() < 0.5 ? 1 : -1; this.bodyMat.color.multiplyScalar(0.5); }
@@ -2101,11 +2165,11 @@ function mpRespawn() {
 function hostStartMatch() {
   if (!MP.isHost || Object.keys(MP.players).length < 2) return;
   for (const id in MP.players) { MP.players[id].kills = 0; MP.players[id].deaths = 0; }
-  const msg = { t: 'start', map: MP.map, limit: MP.limit, time: MP.time, players: MP.players };
+  const msg = { t: 'start', map: MP.map, limit: MP.limit, time: MP.time, players: MP.players, hostId: MP.myId };
   bcast(msg); startMatch(msg);
 }
 function startMatch(d) {
-  sfx.init();
+  sfx.init(); if (!MP.isHost && typeof d.hostId === 'string') MP.hostId = d.hostId;
   MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 100); MP.time = clamp(num(d.time, 480) | 0, 60, 1800);
   for (const id in MP.players) { MP.players[id].kills = 0; MP.players[id].deaths = 0; }
   if (!world || world.def !== MAPS[MP.map]) { loadMap(MP.map); world.shadows = QUALITY[settings.quality].shadows; }
@@ -2114,8 +2178,9 @@ function startMatch(d) {
   for (const b of barrels) { b.box.dead = true; b.mesh.visible = false; b.respawn = 1e9; }
   for (const id in MP.players) if (id !== MP.myId) remotes.set(id, new Remote(id, MP.players[id]));
   remoteList = [...remotes.values()];
+  if (!MP.isHost) connectMesh();
   mpRespawn(); hudCache = {};
-  game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock();
+  game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock(); $('ping').style.display = 'block';
   showMsg('DEATHMATCH', `FIRST TO ${MP.limit} KILLS`, 3); sfx.play('wave');
 }
 function hostEndMatch(why) {
@@ -2125,7 +2190,7 @@ function hostEndMatch(why) {
 function endMatch(d) {
   if (!MP.active) return;
   if (d.players && typeof d.players === 'object') for (const id in d.players) if (MP.players[id]) { MP.players[id].kills = num(d.players[id].kills) | 0; MP.players[id].deaths = num(d.players[id].deaths) | 0; }
-  MP.active = false; clearRemotes(); grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
+  MP.active = false; $('ping').style.display = 'none'; clearRemotes(); grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   game.state = 'mpover'; if (document.pointerLockElement) document.exitPointerLock();
   const rows = Object.entries(MP.players).sort((a, b) => b[1].kills - a[1].kills || a[1].deaths - b[1].deaths);
   $('mpWinner').textContent = rows.length ? `${rows[0][1].name} WINS` : 'MATCH OVER';
@@ -2134,14 +2199,24 @@ function endMatch(d) {
   showScreen('mpover'); sfx.play('clear');
 }
 function scoreTable(rows) {
-  return `<table class="sb"><tr><th>#</th><th>PLAYER</th><th>CLASS</th><th>K</th><th>D</th></tr>` + rows.map(([id, p], i) =>
-    `<tr class="${id === MP.myId ? 'me' : ''}"><td>${i + 1}</td><td><i style="background:#${new THREE.Color(PCOLORS[p.color % PCOLORS.length]).getHexString()}"></i>${esc(p.name)}</td><td>${esc(CLASSES[p.cls] ? CLASSES[p.cls].name : '')}</td><td>${p.kills}</td><td>${p.deaths}</td></tr>`).join('') + '</table>';
+  const hostId = MP.isHost ? MP.myId : MP.hostId;
+  return `<table class="sb"><tr><th>#</th><th>PLAYER</th><th>CLASS</th><th>K</th><th>D</th><th>PING</th></tr>` + rows.map(([id, p], i) =>
+    `<tr class="${id === MP.myId ? 'me' : ''}"><td>${i + 1}</td><td><i style="background:#${new THREE.Color(PCOLORS[p.color % PCOLORS.length]).getHexString()}"></i>${esc(p.name)}</td><td>${esc(CLASSES[p.cls] ? CLASSES[p.cls].name : '')}</td><td>${p.kills}</td><td>${p.deaths}</td><td>${pingHtml(id, hostId)}</td></tr>`).join('') + '</table>';
+}
+function pingHtml(id, hostId) {
+  if (id === hostId) return '<span class="pg g">host</span>';
+  const p = MP.players[id] ? MP.players[id].ping | 0 : 0; if (!p) return '<span class="pg">…</span>';
+  return `<span class="pg ${p < 80 ? 'g' : p < 160 ? 'y' : 'r'}">${p} ms</span>`;
 }
 function updateMP(dt) {
+  const me = MP.players[MP.myId];
+  setText('ping', MP.isHost ? 'HOST · 0 ms' : me && me.ping ? 'PING ' + (me.ping | 0) + ' ms' : 'PING …');
+  const pc = MP.isHost || !me ? 'g' : me.ping < 80 ? 'g' : me.ping < 160 ? 'y' : 'r';
+  if (hudCache.pc !== pc) { hudCache.pc = pc; $('ping').className = 'pg ' + pc; }
   for (const r of remoteList) r.update(dt);
   MP.sendT -= dt;
   if (MP.sendT <= 0) {
-    MP.sendT = 0.05;
+    MP.sendT = 1 / 30;
     netSend({ t: 'st', p: v3a(player.pos), yaw: Math.round(player.yaw * 1000) / 1000, h: Math.round(player.h * 100) / 100, alive: player.alive });
   }
   if (!player.alive) { MP.respawnT -= dt; game.deadT = (game.deadT || 0) + dt; if (MP.respawnT <= 0) mpRespawn(); }
@@ -2165,7 +2240,7 @@ function renderLobby() {
   $('mpCodeTxt').textContent = MP.code;
   const ids = Object.keys(MP.players), hostId = MP.isHost ? MP.myId : MP.hostId;
   $('mpCount').textContent = ids.length;
-  $('mpPlayers').innerHTML = ids.map(id => { const p = MP.players[id]; return `<div class="pl"><i style="background:#${new THREE.Color(PCOLORS[p.color % PCOLORS.length]).getHexString()}"></i><b>${esc(p.name)}</b><span>${esc(CLASSES[p.cls] ? CLASSES[p.cls].name : '')}</span>${id === hostId ? '<em>HOST</em>' : ''}${id === MP.myId ? '<em class="you">YOU</em>' : ''}</div>`; }).join('');
+  $('mpPlayers').innerHTML = ids.map(id => { const p = MP.players[id]; return `<div class="pl"><i style="background:#${new THREE.Color(PCOLORS[p.color % PCOLORS.length]).getHexString()}"></i><b>${esc(p.name)}</b><span>${esc(CLASSES[p.cls] ? CLASSES[p.cls].name : '')}</span><span class="png">${pingHtml(id, hostId)}</span>${id === hostId ? '<em>HOST</em>' : ''}${id === MP.myId ? '<em class="you">YOU</em>' : ''}</div>`; }).join('');
   $('mpHostCtl').style.display = MP.isHost ? 'grid' : 'none';
   $('mpInfo').textContent = `${MAPS[MP.map].name} · first to ${MP.limit} kills · ${Math.round(MP.time / 60)} min`;
   const can = ids.length >= 2;
@@ -2302,5 +2377,5 @@ WEAPONS.forEach(w => vmModels.push(makeGun(w)));
 resize(); loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows;
 initUI(); initMpUI(); initDmgNumbers();
 requestAnimationFrame(frame);
-window.__bp = { MP, remotes, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
+window.__bp = { MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = l; mouseR = r; } };
 })();

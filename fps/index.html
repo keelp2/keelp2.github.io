@@ -151,6 +151,9 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
 .sb th{font-size:10px;letter-spacing:.15em;color:var(--mut);text-align:left;padding:4px 6px;font-weight:600}
 .sb td{padding:6px;border-top:1px solid var(--line)}
 .sb tr.me td{background:rgba(255,122,26,.12)}
+#ping{position:absolute;left:18px;top:192px;width:170px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.1em;text-shadow:0 1px 3px #000}
+.pg{font-variant-numeric:tabular-nums;font-size:12px}.pg.g{color:#5dff9a}.pg.y{color:#ffcf6b}.pg.r{color:#ff5a4a}
+.pl .png{margin-left:auto}
 @media (max-width:700px){.cards{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}h1{font-size:32px}#radar{display:none}}
 </style>
 </head>
@@ -190,6 +193,7 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
     <div id="nades">GRENADES ●●</div>
   </div>
   <div id="fps"></div>
+  <div id="ping" class="pg g" style="display:none"></div>
 </div>
 <div id="lockmsg">CLICK TO CAPTURE MOUSE</div>
 
