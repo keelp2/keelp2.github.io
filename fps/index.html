@@ -50,6 +50,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 #msg h2{margin:0;font-size:52px;letter-spacing:.12em;font-weight:800}
 #msg p{margin:4px 0 0;font-size:16px;color:#ffd3b0;letter-spacing:.1em}
 #streak{position:absolute;top:36%;left:0;right:0;text-align:center;font-size:24px;font-weight:800;color:var(--acc);letter-spacing:.15em;opacity:0;text-shadow:0 2px 10px #000}
+.xppop{position:absolute;left:calc(50% + 44px);top:calc(50% - 30px);font-size:13px;font-weight:800;letter-spacing:.08em;color:#ffe08a;text-shadow:0 1px 4px #000;pointer-events:none;animation:xpup 1.4s ease-out forwards}.xppop b{font-size:16px;color:#fff}
+@keyframes xpup{0%{opacity:0;transform:translateY(6px) scale(.9)}12%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-22px)}}
+#lvlup{position:absolute;left:50%;top:18%;display:flex;align-items:center;gap:14px;padding:12px 26px 12px 16px;background:linear-gradient(90deg,rgba(10,12,16,0),rgba(10,12,16,.82) 18%,rgba(10,12,16,.82) 82%,rgba(10,12,16,0));transform:translate(-50%,-20px);opacity:0;pointer-events:none;transition:opacity .35s,transform .45s cubic-bezier(.2,1.4,.4,1)}
+#lvlup.on{opacity:1;transform:translate(-50%,0)}#lvlup small{display:block;font-size:11px;letter-spacing:.35em;color:#ffb27a;font-weight:800}#lvlup b{display:block;font-size:30px;font-weight:900;letter-spacing:.08em}#lvlup i{font-style:normal;font-size:12px;letter-spacing:.25em;color:#cfd6e0}
 #hint{position:absolute;top:58%;left:0;right:0;text-align:center;font-size:14px;letter-spacing:.15em;color:#ffcf6b;text-shadow:0 1px 4px #000;opacity:0}
 #hp{position:absolute;left:18px;bottom:18px;padding:10px 14px;width:270px}
 #hp .lbl{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.18em;color:var(--mut)}
@@ -486,7 +490,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611201800"></script>
+<script src="game.js?v=202611202300"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
