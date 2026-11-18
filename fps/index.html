@@ -251,7 +251,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 .lochoices .wcards{grid-template-columns:repeat(auto-fill,minmax(185px,1fr))}.lochoices .attrow{margin-top:12px}
 .pclsgrid{grid-template-columns:repeat(3,1fr)}.pclsgrid .wcard{padding:8px}.pnote{font-size:11px;color:var(--mut);margin:6px 0 4px}
 /* ---------- match intro ---------- */
-#introov{position:fixed;inset:0;pointer-events:none;display:none;z-index:30}#introov.on{display:block}
+#introov{position:fixed;inset:0;pointer-events:none;display:none;z-index:30}#introov.on{display:block}#ifade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
 #introov .lb{position:absolute;left:0;right:0;height:11vh;background:#000;transition:transform .6s ease-in}#introov .lb.t{top:0}#introov .lb.b{bottom:0}
 #introov.cd .lb.t{transform:translateY(-100%)}#introov.cd .lb.b{transform:translateY(100%)}
 #introov .icard{position:absolute;left:6vw;bottom:16vh;animation:icIn .7s ease-out}#introov.cd .icard{opacity:0;transition:opacity .4s}
@@ -396,7 +396,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 </div>
 
 <div id="outroov"><div class="obanner"><h2 id="outroTitle">VICTORY</h2><p id="outroWhy"></p></div></div>
-<div id="introov"><i class="lb t"></i><i class="lb b"></i><div class="icard"><small id="introMode"></small><h2 id="introMap"></h2><p id="introObj"></p></div><div id="introCount"></div></div>
+<div id="introov"><div id="ifade"></div><i class="lb t"></i><i class="lb b"></i><div class="icard"><small id="introMode"></small><h2 id="introMap"></h2><p id="introObj"></p></div><div id="introCount"></div></div>
 <div id="loading"><div class="ldbg" id="ldbg"></div><div class="ldshade"></div>
   <div class="ldtop"><span class="logo">BREACH<span>POINT</span></span></div>
   <div class="ldinfo"><small id="ldmode">SURVIVAL</small><h2 id="ldmap">MAP</h2><p id="lddesc"></p></div>
@@ -486,7 +486,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611201200"></script>
+<script src="game.js?v=202611201800"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>

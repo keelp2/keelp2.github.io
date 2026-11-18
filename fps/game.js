@@ -331,10 +331,13 @@ const sfx = {
       case 'hit': N({ dur: 0.03, type: 'bandpass', f: 4200, q: 6, g: 0.5 }); T({ type: 'square', f: 1900, dur: 0.025, g: 0.06 }); break;
       case 'head': T({ type: 'sine', f: 2600, dur: 0.2, g: 0.3 }); N({ dur: 0.04, type: 'bandpass', f: 5000, q: 6, g: 0.5 }); break;
       case 'kill': N({ dur: 0.06, type: 'bandpass', f: 2500, q: 3, g: 0.6 }); T({ type: 'triangle', f: 520, f2: 380, dur: 0.18, g: 0.3 }); break;
+      case 'glass': { N({ dur: 0.07, type: 'highpass', f: 2400, q: 0.6, g: 0.9 }); N({ dur: 0.25, type: 'bandpass', f: 5200, q: 1.2, g: 0.45, delay: 0.02 }); // smash, then falling shards tinkling
+        for (let i = 0; i < 9; i++) T({ type: 'sine', f: rand(2800, 7200), dur: rand(0.04, 0.12), g: rand(0.03, 0.08), delay: 0.05 + i * rand(0.03, 0.07) }); N({ dur: 0.12, type: 'bandpass', f: 3800, q: 2, g: 0.25, delay: rand(0.35, 0.5) }); break; }
+      case 'board': N({ dur: 0.09, type: 'bandpass', f: 900, q: 1.2, g: 0.8 }); T({ type: 'triangle', f: 190, f2: 90, dur: 0.12, g: 0.35 }); N({ dur: 0.05, type: 'bandpass', f: 2400, q: 2, g: 0.35, delay: 0.04 }); break;
       // CoD-style hit markers: dry, crisp tick you can feel through a firefight
       case 'hm': N({ dur: 0.016, type: 'highpass', f: 2600, q: 0.7, g: 0.6 }); T({ type: 'triangle', f: 1420, f2: 1150, dur: 0.045, g: 0.17 }); T({ type: 'sine', f: 2850, dur: 0.028, g: 0.06 }); break;
       case 'hmhead': N({ dur: 0.02, type: 'highpass', f: 3000, q: 0.7, g: 0.65 }); T({ type: 'triangle', f: 1500, f2: 1200, dur: 0.05, g: 0.17 }); T({ type: 'sine', f: 3520, dur: 0.24, g: 0.12 }); T({ type: 'sine', f: 5280, dur: 0.12, g: 0.04 }); break; // metallic tink
-      case 'hmkill': N({ dur: 0.05, type: 'bandpass', f: 1900, q: 1.5, g: 0.55 }); T({ type: 'sine', f: 170, f2: 70, dur: 0.16, g: 0.45 }); T({ type: 'triangle', f: 980, f2: 720, dur: 0.11, g: 0.2 }); T({ type: 'sine', f: 1760, dur: 0.3, g: 0.08, d: 0.03 }); break; // thud + ding
+      case 'hmkill': N({ dur: 0.05, type: 'bandpass', f: 1900, q: 1.5, g: 0.55 }); T({ type: 'sine', f: 170, f2: 70, dur: 0.16, g: 0.45 }); T({ type: 'triangle', f: 980, f2: 720, dur: 0.11, g: 0.2 }); T({ type: 'sine', f: 1760, dur: 0.3, g: 0.08, delay: 0.03 }); break; // thud + ding
       case 'hmstun': N({ dur: 0.02, type: 'highpass', f: 2200, q: 0.7, g: 0.4 }); T({ type: 'sine', f: 2100, f2: 2400, dur: 0.09, g: 0.1 }); break;
       case 'hurt': N({ dur: 0.2, f: 700, f2: 150, g: 0.7 }); T({ f: 90, f2: 45, dur: 0.18, g: 0.55 }); break;
       case 'step': N({ dur: 0.08, f: rand(450, 750), f2: 140, g: 0.2 }); N({ dur: 0.03, type: 'highpass', f: 3000, g: 0.03, delay: 0.01 }); break;
@@ -1113,7 +1116,7 @@ function wallX2(L, x0, x1, z, th, y0, h, ops, m) {
     if (a > cur) L.box(cur, y0, z - th / 2, a, y0 + h, z + th / 2, m);
     if (o.y0 > 0) L.box(a, y0, z - th / 2, b, y0 + o.y0, z + th / 2, m);
     if (o.y1 < h) L.box(a, y0 + o.y1, z - th / 2, b, y0 + h, z + th / 2, m);
-    if (o.y0 > 0.5) L.box(a - 0.05, y0 + o.y0 - 0.08, z - th / 2 - 0.08, b + 0.05, y0 + o.y0, z + th / 2 + 0.08, 'stone', { col: false });
+    if (o.y0 > 0.5) { L.box(a - 0.05, y0 + o.y0 - 0.08, z - th / 2 - 0.08, b + 0.05, y0 + o.y0, z + th / 2 + 0.08, 'stone', { col: false }); winOpening(L, 'x', a, b, z, th, y0 + o.y0, y0 + Math.min(o.y1, h), o); }
     cur = b;
   }
   if (cur < x1) L.box(cur, y0, z - th / 2, x1, y0 + h, z + th / 2, m);
@@ -1125,17 +1128,27 @@ function wallZ2(L, z0, z1, x, th, y0, h, ops, m) {
     if (a > cur) L.box(x - th / 2, y0, cur, x + th / 2, y0 + h, a, m);
     if (o.y0 > 0) L.box(x - th / 2, y0, a, x + th / 2, y0 + o.y0, b, m);
     if (o.y1 < h) L.box(x - th / 2, y0 + o.y1, a, x + th / 2, y0 + h, b, m);
-    if (o.y0 > 0.5) L.box(x - th / 2 - 0.08, y0 + o.y0 - 0.08, a - 0.05, x + th / 2 + 0.08, y0 + o.y0, b + 0.05, 'stone', { col: false });
+    if (o.y0 > 0.5) { L.box(x - th / 2 - 0.08, y0 + o.y0 - 0.08, a - 0.05, x + th / 2 + 0.08, y0 + o.y0, b + 0.05, 'stone', { col: false }); winOpening(L, 'z', a, b, x, th, y0 + o.y0, y0 + Math.min(o.y1, h), o); }
     cur = b;
   }
   if (cur < z1) L.box(x - th / 2, y0, cur, x + th / 2, y0 + h, z1, m);
 }
-const D2 = c => ({ c, w: 1.8, y0: 0, y1: 2.5 }), W2 = c => ({ c, w: 1.3, y0: 1.0, y1: 2.3 });
+const D2 = c => ({ c, w: 1.8, y0: 0, y1: 2.5 }), W2 = c => ({ c, w: 1.4, y0: 0.95, y1: 2.4 }); // windows: 1.45 m tall, sill at hip height, so you can vault through crouched
+// a real window in a wall opening: wooden frame + a fill chosen from the position (same on every client)
+function winOpening(L, ax, a, b, c, th, y0, y1, o) {
+  if (o.open || y1 - y0 < 0.5) return;
+  const F = 0.07, d = th / 2 + 0.035, fr = (x0, yy0, x1, yy1) => ax === 'x' ? L.box(x0, yy0, c - d, x1, yy1, c + d, 'wood', { col: false }) : L.box(c - d, yy0, x0, c + d, yy1, x1, 'wood', { col: false });
+  fr(a - F, y0, a, y1); fr(b, y0, b + F, y1); fr(a - F, y1, b + F, y1 + F); // jambs + head (outside the opening, so it stays vaultable)
+  const v = Math.sin(a * 12.9898 + c * 78.233 + y0 * 37.719) * 43758.5453, hsh = v - Math.floor(v);
+  const type = o.glass || (y1 - y0 < 1.0 ? (hsh < 0.7 ? 'glass' : 'broken') : hsh < 0.4 ? 'glass' : hsh < 0.52 ? 'frosted' : hsh < 0.66 ? 'boarded' : hsh < 0.8 ? 'shutter' : 'broken');
+  (L.windows || (L.windows = [])).push({ ax, a, b, c, th, y0, y1, type });
+}
 // two-storey house: doors {n,s,e,w: [centers]}, interior stair along the north wall, upper-floor windows on every side, pitched roof
 function house2(L, x0, z0, w, d, o = {}) {
   const fh = 3.4, th = 0.4, x1 = x0 + w, z1 = z0 + d, m = o.m || 'tudor', run = clamp(w - 3.4, 3.8, 5.6), sw = 1.5;
   const dr = o.doors || {}, wn = (a, b) => { const r = []; for (let c = a + 1.6; c < b - 1.2; c += 2.6) r.push(W2(c)); return r; };
-  const gOps = (side, a, b) => (dr[side] || []).map(D2).concat(o.gwin === false ? [] : wn(a, b).filter(wo => !(dr[side] || []).some(dc => Math.abs(dc - wo.c) < 2)));
+  const stx0 = x0 + th + 1.1 - 0.9, stx1 = x0 + th + 1.1 + run + 0.9; // no ground-floor window on the north wall where the stair runs behind it
+  const gOps = (side, a, b) => (dr[side] || []).map(D2).concat(o.gwin === false ? [] : wn(a, b).filter(wo => !(dr[side] || []).some(dc => Math.abs(dc - wo.c) < 2) && !(side === 'n' && wo.c > stx0 && wo.c < stx1)));
   wallX2(L, x0, x1, z1 - th / 2, th, 0, fh, gOps('n', x0, x1), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, fh, gOps('s', x0, x1), m);
   wallZ2(L, z0 + th, z1 - th, x1 - th / 2, th, 0, fh, gOps('e', z0, z1), m); wallZ2(L, z0 + th, z1 - th, x0 + th / 2, th, 0, fh, gOps('w', z0, z1), m);
   const y2 = fh + 0.25;
@@ -1437,7 +1450,7 @@ function watchtower(L, cx, cz, dir, y = 4.5) { // stilted tower with sandbag par
 }
 function bunker(L, x0, z0, w, d, doors, m = 'concrete') { // single-storey building with interior; doors {n,s,e,w:[centres]}, flat roof
   const h = 3.2, th = 0.4, x1 = x0 + w, z1 = z0 + d, ops = side => (doors[side] || []).map(D2).concat([]);
-  const wins = (a, b, side) => { const r = []; for (let c = a + 2; c < b - 1.5; c += 3.5) if (!(doors[side] || []).some(dc => Math.abs(dc - c) < 2.2)) r.push({ c, w: 1.2, y0: 1.2, y1: 2.0 }); return r; };
+  const wins = (a, b, side) => { const r = []; for (let c = a + 2.2; c < b - 1.6; c += 3.6) if (!(doors[side] || []).some(dc => Math.abs(dc - c) < 2.3)) r.push({ c, w: 1.4, y0: 1.0, y1: 2.4 }); return r; };
   wallX2(L, x0, x1, z1 - th / 2, th, 0, h, ops('n').concat(wins(x0, x1, 'n')), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, h, ops('s').concat(wins(x0, x1, 's')), m);
   wallZ2(L, z0 + th, z1 - th, x1 - th / 2, th, 0, h, ops('e').concat(wins(z0, z1, 'e')), m); wallZ2(L, z0 + th, z1 - th, x0 + th / 2, th, 0, h, ops('w').concat(wins(z0, z1, 'w')), m);
   L.box(x0 - 0.25, h, z0 - 0.25, x1 + 0.25, h + 0.3, z1 + 0.25, m);
@@ -1929,10 +1942,12 @@ function rayAABB(ox, oy, oz, dx, dy, dz, x0, y0, z0, x1, y1, z1, tmax) {
   RN[0] = RN[1] = RN[2] = 0; if (ax >= 0) RN[ax] = sg;
   return tmin;
 }
-function raycast(o, d, maxT, withEnemies, ignore) {
-  let best = maxT, hb = null, he = null, head = false, nx = 0, ny = 0, nz = 0;
+const _glassHits = []; let RAY_SEND = true;
+function raycast(o, d, maxT, withEnemies, ignore, shoot) { // shoot: a bullet/blade, so glass doesn't stop it but shatters
+  let best = maxT, hb = null, he = null, head = false, nx = 0, ny = 0, nz = 0; if (shoot) _glassHits.length = 0;
   for (const b of world.boxes) {
     if (b.dead) continue;
+    if (b.glass && shoot) { const t = rayAABB(o.x, o.y, o.z, d.x, d.y, d.z, b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, maxT); if (t >= 0) _glassHits.push([t, b.glass]); continue; }
     const t = rayAABB(o.x, o.y, o.z, d.x, d.y, d.z, b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, best);
     if (t >= 0 && t < best) { best = t; hb = b; nx = RN[0]; ny = RN[1]; nz = RN[2]; }
   }
@@ -1944,12 +1959,13 @@ function raycast(o, d, maxT, withEnemies, ignore) {
     t = rayAABB(o.x, o.y, o.z, d.x, d.y, d.z, x - 0.33 * s, y, z - 0.33 * s, x + 0.33 * s, hy, z + 0.33 * s, best);
     if (t >= 0 && t < best) { best = t; he = e; head = false; hb = null; nx = RN[0]; ny = RN[1]; nz = RN[2]; }
   }
+  if (shoot) for (const [t, g] of _glassHits) if (t < best) breakPane(g, RAY_SEND);
   return { t: best, box: hb, enemy: he, head, nx, ny, nz };
 }
 function los(ax, ay, az, bx, by, bz) {
   const dx = bx - ax, dy = by - ay, dz = bz - az, d = Math.hypot(dx, dy, dz); if (d < 1e-3) return true;
   const ix = dx / d, iy = dy / d, iz = dz / d;
-  for (const b of world.boxes) { if (b.dead || b.barrel) continue; if (rayAABB(ax, ay, az, ix, iy, iz, b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, d - 0.05) >= 0) return false; }
+  for (const b of world.boxes) { if (b.dead || b.barrel || b.seeThru) continue; if (rayAABB(ax, ay, az, ix, iy, iz, b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, d - 0.05) >= 0) return false; }
   return true;
 }
 
@@ -2157,6 +2173,53 @@ function makeStars() {
 }
 
 // ============================================================ BARRELS / PICKUPS
+// ---------------------------------------------------------------- WINDOWS: clear / frosted glass (shatters), boards (splinter), shutters, already-broken
+let panes = []; const _pm = new THREE.Matrix4(), _pq = new THREE.Quaternion(), _ps = new V3(), _pp = new V3(), ZERO_M = new THREE.Matrix4().makeScale(0, 0, 0);
+function buildWindows(L) {
+  panes = []; const W = L.windows || []; if (!W.length) return;
+  const outSign = w => { // which side is outdoors: the side without a ceiling above it
+    const ym = (w.y0 + w.y1) / 2, u = (w.a + w.b) / 2, roofed = sg => { const px = w.ax === 'x' ? u : w.c + sg * 1.4, pz = w.ax === 'x' ? w.c + sg * 1.4 : u; return world.boxes.some(b => px > b.x0 && px < b.x1 && pz > b.z0 && pz < b.z1 && b.y0 > ym && b.y0 < ym + 6); };
+    const p = roofed(1), n = roofed(-1); return p && !n ? -1 : 1; };
+  const glassM = MAT({ color: 0xa8ccd8, roughness: 0.04, metalness: 0.2, transparent: true, opacity: 0.26, depthWrite: false }), frostM = MAT({ color: 0xe4ecee, roughness: 0.55, transparent: true, opacity: 0.86 });
+  const bt = getTex('planks'), boardM = MAT(bt ? { map: bt, color: 0xb8946c, roughness: 0.95 } : { color: 0x7a5a3a, roughness: 0.95 });
+  const specs = { glass: [], frost: [], board: [] }, deco = [];
+  for (const w of W) {
+    const sg = outSign(w), u0 = w.a, u1 = w.b, uw = u1 - u0, h = w.y1 - w.y0, um = (u0 + u1) / 2, ym = (w.y0 + w.y1) / 2;
+    const P = (u, y, n) => w.ax === 'x' ? [u, y, w.c + n] : [w.c + n, y, u]; // (along-wall, height, normal offset) -> world
+    const add = (kind, u, y, n, su, sy, sn, rz = 0, col = true) => { const [x, yy, z] = P(u, y, n); const sx = w.ax === 'x' ? su : sn, sz = w.ax === 'x' ? sn : su; specs[kind].push({ x, y: yy, z, sx, sy, sz, rz, col, ax: w.ax, sg }); };
+    if (w.type === 'glass' || w.type === 'frosted') { add(w.type === 'glass' ? 'glass' : 'frost', um, ym, 0, uw, h, 0.03); }
+    else if (w.type === 'boarded') { const n = h > 1.2 ? 4 : 3; for (let i = 0; i < n; i++) add('board', um, w.y0 + h * (i + 0.5) / n, sg * (w.th / 2 + 0.03), uw + 0.22, 0.17, 0.035, (Math.sin(i * 7.3 + w.a) * 0.12)); }
+    else if (w.type === 'broken') { for (const [fu, fy, s] of [[0.12, 0.85, 0.3], [0.88, 0.9, 0.24], [0.15, 0.12, 0.22], [0.9, 0.1, 0.18], [0.5, 0.95, 0.16]]) add('glass', u0 + uw * fu, w.y0 + h * fy, 0, uw * s, h * s * 0.8, 0.02, fu * 3 + fy, false); } // jagged remnants left in the frame
+    else if (w.type === 'shutter') deco.push({ w, sg });
+  }
+  const mk = (kind, mat) => { const S = specs[kind]; if (!S.length) return null; const im = new THREE.InstancedMesh(_gBox, mat, S.length); im.castShadow = kind === 'board'; im.receiveShadow = true; if (kind !== 'board') im.userData.noAO = true;
+    S.forEach((q, i) => { _pq.setFromEuler(new THREE.Euler(0, 0, 0)); if (q.rz) _pq.setFromAxisAngle(q.ax === 'x' ? new V3(0, 0, 1) : new V3(1, 0, 0), q.rz); im.setMatrixAt(i, _pm.compose(_pp.set(q.x, q.y, q.z), _pq, _ps.set(q.sx, q.sy, q.sz)));
+      if (!q.col) return; const hx = q.sx / 2, hz = q.sz / 2, hy = q.sy / 2 + (q.rz ? Math.abs(Math.sin(q.rz)) * q.sx / 2 * 0.5 : 0);
+      const pn = { kind: kind === 'board' ? 'board' : 'glass', frost: kind === 'frost', im, idx: i, cx: q.x, cy: q.y, cz: q.z, nx: q.ax === 'x' ? 0 : 1, nz: q.ax === 'x' ? 1 : 0, hp: 70, i: panes.length };
+      pn.box = { x0: q.x - hx, y0: q.y - hy, z0: q.z - hz, x1: q.x + hx, y1: q.y + hy, z1: q.z + hz, m: kind === 'board' ? 'planks' : 'glass', seeThru: kind !== 'frost', [kind === 'board' ? 'board' : 'glass']: pn };
+      world.boxes.push(pn.box); panes.push(pn); });
+    im.instanceMatrix.needsUpdate = true; world.group.add(im); return im; };
+  mk('glass', glassM); mk('frost', frostM); mk('board', boardM);
+  const SC = [0x2f5a6a, 0x6a3a2a, 0x3e5a3a, 0x8a7a5a, 0x2a3a5a];
+  for (const { w, sg } of deco) { // open wooden shutters folded back against the outside wall
+    const uw = w.b - w.a, h = w.y1 - w.y0, pw = uw / 2, col = SC[Math.floor(Math.abs(Math.sin(w.a * 3.1 + w.c)) * SC.length) % SC.length], m = MAT({ color: col, roughness: 0.9 });
+    for (const side of [-1, 1]) { const hu = side < 0 ? w.a : w.b, ang = 0.35, mesh = new THREE.Mesh(_gBox, m), nOff = sg * (w.th / 2 + 0.02);
+      const du = side * Math.cos(ang) * pw / 2, dn = sg * Math.sin(ang) * pw / 2, u = hu + du - side * 0.0, ym = (w.y0 + w.y1) / 2;
+      if (w.ax === 'x') { mesh.position.set(u, ym, w.c + nOff + dn); mesh.scale.set(pw, h, 0.04); mesh.rotation.y = -side * sg * ang; }
+      else { mesh.position.set(w.c + nOff + dn, ym, u); mesh.scale.set(0.04, h, pw); mesh.rotation.y = side * sg * ang; }
+      mesh.castShadow = true; world.group.add(mesh);
+      for (let k = 1; k < 6; k++) { const sl = new THREE.Mesh(_gBox, MAT({ color: tint(col, 0.08).getHex(), roughness: 0.9 })); sl.position.set(0, -0.5 + k / 6, 0); sl.scale.set(w.ax === 'x' ? 0.98 : 1.6, 0.012, w.ax === 'x' ? 1.6 : 0.98); mesh.add(sl); } } // louvre lines
+  }
+}
+function breakPane(p, send, quiet) {
+  if (!p || p.box.dead) return; p.box.dead = true; p.im.setMatrixAt(p.idx, ZERO_M); p.im.instanceMatrix.needsUpdate = true;
+  const sp = spatial({ x: p.cx, y: p.cy, z: p.cz });
+  if (p.kind === 'glass') { for (const sgn of [-1, 1]) debris.burst(p.cx, p.cy, p.cz, 16, 3.2, 0.78, 0.88, 0.94, 1.1, 1, p.nx * sgn * 0.8, 0.2, p.nz * sgn * 0.8); sparks.burst(p.cx, p.cy, p.cz, 10, 2.5, 0.85, 0.95, 1, 0.25, 0.6); sfx.play('glass', { vol: sp.vol * 1.6, pan: sp.pan, pos: sp.pos }); }
+  else { debris.burst(p.cx, p.cy, p.cz, 14, 3.5, 0.45, 0.32, 0.18, 1.0, 1, p.nx, 0.3, p.nz); sfx.play('board', { vol: sp.vol * 1.4, pan: sp.pan, pos: sp.pos }); }
+  if (!quiet && typeof noise === 'function') noise(new V3(p.cx, p.cy, p.cz), p.kind === 'glass' ? 22 : 14, null);
+  if (send && MP.active) netSend({ t: 'pane', i: p.i });
+}
+function hitPane(p, dmg, send) { if (!p || p.box.dead) return; p.hp -= dmg; debris.burst(p.cx, p.cy, p.cz, 4, 2, 0.5, 0.36, 0.2, 0.6, 1, p.nx, 0, p.nz); if (p.hp <= 0) breakPane(p, send); }
 const barrelGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.1, 14);
 const bandGeo = new THREE.CylinderGeometry(0.41, 0.41, 0.18, 14);
 class Barrel {
@@ -2715,7 +2778,7 @@ class Enemy {
     for (let i = 0; i < n; i++) {
       const yaw = this.aimYaw + this.errX + rand(-spread, spread), pitch = this.aimPitch + this.errY + this.recoilP + rand(-spread, spread) * 0.8;
       const d = _ed.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
-      const hit = raycast(o, d, 300, this.bot, this);
+      const hit = raycast(o, d, 300, this.bot, this, true);
       // the player's hitboxes
       let pt = -1, ph = false;
       if (player.alive && !MP.active && (this.bot || this.target === PLAYER_T) && !isAlly(this, PLAYER_T)) {
@@ -2727,7 +2790,7 @@ class Enemy {
       if (!end) end = o.clone().addScaledVector(d, Math.min(range, 120));
       if (pt >= 0) { hitP = true; headP = headP || ph; dmgP += W.dmg * fall * (ph ? 1.6 : 1) * this.dmgMul; }
       else if (hit.enemy && !isAlly(this, hit.enemy) && (bloodHit(o.clone().addScaledVector(d, hit.t), d, hit.head), true)) hit.enemy.damage(W.dmg * fall * (hit.head ? W.head : 1) * (this.bot ? BOT_DMG[settings.botDiff || 'normal'] : 1), hit.head, { x: d.x * 1.5, z: d.z * 1.5 }, this);
-      else if (hit.box && hit.t < 300 && i < 2) { _eo.copy(o).addScaledVector(d, hit.t); if (hit.box.barrel) hit.box.barrel.hit(W.dmg); else if (Math.random() < 0.6) { impactFx(_eo, hit.nx, hit.ny, hit.nz, hit.box, false); if (Math.random() < 0.5) addDecal(_eo, hit.nx, hit.ny, hit.nz); } }
+      else if (hit.box && hit.t < 300 && i < 2) { _eo.copy(o).addScaledVector(d, hit.t); if (hit.box.barrel) hit.box.barrel.hit(W.dmg); else if (hit.box.board) hitPane(hit.box.board, W.dmg); else if (Math.random() < 0.6) { impactFx(_eo, hit.nx, hit.ny, hit.nz, hit.box, false); if (Math.random() < 0.5) addDecal(_eo, hit.nx, hit.ny, hit.nz); } }
       // near miss on the player: supersonic crack
       if (!hitP && player.alive && i === 0) { const ph2 = playerHead(_eb), w = _ea.subVectors(ph2, o), proj = w.dot(d); if (proj > 2 && proj < range) { const miss = w.addScaledVector(d, -proj).length(); if (miss < 1.6) sfx.play('whiz', { vol: 0.7, pan: rand(-0.5, 0.5) }); } }
     }
@@ -3425,6 +3488,7 @@ function loadMap(i) {
   for (const pk of L.pickups) if (!world.nav.freeAt(pk[1], pk[2], pk[3])) { const k = world.nav.nearestFree(pk[1], pk[3], 5); if (k >= 0) { const [cx, cz] = world.nav.center(k); pk[1] = cx; pk[2] = 0; pk[3] = cz; } }
   for (const br of L.barrels) if (!world.nav.freeAt(br[0], 0, br[1])) { const k = world.nav.nearestFree(br[0], br[1], 5); if (k >= 0) { const [cx, cz] = world.nav.center(k); br[0] = cx; br[1] = cz; } }
   for (const [x, z] of L.barrels) barrels.push(new Barrel(x, z));
+  buildWindows(L);
   for (const [t, x, y, z] of L.pickups) { const p = new Pickup(t, x, y, z, false); p.idx = pickups.length; pickups.push(p); }
   scene.add(world.group);
   // radar
@@ -3558,6 +3622,7 @@ function meleeSwing() { const w = WEAPONS[wst.cur]; if (!w.melee) return; wst.sw
 function quickMelee() { if (!player.alive || wst.quick || wst.swingT > 0) return; const w = WEAPONS[wst.cur]; if (w.melee) return meleeSwing(); wst.quickFrom = wst.cur; switchTo(carry[2]); wst.switchT = 0.08; wst.quick = 1; }
 function meleeHit(w) {
   aimBasis(); const eye = camera.position, cands = [];
+  { const mh = raycast(eye, _f, (w.reach || 1.6) + 0.3, false, null, true); if (mh.box && mh.box.board) hitPane(mh.box.board, 60, true); }
   for (const list of [enemies, remoteList]) for (const e of list) {
     if (e.dead) continue; const cx = e.pos.x, cy = e.pos.y + e.h * 0.6, cz = e.pos.z, dx = cx - eye.x, dy = cy - eye.y, dz = cz - eye.z, d = Math.hypot(dx, dy, dz);
     if (d > w.reach + 0.5 || isAlly(PLAYER_T, e)) continue; if ((dx * _f.x + dy * _f.y + dz * _f.z) / d < 0.7) continue; if (!los(eye.x, eye.y, eye.z, cx, cy, cz)) continue; cands.push([d, e]);
@@ -3637,7 +3702,7 @@ function fire() {
     _d.copy(_f).addScaledVector(_r, Math.cos(a) * rr).addScaledVector(_u, Math.sin(a) * rr).normalize();
     let origin = _o.clone(), ignore = null, pierce = w.pierce ? 2 : 1, dmgMul = 1, travelled = 0;
     while (pierce-- > 0) {
-      const hit = raycast(origin, _d, 300, true, ignore);
+      const hit = raycast(origin, _d, 300, true, ignore, true);
       _hp.copy(origin).addScaledVector(_d, hit.t);
       const dist = travelled + hit.t; if (!firstEnd) firstEnd = _hp.clone();
       if ((i < 3 || n === 1) && (w.pellets || wst.consec % (w.auto ? 3 : 1) === 1 || !w.auto)) spawnTracer(i === 0 ? muzzleW : origin, _hp, 0xffd890, 850, 0.011);
@@ -3654,6 +3719,7 @@ function fire() {
         if (w.pierce) { ignore = hit.enemy; origin = _hp.clone().addScaledVector(_d, 0.05); travelled = dist; dmgMul = 0.7; continue; }
       } else if (hit.box) {
         if (hit.box.barrel) hit.box.barrel.hit(w.dmg);
+        else if (hit.box.board) { hitPane(hit.box.board, w.dmg * (w.pellets ? 1.5 : 1), true); impactFx(_hp, hit.nx, hit.ny, hit.nz, hit.box, i === 0); }
         else if (hit.t < 300) { addDecal(_hp, hit.nx, hit.ny, hit.nz); if (i < 4) impactFx(_hp, hit.nx, hit.ny, hit.nz, hit.box, i === 0); if (i < 3 && Math.random() < 0.6) debris.burst(_hp.x, _hp.y, _hp.z, 2, 2, 0.35, 0.33, 0.3, 0.6, 1, hit.nx, hit.ny, hit.nz); }
       }
       break;
@@ -3926,6 +3992,7 @@ function explosion0(p, radius, dmg, owner) {
     player.vel.x += dx / l * 11 * f; player.vel.y += Math.max(3, dy / l * 11) * f; player.vel.z += dz / l * 11 * f; player.onGround = false;
   }
   for (const b of barrels) if (!b.box.dead && b.fuse <= 0 && Math.hypot(b.x - p.x, 0.6 - p.y, b.z - p.z) < radius * 0.9) b.fuse = 0.18 + Math.random() * 0.1;
+  for (const pn of panes) if (!pn.box.dead && Math.hypot(pn.cx - p.x, pn.cy - p.y, pn.cz - p.z) < radius * (pn.kind === 'board' ? 0.6 : 1.3)) breakPane(pn, false, true);
 }
 
 // ============================================================ PLAYER MOVEMENT
@@ -3977,6 +4044,7 @@ function updatePlayer(dt) {
   if ((P.jumpBuf > 0 || (keys.Space && !P.onGround)) && fwd > 0.3 && !P.sliding) { // look for a ledge just ahead
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), px = P.pos.x + fx * 0.6, pz = P.pos.z + fz * 0.6; let top = null;
     for (const b of world.nav.bucket(px, pz)) if (!b.dead && px > b.x0 && px < b.x1 && pz > b.z0 && pz < b.z1 && b.y1 > P.pos.y + 0.45 && b.y1 < P.pos.y + 1.85 && (top === null || b.y1 > top)) top = b.y1;
+    if (top !== null) for (const b of world.boxes) if (b.glass && !b.dead && overlapBox(b, px, top + 0.03, pz, P.r * 0.9, 1.1)) { breakPane(b.glass, true); game.shake = Math.min(1, game.shake + 0.2); }
     if (top !== null && !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.1)) { const stand = !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.75);
       P.mantle = { t: 0, dur: 0.3 + (top - P.pos.y) * 0.12, a: P.pos.clone(), b: new V3(P.pos.x + fx * 0.85, top + 0.02, P.pos.z + fz * 0.85), crouch: !stand }; P.jumpBuf = 0; sfx.play('land', { vol: 0.4 }); vm.kick = 0.4; noise(P.pos, 6, PLAYER_T); return; } }
   if (P.jumpBuf > 0 && P.coyote > 0) {
@@ -4474,7 +4542,7 @@ function hostRecv(from, d) {
   d.id = from;
   if (d.t === 'po') { const rtt = performance.now() - num(d.c, 0); if (rtt >= 0 && rtt < 5000) { const p = MP.players[from]; p.ping = p.ping ? lerp(p.ping, rtt, 0.3) : rtt; } return; }
   if (d.t === 'pickreq') return hostPick(from, d.k);
-  if (!['st', 'shot', 'hit', 'hm', 'die', 'nade', 'rocket'].includes(d.t)) return;
+  if (!['st', 'shot', 'hit', 'hm', 'pane', 'die', 'nade', 'rocket'].includes(d.t)) return;
   bcast(d, from, d.t === 'st');
   if (d.t === 'die') hostDeath(d);
   handleGame(d);
@@ -4513,7 +4581,7 @@ function handleGame(d) {
     case 'st': if (r) r.push(d); break;
     case 'shot': {
       const a = arrV3(d.a), b = arrV3(d.b); if (!a || !b) break;
-      spawnTracer(a, b, 0xffd27a, 750, 0.014); if (r) r.mflash = 0.06; nearMiss(a, b);
+      spawnTracer(a, b, 0xffd27a, 750, 0.014); if (r) r.mflash = 0.06; nearMiss(a, b); { const dv = b.clone().sub(a), L = dv.length(); if (L > 0.1) { RAY_SEND = false; try { raycast(a, dv.divideScalar(L), L + 0.15, false, null, true); } finally { RAY_SEND = true; } } }
       const w = WEAPONS.find(x => x.id === d.w); const sp = spatial(a); sfx.gun(w ? w.snd : 'rifle', { dist: sp.dist, pan: sp.pan, pos: sp.pos, supp: !!d.s, occl: !los(camera.position.x, camera.position.y, camera.position.z, a.x, a.y, a.z) });
       if (r) r.lastFired = game.time;
       break;
@@ -4521,6 +4589,7 @@ function handleGame(d) {
     case 'hit':
       if (d.to === MP.myId && player.alive) { if (typeof d.w === 'string') MP.lastWeapon = d.w.slice(0, 12); } if (d.to === MP.myId && player.alive) { MP.viaHit = true; try { damagePlayer(clamp(num(d.dmg), 0, 250), r ? r.pos : null, d.id, !!d.head); } finally { MP.viaHit = false; } }
       break;
+    case 'pane': { const pn = panes[num(d.i, -1)]; if (pn) breakPane(pn, false, true); break; }
     case 'hm': if (d.to === MP.myId && game.state === 'playing') hitMarker(!!d.kill, false, d.k === 'stun' ? 'stun' : 'nade'); break;
     case 'die': {
       const victim = d.id, killer = typeof d.by === 'string' ? d.by : victim;
@@ -4802,27 +4871,41 @@ function outroCam() { // called after the normal camera: rise up and back over t
 }
 function animateXP() { const b = document.querySelector('#mpover .xpres u, #over .xpres u'); if (!b) return; const w = b.dataset.to || '0'; b.style.transition = 'none'; b.style.width = (b.dataset.from || 0) + '%'; requestAnimationFrame(() => { b.style.transition = 'width 1.6s cubic-bezier(.2,.8,.2,1) .4s'; b.style.width = w + '%'; }); }
 function startIntro(mode, obj) {
-  if (settings.intro === false) return; const L = world.L, P = player, [x0, z0, x1, z1] = L.bounds, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, R = Math.max(x1 - x0, z1 - z0) * 0.45;
-  game.intro = { t: 0, dur: 5.6, last: 4, a0: P.yaw + 1.05 }; // starts behind-right of the operator
-  game.introT = 5.4; $('hud').classList.add('cine'); $('introMap').textContent = world.def.name; $('introMode').textContent = mode; $('introObj').textContent = obj || ''; $('introov').className = 'on';
+  if (settings.intro === false) return; const P = player;
+  game.intro = { t: 0, dur: 6.4, last: 4, yaw: P.yaw, side: Math.random() < 0.5 ? 1 : -1 };
+  game.introT = 6.4; $('hud').classList.add('cine'); $('introMap').textContent = world.def.name; $('introMode').textContent = mode; $('introObj').textContent = obj || ''; $('introov').className = 'on'; $('ifade').style.opacity = 1;
 }
-function updateIntro(dt) {
-  const I = game.intro; if (!I) { game.introT = 0; return; } I.t += dt; game.introT = I.dur - I.t; const P = player, eye = new V3(P.pos.x, P.pos.y + P.h - 0.12, P.pos.z);
-  if (I.t < 2.8) { // slow arc around your operator at shoulder height, then push into first person
-    const k = smooth(0, 2.8, I.t), ang = I.a0 - k * 0.85, rad = lerp(3.2, 0.01, smooth(1.6, 2.8, I.t)), hgt = lerp(2.05, P.h - 0.12, smooth(1.2, 2.8, I.t));
-    const piv = new V3(P.pos.x, P.pos.y + 1.5, P.pos.z), want = new V3(P.pos.x + Math.sin(ang) * rad, P.pos.y + hgt, P.pos.z + Math.cos(ang) * rad), dv = want.clone().sub(piv), dl = dv.length();
-    if (dl > 0.05) { dv.divideScalar(dl); const h = raycast(piv, dv, dl, false); if (h.t < dl) want.copy(piv).addScaledVector(dv, Math.max(0.2, h.t - 0.25)); } // never inside a wall
-    I.cam = I.cam ? I.cam.lerp(want, 1 - Math.exp(-10 * dt)) : want.clone(); camera.position.copy(I.cam);
-    const ahead = eye.clone().add(new V3(-Math.sin(P.yaw) * 10, -0.3, -Math.cos(P.yaw) * 10)), lookA = new V3(P.pos.x, P.pos.y + 1.35, P.pos.z).lerp(ahead, 0.35); camera.lookAt(lookA.lerp(ahead, smooth(1.4, 2.8, I.t)));
-    camera.fov = lerp(48, settings.fov, smooth(1.6, 2.8, I.t)); camera.updateProjectionMatrix(); I.showAvatar = I.t < 2.45; }
-  else { I.showAvatar = false; updateCamera(dt); if ($('introov').className !== 'on cd') { $('introov').className = 'on cd'; $('hud').classList.remove('cine'); } }
-  sky.position.copy(camera.position);
-  const n = Math.ceil(I.dur - I.t - 0.6); if (I.t > 2.6 && n !== I.last && n >= 0) { I.last = n; const el = $('introCount'); el.textContent = n > 0 ? n : 'GO'; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); sfx.play(n > 0 ? 'cd' : 'go'); if (n === 0) rumble(0.4, 0.4, 200); }
-  if (I.t >= I.dur) { game.introT = 0; game.intro = null; $('introov').className = ''; $('hud').classList.remove('cine'); }
+// cinematic deploy: crane over the area -> dip -> over-the-shoulder push-in on your operator -> dip -> first person, 3-2-1-GO.
+// Cuts hide every discontinuity; collision only ever shortens a smoothed boom length, so the camera never pops.
+function introShot(I, P, k, from, to, lookFrom, lookTo, dt) {
+  const piv = new V3(P.pos.x, P.pos.y + 1.6, P.pos.z), want = from.clone().lerp(to, k), dv = want.clone().sub(piv), dl = dv.length();
+  let allow = dl; if (dl > 0.05) { dv.divideScalar(dl); const h = raycast(piv, dv, dl + 0.3, false); if (h.t < dl + 0.3) allow = Math.max(0.6, h.t - 0.35); }
+  I.boom = I.boom === undefined || I.cut ? allow : Math.min(allow, damp(I.boom, allow, 3, dt)); I.cut = false;
+  camera.position.copy(piv).addScaledVector(dv, Math.min(dl, I.boom)); camera.lookAt(lookFrom.clone().lerp(lookTo, k));
+}
+function updateIntro(dt0) {
+  const I = game.intro; if (!I) { game.introT = 0; return; }
+  const loading = $('loading').classList.contains('on'), dt = loading ? 0 : Math.min(dt0, 1 / 30); // hold until the loading screen is gone; never jump on a hitch
+  I.t += dt; game.introT = I.dur - I.t; const P = player, fx = -Math.sin(I.yaw), fz = -Math.cos(I.yaw), rx = Math.cos(I.yaw), rz = -Math.sin(I.yaw), S = I.side;
+  const at = (b, u, f, r) => new V3(P.pos.x + fx * f + rx * r * S, P.pos.y + u, P.pos.z + fz * f + rz * r * S);
+  const fade = I.t < 0.45 ? 1 - smooth(0, 0.45, I.t) : Math.max(1 - Math.abs(I.t - 2.45) / 0.22, 1 - Math.abs(I.t - 3.95) / 0.2, 0); $('ifade').style.opacity = clamp(fade, 0, 1).toFixed(3);
+  // each shot picks, once, the camera path with the clearest view from your operator (tight alleys -> high overhead; open ground -> wide arc)
+  const clear = v => { const piv = new V3(P.pos.x, P.pos.y + 1.6, P.pos.z), d = v.clone().sub(piv), l = d.length(); if (l < 0.05) return 1; const h = raycast(piv, d.divideScalar(l), l + 0.4, false); return Math.min(1, h.t / (l + 0.4)); };
+  const choose = C => { let best = C[0], bs = -1; for (const c of C) { const sc = Math.min(clear(c[0]), clear(c[1])) - (c[4] || 0); if (sc > bs) { bs = sc; best = c; } } return best; };
+  if (I.t < 2.45) { // shot 1: slow crane down toward your operator
+    if (!I.s1) { I.s1 = true; I.cut = true; const C = []; for (const sd of [1, -1]) { C.push([at(0, 8.5, -13, 7 * sd), at(0, 4.5, -8, 3.5 * sd), 0, 0, 0]); C.push([at(0, 7, -7, 5 * sd), at(0, 4, -4.5, 2.5 * sd), 0, 0, 0.05]); C.push([at(0, 9, 6, 3 * sd), at(0, 5.5, 3.5, 2 * sd), 0, 0, 0.1]); } C.push([at(0, 11, -2.5, 0.8), at(0, 6.5, -2, 0.6), 0, 0, 0.12]); I.c1 = choose(C); }
+    const k = smooth(0, 2.45, I.t) * 0.85 + I.t / 2.45 * 0.15; introShot(I, P, k, I.c1[0], I.c1[1], at(0, 0.6, 3, 0), at(0, 1.1, 1, 0), dt); camera.fov = 50; I.showAvatar = true; }
+  else if (I.t < 3.95) { // shot 2: over the shoulder, pushing in along your line of sight
+    if (!I.s2) { I.s2 = true; I.cut = true; const C = []; for (const sd of [1, -1]) { C.push([at(0, P.h + 0.12, -2.3, 0.75 * sd), at(0, P.h + 0.04, -1.45, 0.6 * sd), 0, 0, sd < 0 ? 0.02 : 0]); C.push([at(0, P.h + 0.5, -1.9, 0.45 * sd), at(0, P.h + 0.3, -1.3, 0.4 * sd), 0, 0, 0.06]); } I.c2 = choose(C); }
+    const k = smooth(2.45, 3.95, I.t); introShot(I, P, k, I.c2[0], I.c2[1], at(0, P.h - 0.2, 12, 0), at(0, P.h - 0.15, 14, 0), dt); camera.fov = lerp(55, 60, k); I.showAvatar = camera.position.distanceTo(new V3(P.pos.x, P.pos.y + 1.5, P.pos.z)) > 0.9; }
+  else { I.showAvatar = false; if (camera.fov !== settings.fov) camera.fov = settings.fov; updateCamera(dt); if ($('introov').className !== 'on cd') { $('introov').className = 'on cd'; $('hud').classList.remove('cine'); } }
+  camera.updateProjectionMatrix(); sky.position.copy(camera.position);
+  const n = Math.ceil(I.dur - I.t - 0.35); if (I.t > 3.95 && n !== I.last && n >= 0 && n <= 3) { I.last = n; const el = $('introCount'); el.textContent = n > 0 ? n : 'GO'; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); sfx.play(n > 0 ? 'cd' : 'go'); if (n === 0) rumble(0.4, 0.4, 200); }
+  if (I.t >= I.dur) { game.introT = 0; game.intro = null; $('introov').className = ''; $('hud').classList.remove('cine'); $('ifade').style.opacity = 0; }
 }
 function deploy(label, fn, mi) {
   if (mi === undefined) mi = settings.map; sfx.init(); if (game.state === 'menu') requestLock(); // pointer lock / fullscreen must start inside the click
-  const m = MAPS[mi], L = $('loading'); let th = null; try { th = localStorage.getItem('bp_mthumb_' + m.name); } catch (e) {}
+  const m = MAPS[mi], L = $('loading'); let th = null; try { th = localStorage.getItem('bp_mthumb2_' + m.name); } catch (e) {}
   $('ldbg').style.backgroundImage = th ? `url(${th})` : 'radial-gradient(ellipse at 30% 40%,#3a4456,#0a0c10)'; $('ldmap').textContent = m.name; $('lddesc').textContent = m.desc; $('ldmode').textContent = label;
   $('ldtip').textContent = pick(TIPS); const fill = $('ldfill'); fill.style.transition = 'none'; fill.style.width = '0%'; L.classList.add('on');
   requestAnimationFrame(() => { fill.style.transition = ''; fill.style.width = '72%'; requestAnimationFrame(() => setTimeout(() => {
@@ -4886,10 +4969,10 @@ function makeThumbs() {
 // map thumbnails are captured from the menu background the first time each map is shown
 let mapThumbPending = false;
 function captureMapThumb() {
-  try { const c = document.createElement('canvas'); c.width = 240; c.height = 120; c.getContext('2d').drawImage(renderer.domElement, 0, 0, 240, 120); const url = c.toDataURL('image/jpeg', 0.7);
-    const key = 'bp_mthumb_' + world.def.name; try { localStorage.setItem(key, url); } catch (e) {} applyMapThumbs(); } catch (e) {}
+  try { const c = document.createElement('canvas'); const src = renderer.domElement, W = Math.min(1280, src.width), H = Math.round(W * src.height / src.width); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, W, H); const url = c.toDataURL('image/jpeg', 0.8); // big enough to fill the loading screen sharply
+    const key = 'bp_mthumb2_' + world.def.name; try { for (const m of MAPS) localStorage.removeItem('bp_mthumb_' + m.name); localStorage.setItem(key, url); } catch (e) {} applyMapThumbs(); } catch (e) {}
 }
-function applyMapThumbs() { MAPS.forEach((m, i) => { let u = null; try { u = localStorage.getItem('bp_mthumb_' + m.name); } catch (e) {} const card = $('maps').children[i]; if (card && u) card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,.15),rgba(12,14,19,.92)),url(${u})`; }); }
+function applyMapThumbs() { MAPS.forEach((m, i) => { let u = null; try { u = localStorage.getItem('bp_mthumb2_' + m.name); } catch (e) {} const card = $('maps').children[i]; if (card && u) card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,.15),rgba(12,14,19,.92)),url(${u})`; }); }
 
 // ============================================================ GAMEPAD (Xbox / PlayStation via the Gamepad API)
 const gp = { on: false, prev: [], fire: false, ads: false, mx: 0, my: 0, sprint: false, crouch: false, pad: null, navT: 0, navDir: '', focus: null, wasAds: false, snapT: 0, snapYaw: 0, snapPitch: 0, viewHeld: false };
@@ -4953,13 +5036,21 @@ function pollGamepad(dt) {
 // ---- controller menu navigation: D-pad / left stick moves a highlight, A selects, B goes back, left/right changes sliders & dropdowns
 // one focus ring that glides between items; mouse hover and controller / keyboard share it
 const navRing = document.createElement('div'); navRing.id = 'navring'; document.body.appendChild(navRing);
+function recoverFocus() { // a re-render replaced the focused button: land on its twin (same label + kind) or whatever now sits where it was
+  const L = gp.last; if (!L) return null; const items = navItems(); if (!items.length) return null;
+  let best = items.find(e => e.tagName === L.tag && e.className.replace(' gpfocus', '') === L.cls && e.textContent.trim().slice(0, 40) === L.txt);
+  if (!best) { let bd = 1e9; for (const e of items) { const r = e.getBoundingClientRect(), d = Math.hypot(r.left + r.width / 2 - L.x, r.top + r.height / 2 - L.y); if (d < bd) { bd = d; best = e; } } }
+  if (best) gpFocus(best, true); return best;
+}
 function placeRing() {
+  if (gp.focus && !gp.focus.isConnected && game.state !== 'play') recoverFocus();
   const el = gp.focus; if (!el || !el.isConnected || el.offsetParent === null || game.state === 'play') { navRing.style.opacity = '0'; return; }
   const r = el.getBoundingClientRect(); navRing.style.opacity = '1'; navRing.style.transform = `translate(${r.left - 3}px, ${r.top - 3}px)`; navRing.style.width = (r.width + 6) + 'px'; navRing.style.height = (r.height + 6) + 'px';
 }
 function gpFocus(el, fromMouse) {
   if (el && el.closest && el.closest('#maps')) { const i = [...$('maps').children].indexOf(el); if (i >= 0) mapInfo(i); }
   if (gp.focus === el) return; if (gp.focus) gp.focus.classList.remove('gpfocus'); gp.focus = el;
+  if (el) { const r = el.getBoundingClientRect(); gp.last = { tag: el.tagName, cls: el.className.replace(' gpfocus', ''), txt: el.textContent.trim().slice(0, 40), x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
   if (el) { el.classList.add('gpfocus'); if (!fromMouse) el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); }
   placeRing();
 }
@@ -5005,7 +5096,7 @@ addEventListener('keydown', e => {
   if (game.state === 'play' || game.state === 'dying' || (e.target && /INPUT|TEXTAREA/.test(e.target.tagName) && e.target.type !== 'range')) return;
   const dir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[e.key];
   const items = navItems(); if (!items.length) return;
-  if (dir) { e.preventDefault(); if (!gp.focus || !items.includes(gp.focus)) gpFocus(items.find(x => x.classList.contains('big') || x.classList.contains('mode')) || items[0]); else menuNav(dir, gp.focus, items); }
+  if (dir) { e.preventDefault(); if (gp.focus && !gp.focus.isConnected) recoverFocus(); if (!gp.focus || !items.includes(gp.focus)) gpFocus(items.find(x => x.classList.contains('big') || x.classList.contains('mode')) || items[0]); else menuNav(dir, gp.focus, items); }
   else if (e.key === 'Enter' && gp.focus && items.includes(gp.focus)) { e.preventDefault(); gp.focus.click(); }
   else if (e.key === 'Escape' && picker) { e.preventDefault(); closePicker(); }
   else if ((e.key === '[' || e.key === ']') && document.querySelector('#menu.on') && window.menuCycleTab) window.menuCycleTab(e.key === '[' ? -1 : 1);
@@ -5015,6 +5106,7 @@ function gpMenu(g, b, pr, dt) {
     if ((pr(6) || pr(7)) && menuTab === 'loadout') { const ch = [...document.querySelectorAll('#loadout .chips button')]; if (ch.length) { const i = ch.findIndex(c => c.classList.contains('on')); ch[(i + (pr(7) ? 1 : ch.length - 1)) % ch.length].click(); } } }
   { const rx = g.axes[2] || 0, ry = g.axes[3] || 0; if ((Math.abs(rx) > 0.2 || Math.abs(ry) > 0.2) && $('preview').offsetParent) { PV.userRot = (PV.userRot || 0) + rx * dt * 2.6; PV.zoom = clamp((PV.zoom || 1) * (1 + ry * dt * 1.2), 0.55, 1.4); PV.idleT = 0; } } // right stick: rotate / zoom the operator
   const items = navItems(); if (!items.length) return;
+  if (gp.focus && !gp.focus.isConnected) recoverFocus();
   if (!gp.focus || !items.includes(gp.focus)) gpFocus(items.find(e => e.classList.contains('big')) || items[0]);
   const f = gp.focus, ax = g.axes[0] || 0, ay = g.axes[1] || 0;
   let dir = b(12) || ay < -0.55 ? 'up' : b(13) || ay > 0.55 ? 'down' : b(14) || ax < -0.55 ? 'left' : b(15) || ax > 0.55 ? 'right' : '';
@@ -5125,7 +5217,7 @@ function frame(now) {
   if (composer) { composer.render(dt); renderer.setRenderTarget(null); }
   else { renderer.clear(); renderer.render(scene, camera); }
   prof.js += tB - tA; prof.n++;
-  if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third') { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
+  if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third' && !(game.intro && (game.intro.showAvatar || game.intro.t < 3.95))) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
   if (game.state === 'menu') { if (mapThumbPending && world) { mapThumbPending = false; captureMapThumb(); } }
   prof.render += performance.now() - tB;
 }
@@ -5141,7 +5233,7 @@ function initUI() {
   MAPS.forEach((m, i) => {
     const b = document.createElement('button'); b.className = 'card' + (i === settings.map ? ' on' : '');
     b.innerHTML = `<b>${m.name}</b><em>${m.tag}</em>`; b.onmouseenter = b.onfocus = () => mapInfo(i); b.onmouseleave = () => mapInfo();
-    b.onclick = () => { settings.map = i; saveSettings(); mapInfo(); [...maps.children].forEach((c, k) => c.classList.toggle('on', k === i)); loadMap(i); world.shadows = QUALITY[settings.quality].shadows; renderBest(); let has = null; try { has = localStorage.getItem('bp_mthumb_' + MAPS[i].name); } catch (e) {} if (!has) setTimeout(() => { mapThumbPending = true; }, 1500); };
+    b.onclick = () => { settings.map = i; saveSettings(); mapInfo(); [...maps.children].forEach((c, k) => c.classList.toggle('on', k === i)); loadMap(i); world.shadows = QUALITY[settings.quality].shadows; renderBest(); let has = null; try { has = localStorage.getItem('bp_mthumb2_' + MAPS[i].name); } catch (e) {} if (!has) setTimeout(() => { mapThumbPending = true; }, 1500); };
     maps.appendChild(b);
   });
   const diff = $('diff');
@@ -5203,7 +5295,7 @@ muzzleLight = new THREE.PointLight(0xffb060, 0, 9, 2); scene.add(muzzleLight);
 WEAPONS.forEach(w => { applyAttachments(w); vmModels.push(makeGun(w)); }); initCasings();
 resize(); loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows;
 initUI(); initMpUI(); initDmgNumbers(); initPreview(); applyMapThumbs();
-{ let has = null; try { has = localStorage.getItem('bp_mthumb_' + MAPS[settings.map].name); } catch (e) {} if (!has) setTimeout(() => { mapThumbPending = true; }, 2500); }
+{ let has = null; try { has = localStorage.getItem('bp_mthumb2_' + MAPS[settings.map].name); } catch (e) {} if (!has) setTimeout(() => { mapThumbPending = true; }, 2500); }
 addEventListener('bp-assets', () => { makeThumbs(); PV.mode = 'char'; buildPreview(); });
 for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
   const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); };
@@ -5211,5 +5303,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { PV, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { PV, panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
