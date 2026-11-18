@@ -1280,6 +1280,7 @@ function doorway(L, x0, x1, z, gap0, gap1, h = 5.5, m = 'plasterB', th = 0.7) { 
 }
 function crates(L, x, z, n = 1, big = false) { const s = big ? 1.6 : 1.2; L.B(x, z, s, s, s, 0, 'crate'); if (n > 1) L.B(x + 0.05, z - 0.05, s, s, s, s, 'crate'); }
 function buildOldQuarter(L) {
+  L.postcard = { hk: 0.36, dk: 1.15 };
   L.hills = 1.0; L.hillScale = 18; L.hillFlat = 1.0; L.hillRamp = 5;
   L.bounds = [-52, -46, 52, 46]; L.ground = 'cobble'; L.groundScale = 3.2; L.groundTint = 0xf0dcbc; L.grass = 0.05; L.big = true; L.padStyle = 'rune';
   L.box(-56, -1, -50, 56, 0, 50, 'floor').noRender = true;
@@ -1482,6 +1483,7 @@ function warehouse(L, x0, z0, w, d, o = {}) { // big shed: corrugated walls, rol
 }
 // ---------------------------------------------------------------- MAP: FREIGHT YARD (CoD-style container port, medium)
 function buildFreight(L) {
+  L.postcard = { sx: -1, sz: 1, hk: 0.14, dk: 0.85 };
   L.hills = 1.3; L.hillScale = 22;
   const R = seeded(77);
   L.bounds = [-64, -50, 64, 50]; L.ground = 'asphalt'; L.groundScale = 6; L.groundTint = 0xc8c4bc; L.grass = 0; L.big = true; L.noLamps = true;
@@ -5069,7 +5071,7 @@ function updateIntro(dt0) {
 }
 function deploy(label, fn, mi) {
   if (mi === undefined) mi = settings.map; sfx.init(); if (game.state === 'menu') requestLock(); // pointer lock / fullscreen must start inside the click
-  const m = MAPS[mi], L = $('loading'); let th = null; try { th = localStorage.getItem('bp_mthumb2_' + m.name); } catch (e) {}
+  const m = MAPS[mi], L = $('loading'), th = MAPIMG(mi);
   $('ldbg').style.backgroundImage = th ? `url(${th})` : 'radial-gradient(ellipse at 30% 40%,#3a4456,#0a0c10)'; $('ldmap').textContent = m.name; $('lddesc').textContent = m.desc; $('ldmode').textContent = label;
   $('ldtip').textContent = pick(TIPS); const fill = $('ldfill'); fill.style.transition = 'none'; fill.style.width = '0%'; L.classList.add('on');
   requestAnimationFrame(() => { fill.style.transition = ''; fill.style.width = '72%'; requestAnimationFrame(() => setTimeout(() => {
@@ -5132,11 +5134,23 @@ function makeThumbs() {
 }
 // map thumbnails are captured from the menu background the first time each map is shown
 let mapThumbPending = false;
+// a deliberate aerial "postcard" of the loaded map (used to bake the shipped map images in fps/thumbs/)
+function postcard(o = {}) {
+  const L = world.L, [x0, z0, x1, z1] = L.bounds, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, W = x1 - x0, D = z1 - z0, S = Math.max(W, D);
+  const q = Object.assign({ sx: 1, sz: 1, hk: 0.24, dk: 1 }, L.postcard || {}, o), pc = Object.assign({ p: [cx + q.sx * W * 0.34 * q.dk, S * q.hk, cz + q.sz * D * 0.36 * q.dk], t: [cx - q.sx * W * 0.06, 0, cz - q.sz * D * 0.04], fov: 48 }, q.p ? { p: q.p, t: q.t } : {}, { fov: q.fov || 48 });
+  const src = renderer.domElement, cam = new THREE.PerspectiveCamera(pc.fov, src.width / src.height, 0.5, 1200); cam.position.set(...pc.p); cam.lookAt(...pc.t); cam.updateMatrixWorld();
+  const fog = scene.fog; if (fog) scene.fog = new THREE.Fog(fog.color, fog.near * 3, fog.far * 3); sky.position.copy(cam.position);
+  if (world.sun && shadowsOn) { world.shadowExt = -1; const ext = world.shadowFull; Object.assign(world.sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext }); world.sun.shadow.camera.updateProjectionMatrix(); world.sun.target.position.set(cx, 0, cz); world.sun.position.set(cx, 0, cz).addScaledVector(world.sunDir, 160); world.sun.target.updateMatrixWorld(); }
+  renderer.render(scene, cam); const w = o.w || 1280, h = o.h || 640, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  const sa = src.width / src.height, ta = w / h, sw = sa > ta ? src.height * ta : src.width, sh = sa > ta ? src.height : src.width / ta; g.drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, w, h);
+  scene.fog = fog; return c.toDataURL('image/jpeg', o.q || 0.84);
+}
 function captureMapThumb() {
   try { const c = document.createElement('canvas'); const src = renderer.domElement, W = Math.min(1280, src.width), H = Math.round(W * src.height / src.width); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, W, H); const url = c.toDataURL('image/jpeg', 0.8); // big enough to fill the loading screen sharply
     const key = 'bp_mthumb2_' + world.def.name; try { for (const m of MAPS) localStorage.removeItem('bp_mthumb_' + m.name); localStorage.setItem(key, url); } catch (e) {} applyMapThumbs(); } catch (e) {}
 }
-function applyMapThumbs() { MAPS.forEach((m, i) => { let u = null; try { u = localStorage.getItem('bp_mthumb2_' + m.name); } catch (e) {} const card = $('maps').children[i]; if (card && u) card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,.15),rgba(12,14,19,.92)),url(${u})`; }); }
+const MAPIMG = i => `thumbs/${i}.jpg?v=1`; // baked aerial postcards (see postcard())
+function applyMapThumbs() { MAPS.forEach((m, i) => { const u = MAPIMG(i); const card = $('maps').children[i]; if (card && u) { card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,0) 25%,rgba(12,14,19,.55) 60%,rgba(12,14,19,.9)),url(${u})`; card.style.backgroundSize = 'cover'; card.style.backgroundPosition = 'center 68%'; } }); }
 
 // ============================================================ GAMEPAD (Xbox / PlayStation via the Gamepad API)
 const gp = { on: false, prev: [], fire: false, ads: false, mx: 0, my: 0, sprint: false, crouch: false, pad: null, navT: 0, navDir: '', focus: null, wasAds: false, snapT: 0, snapYaw: 0, snapPitch: 0, viewHeld: false };
@@ -5383,7 +5397,7 @@ function frame(now) {
   else { renderer.clear(); renderer.render(scene, camera); }
   prof.js += tB - tA; prof.n++;
   if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third' && !(game.intro && (game.intro.showAvatar || game.intro.t < 3.95)) && !(game.outro && game.outro.t > 1.4)) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
-  if (game.state === 'menu') { if (mapThumbPending && world) { mapThumbPending = false; captureMapThumb(); } }
+
   prof.render += performance.now() - tB;
 }
 const prof = { js: 0, render: 0, n: 0 }; let menuTick = 0;
@@ -5398,7 +5412,7 @@ function initUI() {
   MAPS.forEach((m, i) => {
     const b = document.createElement('button'); b.className = 'card' + (i === settings.map ? ' on' : '');
     b.innerHTML = `<b>${m.name}</b><em>${m.tag}</em>`; b.onmouseenter = b.onfocus = () => mapInfo(i); b.onmouseleave = () => mapInfo();
-    b.onclick = () => { settings.map = i; saveSettings(); mapInfo(); [...maps.children].forEach((c, k) => c.classList.toggle('on', k === i)); loadMap(i); world.shadows = QUALITY[settings.quality].shadows; renderBest(); let has = null; try { has = localStorage.getItem('bp_mthumb2_' + MAPS[i].name); } catch (e) {} if (!has) setTimeout(() => { mapThumbPending = true; }, 1500); };
+    b.onclick = () => { settings.map = i; saveSettings(); mapInfo(); [...maps.children].forEach((c, k) => c.classList.toggle('on', k === i)); loadMap(i); world.shadows = QUALITY[settings.quality].shadows; renderBest(); };
     maps.appendChild(b);
   });
   const diff = $('diff');
@@ -5460,7 +5474,7 @@ muzzleLight = new THREE.PointLight(0xffb060, 0, 9, 2); scene.add(muzzleLight);
 WEAPONS.forEach(w => { applyAttachments(w); vmModels.push(makeGun(w)); }); initCasings();
 resize(); loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows;
 initUI(); initMpUI(); initDmgNumbers(); initPreview(); applyMapThumbs();
-{ let has = null; try { has = localStorage.getItem('bp_mthumb2_' + MAPS[settings.map].name); } catch (e) {} if (!has) setTimeout(() => { mapThumbPending = true; }, 2500); }
+try { for (const m of MAPS) { localStorage.removeItem('bp_mthumb_' + m.name); localStorage.removeItem('bp_mthumb2_' + m.name); } } catch (e) {} applyMapThumbs(); // old captured thumbnails are no longer used
 addEventListener('bp-assets', () => { makeThumbs(); PV.mode = 'char'; buildPreview(); });
 for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
   const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); };
@@ -5468,5 +5482,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { PV, los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { PV, postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
