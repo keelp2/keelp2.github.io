@@ -19,9 +19,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 #xh .l,#xh .r{height:2px;width:9px;top:-1px}
 #xh .c{width:2px;height:2px;left:-1px;top:-1px}
 #dot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 6px #ff3b3b;opacity:0}
-#hit{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0}
-#hit i{position:absolute;width:2px;height:10px;background:#fff;left:-1px;top:-5px;box-shadow:0 0 2px #000}
-#hit.head i{background:#ff4040}
+#hit{position:absolute;left:50%;top:50%;width:0;height:0;opacity:0;--g:5px;--c:#fff;--w:2.4px;--l:10px;pointer-events:none}
+#hit i{position:absolute;width:var(--w);height:var(--l);background:var(--c);left:calc(var(--w) / -2);top:calc(var(--l) / -2);border-radius:1px;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 5px rgba(0,0,0,.35)}
+#hit.head{--w:3px;--l:11px}#hit.head i{box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 8px rgba(255,255,255,.55)}
+#hit.kill{--c:#ff3326;--w:3.2px;--l:15px}#hit.kill i{box-shadow:0 0 0 1px rgba(40,0,0,.6),0 0 10px rgba(255,40,30,.85)}
+#hit.stun{--c:#8fd6ff}
 #scope{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at center,transparent 0,transparent 33vmin,rgba(0,0,0,.92) 33.4vmin,#000 60vmin)}
 #scope:before,#scope:after{content:"";position:absolute;background:rgba(0,0,0,.85)}
 #scope:before{left:0;right:0;top:50%;height:1px}
@@ -234,7 +236,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 @media (max-width:1000px){.cbig{grid-template-columns:repeat(2,1fr)}.ccols{grid-template-columns:1fr}}
 #flashov{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
 .nind{position:absolute;left:50%;top:50%;margin:-18px 0 0 -30px;width:60px;text-align:center;display:none;color:#ff5a4a;text-shadow:0 0 6px #000;font-weight:800;pointer-events:none}.nind b{display:block;font-size:22px;line-height:22px}.nind small{font-size:9px;letter-spacing:.15em}
-.mrank{display:flex;align-items:center;gap:8px}.mrank b{display:grid;place-items:center;width:40px;height:44px;background:var(--acc);color:#111;font-size:15px;font-weight:900;clip-path:polygon(50% 0,100% 24%,100% 76%,50% 100%,0 76%,0 24%)}.mrank i{display:block;width:70px;height:4px;background:rgba(255,255,255,.15)}.mrank u{display:block;height:100%;background:var(--acc)}
+.mrank{display:flex;align-items:center;gap:10px}.mrank .rk{display:flex;flex-direction:column;gap:2px}.mrank .rk b{font-size:15px;font-weight:900}.mrank .rk small{font-size:9px;letter-spacing:.18em;color:#ffb27a}.emblem{filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));flex:none}.mrank i{display:block;width:70px;height:4px;background:rgba(255,255,255,.15)}.mrank u{display:block;height:100%;background:var(--acc)}
 .xpbar{display:flex;align-items:center;gap:14px;margin:0 0 14px;max-width:1300px}.xpbar b{font-size:18px;letter-spacing:.14em}.xpbar i{flex:1;height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}.xpbar u{display:block;height:100%;background:var(--acc)}.xpbar small{color:var(--mut)}
 .cnote{color:var(--mut);font-size:12px;margin:8px 0 0}.lvup{color:#5dff9a}
 /* ---------- loadout slot picker ---------- */
@@ -281,6 +283,13 @@ img.thumb.tall{height:110px;object-fit:cover}
 .lochoose b small{display:block;font-weight:400;color:var(--mut);font-size:10px;margin-top:3px}
 #pause .panel{max-width:760px}#psettings .sgroups{grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}#psettings .sgroup{padding:4px 12px 10px}
 .bdesc{display:block;margin-top:4px;font-size:11px;color:#ffb27a}
+.picker{position:fixed;z-index:70;background:#14171d;border:1px solid var(--acc);border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:3px;box-shadow:0 14px 40px rgba(0,0,0,.6);max-height:60vh;overflow:auto;animation:pkIn .12s ease-out}
+.picker button{text-align:left;background:none;border:0;border-radius:5px;padding:8px 12px;font-size:13px;white-space:nowrap}.picker button:hover,.picker button.gpfocus{background:rgba(255,122,26,.18)}.picker button.on{color:#ffb27a;font-weight:800}
+@keyframes pkIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.mapinfo{display:flex;gap:18px;align-items:stretch}.mitext{flex:1;min-width:0}.milay{height:150px;border-radius:6px;border:1px solid var(--line);background:#2a2620;image-rendering:auto}
+.mileg{display:block;margin-top:8px;color:var(--mut);font-size:10px}.mileg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 8px}
+@media (max-height:900px){.milay{height:118px}}
+.pvhint{position:absolute;top:8px;left:0;right:0;text-align:center;font-size:10px;letter-spacing:.12em;color:var(--mut);pointer-events:none}
 /* ---------- loading screen ---------- */
 #loading{position:fixed;inset:0;z-index:50;display:none;background:#05070a}
 #loading.on{display:block}
@@ -302,7 +311,7 @@ img.thumb.tall{height:110px;object-fit:cover}
   <div id="scope"><b></b></div>
   <div id="xh"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="c"></i></div>
   <div id="dot"></div>
-  <div id="hit"><i style="transform:rotate(45deg) translateY(-9px)"></i><i style="transform:rotate(135deg) translateY(-9px)"></i><i style="transform:rotate(225deg) translateY(-9px)"></i><i style="transform:rotate(315deg) translateY(-9px)"></i></div>
+  <div id="hit"><i style="transform:rotate(45deg) translateY(calc(var(--g) * -1 - var(--l) / 2))"></i><i style="transform:rotate(135deg) translateY(calc(var(--g) * -1 - var(--l) / 2))"></i><i style="transform:rotate(225deg) translateY(calc(var(--g) * -1 - var(--l) / 2))"></i><i style="transform:rotate(315deg) translateY(calc(var(--g) * -1 - var(--l) / 2))"></i></div>
   <div id="dirs"><div></div><div></div><div></div><div></div></div>
   <div id="top">
     <div class="box"><small id="wavel">WAVE</small><b id="wave">1</b></div>
@@ -360,7 +369,7 @@ img.thumb.tall{height:110px;object-fit:cover}
       </section>
       <section class="mtab" data-tab="loadout"><div class="lgrid"><div class="lmain"><div id="loadout"></div></div><div class="pvslot" data-pv="loadout"></div></div></section>
       <section class="mtab" data-tab="operators"><div class="lgrid"><div class="lmain"><h3>Choose your operator</h3><div class="wcards clsgrid" id="classes"></div></div>
-        <div class="pvslot" data-pv="operators"><div class="pvbox" id="pvbox"><canvas id="preview"></canvas><div id="pvlabel"></div></div></div></div></section>
+        <div class="pvslot" data-pv="operators"><div class="pvbox" id="pvbox"><canvas id="preview"></canvas><div id="pvlabel"></div><div class="pvhint">drag / right stick to rotate · scroll to zoom</div></div></div></div></section>
       <section class="mtab" data-tab="career"><div id="career"></div></section>
       <section class="mtab" data-tab="settings"><div class="sgroups">
         <div class="sgroup"><h3>Graphics &amp; display</h3><label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (old laptops)</option><option value="medium">Medium — shadows, balanced (most laptops)</option><option value="high">High — realistic lighting (gaming PC)</option><option value="ultra">Ultra — + ambient occlusion, max shadows (strong GPU)</option></select></label><label class="set"><div>Field of view <b id="fovv"></b></div><input type="range" id="fov" min="70" max="105" step="1"></label><label class="set"><div>Camera</div><select id="view"><option value="first">First person</option><option value="third">Third person</option></select></label><label class="set"><div>Crosshair</div><select id="xhair"><option value="cross">Cross</option><option value="dot">Dot</option><option value="circle">Circle</option><option value="none">None</option></select></label><label class="set"><div>Crosshair colour</div><select id="xcolor"><option value="#ffffff">White</option><option value="#5dff9a">Green</option><option value="#ffe14d">Yellow</option><option value="#ff4fd8">Pink</option><option value="#4fd8ff">Cyan</option></select></label><label class="set"><div>Fullscreen on deploy</div><select id="fullscreen"><option value="1">On — locks Ctrl+W etc. (recommended)</option><option value="0">Off</option></select></label></div>
@@ -477,7 +486,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611192230"></script>
+<script src="game.js?v=202611201200"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
