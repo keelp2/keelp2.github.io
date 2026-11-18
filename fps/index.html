@@ -225,7 +225,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 .lcat{font-size:10px;letter-spacing:.24em;color:#ffb27a;margin:12px 0 6px;font-weight:700}
 .lslot{font-size:13px!important;letter-spacing:.24em!important;color:#fff!important;margin:22px 0 4px!important;font-weight:800;border-bottom:1px solid var(--line);padding-bottom:6px}
 #menu .mode{color:inherit}#menu #botbtn,#menu #mpbtn{border-color:var(--line);border-left-color:var(--acc);background:rgba(255,255,255,.05)}
-.modeopts.g3{grid-template-columns:1.6fr 1fr 1fr}
+.modeopts.g3{grid-template-columns:1fr 1fr}.modeopts.g3 .set:first-child{grid-column:1/-1}.modeopts select{width:100%}
 .cbig{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:1300px}.cbig div{background:rgba(255,255,255,.05);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:6px;padding:14px 18px}
 .cbig small{display:block;font-size:10px;letter-spacing:.22em;color:var(--mut)}.cbig b{display:block;font-size:34px;font-weight:900;margin-top:4px}
 .ccols{display:grid;grid-template-columns:1fr 1.2fr 1.4fr;gap:26px;max-width:1300px;margin-top:10px}.ktab td small{color:var(--mut);font-size:10px}.r_win{color:#5dff9a}.r_loss{color:#ff7a7a}.r_draw,.r_run{color:#ffcf6b}
@@ -233,6 +233,38 @@ img.thumb.tall{height:110px;object-fit:cover}
 @media (max-width:1000px){.cbig{grid-template-columns:repeat(2,1fr)}.ccols{grid-template-columns:1fr}}
 #flashov{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
 .nind{position:absolute;left:50%;top:50%;margin:-18px 0 0 -30px;width:60px;text-align:center;display:none;color:#ff5a4a;text-shadow:0 0 6px #000;font-weight:800;pointer-events:none}.nind b{display:block;font-size:22px;line-height:22px}.nind small{font-size:9px;letter-spacing:.15em}
+.mrank{display:flex;align-items:center;gap:8px}.mrank b{display:grid;place-items:center;width:40px;height:44px;background:var(--acc);color:#111;font-size:15px;font-weight:900;clip-path:polygon(50% 0,100% 24%,100% 76%,50% 100%,0 76%,0 24%)}.mrank i{display:block;width:70px;height:4px;background:rgba(255,255,255,.15)}.mrank u{display:block;height:100%;background:var(--acc)}
+.xpbar{display:flex;align-items:center;gap:14px;margin:0 0 14px;max-width:1300px}.xpbar b{font-size:18px;letter-spacing:.14em}.xpbar i{flex:1;height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}.xpbar u{display:block;height:100%;background:var(--acc)}.xpbar small{color:var(--mut)}
+.cnote{color:var(--mut);font-size:12px;margin:8px 0 0}.lvup{color:#5dff9a}
+/* ---------- loadout slot picker ---------- */
+.lopick{display:grid;grid-template-columns:250px minmax(0,1fr);gap:18px}
+.loslots{display:flex;flex-direction:column;gap:6px}.loslots .lohead{font-size:12px;letter-spacing:.2em;color:#ffb27a;font-weight:800;margin:0 0 4px}
+.loslot{position:relative;text-align:left;background:rgba(255,255,255,.05);border:1px solid var(--line);border-left:4px solid transparent;border-radius:6px;padding:9px 12px;min-height:62px;transition:.12s;overflow:hidden}
+.loslot:hover,.loslot.gpfocus{background:rgba(255,255,255,.09)}.loslot.on{border-left-color:var(--acc);background:rgba(255,122,26,.14)}
+.loslot small{display:block;font-size:10px;letter-spacing:.2em;color:var(--mut)}.loslot small kbd{font-size:9px;padding:0 4px;border:1px solid var(--line);border-radius:3px;font-family:inherit}
+.loslot b{display:block;font-size:13px;margin-top:3px;max-width:60%}.loslot img{position:absolute;right:6px;top:50%;transform:translateY(-50%);height:44px;opacity:.9}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.chips button{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:5px 12px;font-size:11px;letter-spacing:.12em}
+.chips button.on{background:var(--acc);color:#111;border-color:var(--acc);font-weight:800}
+.lochoices .wcards{grid-template-columns:repeat(auto-fill,minmax(185px,1fr))}.lochoices .attrow{margin-top:12px}
+.pclsgrid{grid-template-columns:repeat(3,1fr)}.pclsgrid .wcard{padding:8px}.pnote{font-size:11px;color:var(--mut);margin:6px 0 4px}
+/* ---------- match intro ---------- */
+#introov{position:fixed;inset:0;pointer-events:none;display:none;z-index:30}#introov.on{display:block}
+#introov .lb{position:absolute;left:0;right:0;height:11vh;background:#000;transition:transform .6s ease-in}#introov .lb.t{top:0}#introov .lb.b{bottom:0}
+#introov.cd .lb.t{transform:translateY(-100%)}#introov.cd .lb.b{transform:translateY(100%)}
+#introov .icard{position:absolute;left:6vw;bottom:16vh;animation:icIn .7s ease-out}#introov.cd .icard{opacity:0;transition:opacity .4s}
+@keyframes icIn{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+#introov small{letter-spacing:.32em;color:#ffb27a;font-weight:800;font-size:13px}#introov h2{margin:6px 0;font-size:64px;font-weight:900;letter-spacing:.1em;text-shadow:0 4px 20px rgba(0,0,0,.8)}#introov p{margin:0;color:#e4e8ee;font-size:16px;text-shadow:0 2px 8px #000}
+#introCount{position:absolute;left:0;right:0;top:34%;text-align:center;font-size:120px;font-weight:900;letter-spacing:.06em;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.7);opacity:0}
+#introCount.pop{animation:cdPop .85s ease-out forwards}@keyframes cdPop{0%{opacity:0;transform:scale(1.8)}15%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:scale(.92)}}
+/* ---------- compact layout for laptop-height screens ---------- */
+@media (max-height:900px){.mtop{height:58px}.logo{font-size:21px}.mtabs button{font-size:12px;padding:0 13px}.mbody{padding:16px 30px}.mfoot{padding:7px 30px}
+  .mode{padding:10px 14px;margin-bottom:4px}.mode b{font-size:19px}.mode span{font-size:12px;margin-top:2px}.mode em{margin-top:4px}.modeopts{margin-bottom:10px;padding-top:4px}
+  .mapinfo{padding:12px 16px;margin-bottom:10px}.mapinfo b{font-size:26px}.mapinfo span{font-size:13px}.mapsel .card{min-height:96px}.playgrid{grid-template-columns:350px minmax(0,1fr);gap:24px}
+  .pvslot .pvbox{height:min(58vh,470px)}.lgrid{grid-template-columns:minmax(0,1fr) 340px;gap:20px}.wcard{padding:8px}.wcard .thumb{height:54px}.wcard span{font-size:10.5px}
+  .cbig b{font-size:26px}.cbig div{padding:10px 14px}.sgroup .set{margin:7px 0}h3{margin:10px 0 6px}}
+@media (max-height:740px){.mode span{display:none}.mapinfo span{display:none}.mapsel .card{min-height:76px}.pvslot .pvbox{height:52vh}.wcard .bar{display:none}}
+#bloodov{position:absolute;inset:0;background-size:100% 100%;opacity:0;pointer-events:none;z-index:3}
+#hud.cine>*:not(#flashov){visibility:hidden}
 /* ---------- loading screen ---------- */
 #loading{position:fixed;inset:0;z-index:50;display:none;background:#05070a}
 #loading.on{display:block}
@@ -290,7 +322,7 @@ img.thumb.tall{height:110px;object-fit:cover}
     <header class="mtop">
       <div class="logo">BREACH<span>POINT</span></div>
       <nav class="mtabs" id="mtabs"><button data-tab="play" class="on">PLAY</button><button data-tab="loadout">LOADOUT</button><button data-tab="operators">OPERATORS</button><button data-tab="career">CAREER</button><button data-tab="settings">SETTINGS</button><button data-tab="controls">CONTROLS</button></nav>
-      <div class="mplayer"><b id="mpname2">OPERATOR</b><small id="mclass"></small></div>
+      <div class="mrank" id="mrank"></div><div class="mplayer"><b id="mpname2">OPERATOR</b><small id="mclass"></small></div>
     </header>
     <main class="mbody">
       <section class="mtab on" data-tab="play">
@@ -317,7 +349,9 @@ img.thumb.tall{height:110px;object-fit:cover}
       <section class="mtab" data-tab="settings"><div class="sgroups">
         <div class="sgroup"><h3>Graphics &amp; display</h3><label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (old laptops)</option><option value="medium">Medium — shadows, balanced (most laptops)</option><option value="high">High — realistic lighting (gaming PC)</option><option value="ultra">Ultra — + ambient occlusion, max shadows (strong GPU)</option></select></label><label class="set"><div>Field of view <b id="fovv"></b></div><input type="range" id="fov" min="70" max="105" step="1"></label><label class="set"><div>Camera</div><select id="view"><option value="first">First person</option><option value="third">Third person</option></select></label><label class="set"><div>Crosshair</div><select id="xhair"><option value="cross">Cross</option><option value="dot">Dot</option><option value="circle">Circle</option><option value="none">None</option></select></label><label class="set"><div>Crosshair colour</div><select id="xcolor"><option value="#ffffff">White</option><option value="#5dff9a">Green</option><option value="#ffe14d">Yellow</option><option value="#ff4fd8">Pink</option><option value="#4fd8ff">Cyan</option></select></label><label class="set"><div>Fullscreen on deploy</div><select id="fullscreen"><option value="1">On — locks Ctrl+W etc. (recommended)</option><option value="0">Off</option></select></label></div>
         <div class="sgroup"><h3>Audio</h3><label class="set"><div>Effects volume <b id="volv"></b></div><input type="range" id="vol" min="0" max="1" step="0.05"></label><label class="set"><div>Music volume <b id="musv"></b></div><input type="range" id="mus" min="0" max="1" step="0.05"></label><label class="set"><div>Battle ambience</div><select id="ambience"><option value="1">On</option><option value="0">Off</option></select></label></div>
-        <div class="sgroup"><h3>Controls</h3><label class="set"><div>Mouse sensitivity <b id="sensv"></b></div><input type="range" id="sens" min="0.2" max="3" step="0.05"></label><label class="set"><div>Aim down sights</div><select id="adsToggle"><option value="0">Hold</option><option value="1">Toggle</option></select></label><label class="set"><div>Invert look Y</div><select id="invertY"><option value="0">Off</option><option value="1">On</option></select></label><label class="set"><div>Controller aim assist</div><select id="aimAssist"><option value="1">On</option><option value="0">Off</option></select></label><label class="set"><div>Controller vibration</div><select id="rumble"><option value="1">On</option><option value="0">Off</option></select></label></div>
+        <div class="sgroup"><h3>Controls</h3><label class="set"><div>Mouse sensitivity <b id="sensv"></b></div><input type="range" id="sens" min="0.2" max="3" step="0.05"></label><label class="set"><div>Aim down sights</div><select id="adsToggle"><option value="0">Hold</option><option value="1">Toggle</option></select></label><label class="set"><div>Invert look Y</div><select id="invertY"><option value="0">Off</option><option value="1">On</option></select></label><label class="set"><div>Blood &amp; gore</div><select id="blood"><option value="1">On</option><option value="0">Off</option></select></label>
+          <label class="set"><div>Match intro &amp; countdown</div><select id="intro"><option value="1">On</option><option value="0">Off</option></select></label>
+          <label class="set"><div>Controller aim assist</div><select id="aimAssist"><option value="1">On</option><option value="0">Off</option></select></label><label class="set"><div>Controller vibration</div><select id="rumble"><option value="1">On</option><option value="0">Off</option></select></label></div>
       </div></section>
       <section class="mtab" data-tab="controls"><div class="cgrid"><table class="ktab"><tr><th colspan="2">Keyboard &amp; mouse</th></tr>
 <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Move</td></tr><tr><td><kbd>LMB</kbd> / <kbd>RMB</kbd></td><td>Fire / aim down sights</td></tr>
@@ -336,6 +370,7 @@ img.thumb.tall{height:110px;object-fit:cover}
   </div>
 </div>
 
+<div id="introov"><i class="lb t"></i><i class="lb b"></i><div class="icard"><small id="introMode"></small><h2 id="introMap"></h2><p id="introObj"></p></div><div id="introCount"></div></div>
 <div id="loading"><div class="ldbg" id="ldbg"></div><div class="ldshade"></div>
   <div class="ldtop"><span class="logo">BREACH<span>POINT</span></span></div>
   <div class="ldinfo"><small id="ldmode">SURVIVAL</small><h2 id="ldmap">MAP</h2><p id="lddesc"></p></div>
@@ -394,8 +429,9 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <div id="pause" class="screen">
   <div class="panel small">
-    <h1 style="font-size:34px">PAUSED</h1>
+    <h1 style="font-size:34px" id="ptitle">PAUSED</h1><div class="pnote" id="ponline" style="display:none;color:#ff9b6b">Online matches keep running while this menu is open.</div>
     <button class="big" id="resume">RESUME</button>
+    <h3 style="margin-top:18px">Change class</h3><div class="wcards pclsgrid" id="pcls"></div><div class="pnote" id="pclsnote"></div>
     <button class="btn2" id="restart">RESTART</button>
     <button class="btn2" id="quit">QUIT TO MENU</button>
   </div>
@@ -421,7 +457,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611191420"></script>
+<script src="game.js?v=202611191900"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
