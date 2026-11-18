@@ -252,6 +252,20 @@ const sfx = {
     if (wet > 0) { const w = c.createGain(); w.gain.value = wet; out.connect(w); w.connect(this.verbIn); }
     return g;
   },
+  // human voices from a pitched source through vocal-tract formants (spatial like everything else)
+  voice(kind, o = {}) {
+    if (!this.ok() || settings.voices === false) return; const c = this.ctx, t = c.currentTime + (o.delay || 0), p0 = o.pitch || 120, v = (o.vol === undefined ? 1 : o.vol);
+    const V = { pain: { d: rand(0.16, 0.26), f: [640, 1190, 2390], p: [1.35, 0.92], g: 0.55, br: 0.25 }, hurt: { d: rand(0.32, 0.45), f: [700, 1220, 2600], p: [1.5, 0.8], g: 0.7, br: 0.35 },
+      death: { d: rand(0.6, 0.9), f: [780, 1150, 2800], p: [1.55, 0.55], g: 0.75, br: 0.4, vib: 1 }, effort: { d: rand(0.1, 0.15), f: [420, 1500, 2500], p: [1.05, 0.95], g: 0.35, br: 0.5 },
+      breath: { d: 0.5, f: [500, 1400, 2600], p: [1, 1], g: 0.0, br: 1 } }[kind]; if (!V) return;
+    const dest = this.chain(o.pan || 0, o.wet || 0.12, o.lp || 0, v * (o.self ? 0.55 : 1), o.pos);
+    if (V.g > 0) { const src = c.createOscillator(); src.type = 'sawtooth'; src.frequency.setValueAtTime(p0 * V.p[0], t); src.frequency.exponentialRampToValueAtTime(p0 * V.p[1], t + V.d);
+      if (V.vib) { const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = rand(5, 7); lg.gain.value = p0 * 0.05; lfo.connect(lg); lg.connect(src.frequency); lfo.start(t); lfo.stop(t + V.d + 0.05); }
+      const env = c.createGain(); env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(V.g, t + 0.02); env.gain.setValueAtTime(V.g * 0.8, t + V.d * 0.55); env.gain.exponentialRampToValueAtTime(0.0001, t + V.d);
+      src.connect(env); V.f.forEach((f, i) => { const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * rand(0.94, 1.06) * (p0 > 150 ? 1.12 : 1); bp.Q.value = [6, 9, 12][i]; const g = c.createGain(); g.gain.value = [1, 0.55, 0.25][i] * 3.2; env.connect(bp); bp.connect(g); g.connect(dest); });
+      src.start(t); src.stop(t + V.d + 0.05); }
+    this.nz(dest, { t, dur: V.d * (kind === 'breath' ? 1 : 0.7), type: 'bandpass', f: kind === 'breath' ? 1300 : 1700, q: 0.9, g: V.br * 0.35, a: kind === 'breath' ? 0.18 : 0.01 }); // breath / rasp
+  },
   nz(dest, o) {
     const c = this.ctx, t = o.t !== undefined ? o.t : c.currentTime + (o.delay || 0);
     const src = c.createBufferSource(); src.buffer = this.nb;
@@ -385,6 +399,13 @@ function spatial(p) {
   const rx = Math.cos(player.yaw), rz = -Math.sin(player.yaw);
   return { vol: 1 / (1 + d * 0.07), pan: clamp((dx * rx + dz * rz) / d, -1, 1) * 0.8, dist: d, pos: { x: p.x, y: p.y, z: p.z } };
 }
+// spoken callouts (bots): short, throttled, volume by distance
+const callout = (() => { let last = 0; const L = { contact: ['Contact!', 'Enemy spotted!', 'Contact front!', 'Got eyes on one!'], reload: ['Reloading!', 'Changing mags!', 'Cover me, reloading!'], nade: ['Frag out!', 'Grenade out!'],
+  kill: ['Got one!', 'Tango down!', 'Enemy down!'], hurt: ["I'm hit!", 'Taking fire!', "I'm hit, I'm hit!"], nadeWarn: ['Grenade!', 'Frag, move!'] };
+  return (kind, pos, pitch) => { try { if (settings.voices === false || !window.speechSynthesis || !sfx.ok()) return; const now = performance.now(); if (now - last < 2600) return;
+    const d = pos ? Math.hypot(pos.x - camera.position.x, pos.z - camera.position.z) : 0; if (d > 32) return; last = now;
+    const u = new SpeechSynthesisUtterance(pick(L[kind] || [kind])); u.rate = rand(1.1, 1.3); u.pitch = clamp((pitch || 120) / 120 * rand(0.85, 1.05), 0.5, 1.6); u.volume = clamp(0.85 - d / 40, 0.1, 0.85) * (settings.sfxVol === undefined ? 1 : settings.sfxVol);
+    const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); if (vs.length) u.voice = vs[Math.floor(((pitch || 120) * 7.3) % vs.length)]; speechSynthesis.speak(u); } catch (e) {} }; })();
 // distant battle (only while a match is running)
 const ambience = { t: 2,
   far(dist) { const a = Math.random() * 6.28, c = camera.position; return { x: c.x + Math.sin(a) * dist, y: c.y + rand(5, 40), z: c.z + Math.cos(a) * dist, a }; },
@@ -2815,7 +2836,7 @@ class Enemy {
     // ---- perception
     this.losT -= dt; if (this.losT <= 0) { this.losT = 0.1 + Math.random() * 0.08; this.perceive(); }
     if (this.target && this.target.dead) { this.target = this.bot ? null : PLAYER_T; this.visible = false; }
-    if (this.visible) this.seeT += dt; else { this.seeT = 0; this.lostT += dt; }
+    if (this.visible) { if (this.seeT === 0 && this.lostT > 4 && Math.random() < 0.4) callout('contact', this.pos, this.vpitch || (this.vpitch = rand(95, 155))); this.seeT += dt; } else { this.seeT = 0; this.lostT += dt; }
     if (!this.bot && !this.visible && this.lostT > 3.5) { this.lostT = 1.5; this.investigate = new V3(player.pos.x + rand(-6, 6), player.pos.y, player.pos.z + rand(-6, 6)); } // survival: they always sense you eventually
     // ---- reload
     if (this.reloadT > 0) { this.reloadT -= dt; if (this.reloadT <= 0) { this.mag = W.mag; if (Math.hypot(this.pos.x - player.pos.x, this.pos.z - player.pos.z) < 18) sfx.play('magin', spatial(this.pos)); } }
@@ -2924,9 +2945,9 @@ class Enemy {
     }
     return true;
   }
-  startReload() { if (this.reloadT > 0 || this.mag >= this.W.mag) return; this.reloadT = this.W.reload * rand(1.0, 1.25) * (this.W.shell ? 3 : 1); if (Math.hypot(this.pos.x - player.pos.x, this.pos.z - player.pos.z) < 18) sfx.play('magout', spatial(this.pos)); }
+  startReload() { if (this.reloadT > 0 || this.mag >= this.W.mag) return; if (Math.random() < 0.45) callout('reload', this.pos, this.vpitch); this.reloadT = this.W.reload * rand(1.0, 1.25) * (this.W.shell ? 3 : 1); if (Math.hypot(this.pos.x - player.pos.x, this.pos.z - player.pos.z) < 18) sfx.play('magout', spatial(this.pos)); }
   throwNade(at) {
-    this.grenades--; this.nadeCD = rand(8, 14); const from = this.eye(new V3()), tt = 1.15;
+    this.grenades--; this.nadeCD = rand(8, 14); const from = this.eye(new V3()), tt = 1.15; callout('nade', this.pos, this.vpitch); { const sp = spatial(this.pos); sfx.voice('effort', { pos: sp.pos, vol: sp.vol * 1.4, pitch: this.vpitch || 120 }); }
     const vel = new V3((at.x - from.x) / tt, (at.y + 0.3 - from.y + 0.5 * G * tt * tt) / tt, (at.z - from.z) / tt);
     const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), MAT({ color: 0x3b4a2a, emissive: 0x220000 }));
     mesh.position.copy(from); fx.add(mesh); grenades.push({ pos: from, vel, mesh, t: 2.0, owner: this });
@@ -2976,6 +2997,7 @@ class Enemy {
     if (this.aimT > 0 && head) this.aimT += 0.35;
     this.errX += rand(-1, 1) * 0.05; this.errY += rand(-0.5, 1) * 0.04; // flinch
     if (this.hp <= 0) { this.die(head, false, src); return true; }
+    if (!this.vT || game.time - this.vT > 0.45) { this.vT = game.time; const sp = spatial(this.pos); sfx.voice(d > 30 ? 'hurt' : 'pain', { pos: sp.pos, vol: sp.vol * 1.6, pitch: this.vpitch || (this.vpitch = rand(95, 155)), occl: true }); if (this.hp < this.maxHp * 0.5 && Math.random() < 0.3) callout('hurt', this.pos, this.vpitch); }
     return false;
   }
   die(head, silent, killer) {
@@ -2983,6 +3005,7 @@ class Enemy {
     if (this.laser) this.laser.visible = false;
     this.bodyMat.emissive.setRGB(0, 0, 0); this.bodyMat.color.multiplyScalar(0.5);
     if (silent) return;
+    if (!head || Math.random() < 0.4) { const sp = spatial(this.pos); sfx.voice('death', { pos: sp.pos, vol: sp.vol * 1.8, pitch: this.vpitch || rand(95, 155) }); }
     if (this.bot) botKilled(this, killer, head);
     else onKill(this, head);
   }
@@ -2992,7 +3015,7 @@ class Enemy {
 const BD = { stats: [], limit: 20, time: 480, matchT: 0, respawn: [], lastAttacker: null };
 function botProfile(i) {
   const keys = Object.keys(CLASSES), c = keys[i % keys.length], C = CLASSES[c], lo = DEFAULT_LO[c];
-  const prims = WEAPONS.filter(w => w.slot === 'primary').map(w => w.id), weapon = Math.random() < 0.5 ? lo[0] : pick(prims);
+  const prims = WEAPONS.filter(w => w.slot === 'primary').map(w => w.id), weapon = Math.random() < 0.2 ? lo[0] : pick(prims); // bots carry the whole arsenal
   return { name: BOT_NAMES[i % BOT_NAMES.length], cls: c, color: PCOLORS[(i + 1) % PCOLORS.length], T: { model: C.model, name: BOT_NAMES[i % BOT_NAMES.length], hp: C.hp, speed: 4.6 * C.speed, scale: CHAR[C.model].scale, weapon, sight: 90, reaction: 0.35, score: 0 } };
 }
 // Spawn selection: never in an enemy's line of sight, not too close, near teammates in TDM, and spread across the map
@@ -3066,7 +3089,7 @@ function botPlayerDie() {
   const k = BD.lastAttacker instanceof Enemy ? BD.lastAttacker : null; BD.stats[0].deaths++;
   if (k && k.stat) k.stat.kills++; if (BD.teams && k) BD.teamKills[k.team]++;
   { const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null); killFeed(k ? k.name : null, k ? tc(k.team) : null, k && k.W ? k.W.short : '', !!BD.lastHead, BD.stats[0].name, tc(0), true); }
-  player.alive = false; MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
+  player.alive = false; sfx.voice('death', { self: true, pitch: settings.vpitch || 120, vol: 0.8 }); MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
   showMsg('ELIMINATED', k ? 'by ' + k.name : '', 3); checkBotEnd();
 }
 function checkBotEnd() { if (BD.teams) { for (const t of [0, 1]) if (BD.teamKills[t] >= BD.limit) endBotMatch((t ? 'Red' : 'Blue') + ' team reached ' + BD.limit + ' kills'); return; } const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); if (top.kills >= BD.limit) endBotMatch(top.name + ' reached the kill limit'); }
@@ -3194,6 +3217,23 @@ const WEAPONS = [
   { id: 'sword', slot: 'melee', melee: true, desc: 'Heavy blade, long reach; a cleave can hit two foes.', short: 'MACHETE', name: 'COMBAT MACHETE', dmg: 85, backstab: 150, reach: 2.7, swing: 0.5, hitAt: 0.14, cleave: 2, snd: 'stab', rpm: 86, auto: true, mag: 1, res: Infinity, reload: 1, spread: 0, bloom: 0, maxBloom: 0, move: 0, air: 0, ads: 1, zoom: 1, kick: 0, kickYaw: 0, range: [3, 3, 1], hip: [0.17, -0.17, -0.36], adsPos: [0, 0, -0.36], adsSpeed: 10, swap: 0.22, head: 1.4 },
   { id: 'pan', slot: 'melee', melee: true, desc: 'Cast iron. Huge knockback. Very, very loud.', short: 'PAN', name: 'CAST-IRON PAN', dmg: 65, backstab: 130, reach: 2.3, swing: 0.45, hitAt: 0.13, knock: 16, snd: 'clang', rpm: 100, auto: true, mag: 1, res: Infinity, reload: 1, spread: 0, bloom: 0, maxBloom: 0, move: 0, air: 0, ads: 1, zoom: 1, kick: 0, kickYaw: 0, range: [3, 3, 1], hip: [0.17, -0.17, -0.36], adsPos: [0, 0, -0.36], adsSpeed: 10, swap: 0.22, head: 1.4 },
 ];
+// more guns: variants of the base models with their own handling, finish and voice
+for (const [id, base, o] of [
+  ['grau', 'rifle', { finish: 'od', name: '5.56 TACTICAL RIFLE', short: 'TAC RIFLE', desc: 'Long-barrel 5.56. Laser-flat recoil, great at range, lower damage.', dmg: 20, rpm: 720, kick: 0.008, kickYaw: 0.005, range: [32, 70, 0.7], vkick: 0.5, snd: 'rifle', gscale: 1.06 }],
+  ['krig', 'ak', { finish: 'black', name: '6.8 HEAVY RIFLE', short: 'HEAVY RIFLE', desc: 'Hard-hitting 6.8 with a punchy, vertical climb.', dmg: 31, rpm: 560, mag: 30, kick: 0.016, kickYaw: 0.006, vkick: 1.0, snd: 'battle' }],
+  ['mp5', 'smg', { finish: 'black', name: '9MM CLASSIC SMG', short: 'CLASSIC SMG', desc: 'Roller-delayed 9mm. Smooth, accurate, a little slower firing.', dmg: 17, rpm: 800, mag: 30, kick: 0.006, kickYaw: 0.006, spread: 0.007, snd: 'smg' }],
+  ['p90', 'smg', { finish: 'fde', name: '5.7 PDW', short: 'PDW', desc: 'Top-loaded 50-round PDW. Bullet hose with a light punch.', dmg: 14, rpm: 920, mag: 50, res: 200, maxRes: 300, reload: 2.3, kick: 0.0065, snd: 'hyper' }],
+  ['mg', 'lmg', { finish: 'black', name: '7.62 GPMG', short: 'GPMG', desc: 'General-purpose 7.62 belt-fed. Devastating, slow to move and reload.', dmg: 31, rpm: 620, mag: 75, reload: 5.0, kick: 0.016, speedMul: 0.86, snd: 'battle', gscale: 1.05 }],
+  ['db', 'shotgun', { finish: 'wood', name: 'DOUBLE BARREL', short: 'DOUBLE BARREL', desc: 'Two shells, both barrels fast. Unmatched up close, then reload.', dmg: 13, pellets: 10, rpm: 260, mag: 2, res: 24, reload: 1.9, shell: false, snd: 'shotgun' }],
+  ['semi', 'dmr', { finish: 'fde', name: '7.62 MARKSMAN', short: 'MARKSMAN', desc: 'Semi-auto 7.62 with a fast follow-up. Two to the chest, one to the head.', dmg: 58, rpm: 160, mag: 15, kick: 0.03, snd: 'dmr' }],
+  ['bolt', 'sniper', { finish: 'od', name: 'LIGHT SNIPER', short: 'LIGHT SNIPER', desc: 'Fast-cycling bolt gun. One-shot to the head, quick to aim.', dmg: 92, rpm: 70, ads: 0.36, speedMul: 1.0, snd: 'sniper' }],
+  ['deagle', 'pistol', { finish: 'steel', name: '.50 HAND CANNON', short: 'HAND CANNON', desc: 'Huge .50 semi-auto. Two hits kill, if you can hold it down.', dmg: 62, rpm: 200, mag: 7, kick: 0.06, kickYaw: 0.016, vkick: 2.0, reload: 1.7, snd: 'revolver' }],
+]) { const b = WEAPONS.find(w => w.id === base); if (b) WEAPONS.splice(WEAPONS.indexOf(WEAPONS.find(w => w.id === 'rpg')), 0, Object.assign({}, b, { id, geo: b.geo || base }, o)); }
+// ---- CoD-style unlock ladder (level each item becomes available)
+const UNLOCK = { rifle: 1, smg: 1, shotgun: 1, lmg: 1, dmr: 1, pistol: 1, knife: 1, frag: 1, smoke: 1, flash: 1, ak: 2, revolver: 3, sword: 3, sniper: 4, ump: 5, semtex: 5, grau: 6, mp5: 7, pan: 7, autoshotgun: 8, molotov: 8,
+  scar: 9, mpistol: 10, bullpup: 11, p90: 12, krig: 13, semi: 14, vector: 15, mg: 16, db: 17, bolt: 18, deagle: 19, fifty: 20, rpg: 22 };
+const unlockLvl = id => UNLOCK[id] || 1, isUnlocked = id => { try { return settings.unlockAll === true || lvlOf(STATS.xp).l >= unlockLvl(id); } catch (e) { return unlockLvl(id) <= 1; } };
+const unlocksAt = l => Object.keys(UNLOCK).filter(k => UNLOCK[k] === l);
 let inv = [];
 let carry = [2, 0, 9];
 const widx = id => WEAPONS.findIndex(w => w.id === id);
@@ -3205,13 +3245,13 @@ const EQUIP = {
   flash: { slot: 'tactical', name: 'FLASHBANG', short: 'FLASH', desc: 'Blinds and deafens anyone looking toward it, including bots.', fuse: 1.4 },
 };
 const DEFAULT_EQ = { assault: ['frag', 'flash'], scout: ['semtex', 'smoke'], heavy: ['frag', 'smoke'], recon: ['semtex', 'smoke'], wolf: ['frag', 'flash'], witch: ['molotov', 'flash'] };
-const DEFAULT_LO = { assault: ['rifle', 'pistol', 'sword'], scout: ['smg', 'pistol', 'knife'], heavy: ['lmg', 'revolver', 'pan'], recon: ['dmr', 'pistol', 'knife'], wolf: ['shotgun', 'revolver', 'knife'], witch: ['ak', 'pistol', 'pan'] };
+const DEFAULT_LO = { assault: ['rifle', 'pistol', 'knife'], scout: ['smg', 'pistol', 'knife'], heavy: ['lmg', 'pistol', 'knife'], recon: ['dmr', 'pistol', 'knife'], wolf: ['shotgun', 'pistol', 'knife'], witch: ['rifle', 'pistol', 'knife'] }; // every default is level-1 gear
 if (!settings.loadouts || typeof settings.loadouts !== 'object') settings.loadouts = {};
 if (!settings.att || typeof settings.att !== 'object') settings.att = {};
 function getLO(c = settings.cls) { // per-class loadout, validated
   const d = DEFAULT_LO[c] || DEFAULT_LO.assault, lo = Object.assign({ primary: d[0], secondary: d[1], melee: d[2] }, settings.loadouts[c] || {});
-  for (const slot of ['primary', 'secondary', 'melee']) { const k = widx(lo[slot]); if (k < 0 || WEAPONS[k].slot !== slot) lo[slot] = d[['primary', 'secondary', 'melee'].indexOf(slot)]; }
-  const de = DEFAULT_EQ[c] || DEFAULT_EQ.assault; if (!EQUIP[lo.lethal] || EQUIP[lo.lethal].slot !== 'lethal') lo.lethal = de[0]; if (!EQUIP[lo.tactical] || EQUIP[lo.tactical].slot !== 'tactical') lo.tactical = de[1];
+  for (const slot of ['primary', 'secondary', 'melee']) { const k = widx(lo[slot]); if (k < 0 || WEAPONS[k].slot !== slot || !isUnlocked(lo[slot])) lo[slot] = d[['primary', 'secondary', 'melee'].indexOf(slot)]; }
+  const de = DEFAULT_EQ[c] || DEFAULT_EQ.assault; if (!EQUIP[lo.lethal] || EQUIP[lo.lethal].slot !== 'lethal' || !isUnlocked(lo.lethal)) lo.lethal = isUnlocked(de[0]) ? de[0] : 'frag'; if (!EQUIP[lo.tactical] || EQUIP[lo.tactical].slot !== 'tactical' || !isUnlocked(lo.tactical)) lo.tactical = isUnlocked(de[1]) ? de[1] : 'flash';
   return lo;
 }
 function setLO(slot, id) { const lo = getLO(); lo[slot] = id; settings.loadouts[settings.cls] = lo; const C = customs()[settings.activeLO]; if (C) C[slot] = id; saveSettings(); }
@@ -3571,7 +3611,7 @@ document.addEventListener('pointerlockchange', () => {
 // ---- career stats (saved in this browser)
 const BUCKET = () => ({ matches: 0, wins: 0, losses: 0, draws: 0, kills: 0, deaths: 0, heads: 0, shots: 0, hits: 0 });
 const STATS = (() => { let d = null; try { d = JSON.parse(localStorage.getItem('bp_stats') || 'null'); } catch (e) {}
-  d = d || {}; if (!d.pvp) { const ai = BUCKET(); for (const k in ai) if (typeof d[k] === 'number') ai[k] = d[k]; d = { ai, pvp: BUCKET(), time: d.time || 0, bestStreak: d.bestStreak || 0, bestWave: d.bestWave || 0, bestScore: d.bestScore || 0, runs: d.runs || 0, weapons: d.weapons || {}, recent: d.recent || [], xp: 0 }; } // migrate: old totals were all vs bots
+  d = d || {}; if (!d.pvp) { const ai = BUCKET(); for (const k in ai) if (typeof d[k] === 'number') ai[k] = d[k]; d = { ai, pvp: BUCKET(), time: d.time || 0, bestStreak: d.bestStreak || 0, bestWave: d.bestWave || 0, bestScore: d.bestScore || 0, runs: d.runs || 0, weapons: d.weapons || {}, recent: d.recent || [], xp: d.xp || 0 }; } // migrate: old totals were all vs bots
   return Object.assign({ ai: BUCKET(), pvp: BUCKET(), time: 0, bestStreak: 0, bestWave: 0, bestScore: 0, runs: 0, weapons: {}, recent: [], xp: 0 }, d); })();
 const saveStats = () => { try { localStorage.setItem('bp_stats', JSON.stringify(STATS)); } catch (e) {} };
 const wstat = id => STATS.weapons[id] || (STATS.weapons[id] = { kills: 0, shots: 0, hits: 0 });
@@ -3583,10 +3623,12 @@ function gainXP(n, label) {
   const el = document.createElement('div'); el.className = 'xppop'; el.innerHTML = `<b>+${amt}</b>${label ? ' ' + label : ''}`; $('hud').appendChild(el); setTimeout(() => el.remove(), 1500);
   if (after > before) levelUpFx(after);
 }
+function showMenuToast(msg) { let t = document.getElementById('mtoast'); if (!t) { t = document.createElement('div'); t.id = 'mtoast'; document.body.appendChild(t); } t.textContent = msg; t.classList.remove('on'); void t.offsetWidth; t.classList.add('on'); clearTimeout(showMenuToast.t); showMenuToast.t = setTimeout(() => t.classList.remove('on'), 2200); }
 function levelUpFx(l) {
   saveStats(); renderRank(); sfx.play('levelup'); rumble(0.3, 0.5, 250);
   let b = $('lvlup'); if (!b) { b = document.createElement('div'); b.id = 'lvlup'; $('hud').appendChild(b); }
-  b.innerHTML = `${emblem(l, 64)}<div><small>LEVEL UP</small><b>LEVEL ${l}</b><i>${rankName(l)}</i></div>`; b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
+  const un = unlocksAt(l).map(k => (WEAPONS.find(w => w.id === k) || EQUIP[k] || {}).name).filter(Boolean);
+  b.innerHTML = `${emblem(l, 64)}<div><small>LEVEL UP</small><b>LEVEL ${l}</b><i>${rankName(l)}</i>${un.length ? `<em>UNLOCKED: ${un.join(' · ')}</em>` : ''}</div>`; b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
   clearTimeout(levelUpFx.t); levelUpFx.t = setTimeout(() => b.classList.remove('on'), 3600);
 }
 function statEnd(mode, result, deaths) { // result: 'win' | 'loss' | 'draw' | 'run' — only real multiplayer counts toward K/D, W/L and accuracy
@@ -3710,7 +3752,7 @@ function updateSunShadow() {
   sun.target.position.set(cx, 0, cz); sun.position.set(cx, 0, cz).addScaledVector(world.sunDir, 120); sun.target.updateMatrixWorld();
 }
 function resetRun() {
-  ng.on = false; ng.cook = -1; ng.throwT = 0; if (settings.pendingLO !== undefined && settings.pendingLO !== null) { applyCustom(settings.pendingLO); settings.pendingLO = null; }
+  ng.on = false; ng.cook = -1; ng.throwT = 0; ng.pending = null; if (settings.pendingLO !== undefined && settings.pendingLO !== null) { applyCustom(settings.pendingLO); settings.pendingLO = null; }
   for (const e of enemies) { world.group.remove(e.group); if (e.laser) world.group.remove(e.laser); }
   enemies = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   for (const p of pickups) if (p.temp) world.group.remove(p.mesh);
@@ -3799,6 +3841,7 @@ function damagePlayer(d, from, attacker, head) {
   if (attacker instanceof Enemy) { BD.lastAttacker = attacker; BD.lastHead = !!head; }
   if (MP.active && attacker) { MP.lastAttacker = attacker; MP.lastAttackT = game.time; MP.lastHead = !!head; if (!MP.viaHit && typeof attacker === 'string' && attacker !== MP.myId && d > 0.5) { const t = performance.now(); if (t - (MP.hmT || 0) > 120) { MP.hmT = t; netSend({ t: 'hm', to: attacker }); } } }
   if (player.shield > 0) { const a = Math.min(player.shield, d); player.shield -= a; d -= a; if (d <= 0) { sfx.play('hit'); hud.vig = Math.min(1, hud.vig + 0.05); return; } }
+  if (!player.vT || game.time - player.vT > 0.4) { player.vT = game.time; sfx.voice(d > 35 ? 'hurt' : 'pain', { self: true, pitch: settings.vpitch || (settings.vpitch = rand(100, 140)), vol: 0.8 }); }
   rumble(0.6, 0.8, 160); player.hp -= d; player.lastDmgT = 0; if (settings.blood !== false) hud.blood = Math.min(1, (hud.blood || 0) + d / 60); player.regenCap = Math.max(25, Math.ceil(player.hp / 25) * 25);
   hud.vig = Math.min(1, hud.vig + d / 35); game.shake = Math.min(1, game.shake + d / 120);
   sfx.play('hurt', { vol: 0.7 });
@@ -4025,7 +4068,7 @@ function updateRockets(dt) {
 // ---- CoD-style frag grenades: [4] equips (LMB throw / RMB underhand), [G] / RB = hold to cook, release to throw
 const NADE_FUSE = 3.5;
 const ng = { on: false, cook: -1, under: false, quick: false, throwT: 0, from: -1, prevL: false, prevR: false, raise: 0, kind: 'frag', slot: 'lethal' };
-function nadeVel(under) { aimBasis(); const d = _f.clone(); d.y += under ? 0.15 : 0.12; d.normalize(); return under ? d.multiplyScalar(9).add(new V3(0, 2.2, 0)).addScaledVector(player.vel, 0.5) : d.multiplyScalar(19).add(new V3(0, 2.4, 0)).addScaledVector(player.vel, 0.6); }
+function nadeVel(under) { aimBasis(); const d = _f.clone(); d.y += under ? 0.15 : 0.13; d.normalize(); return under ? d.multiplyScalar(11.5).add(new V3(0, 2.4, 0)).addScaledVector(player.vel, 0.5) : d.multiplyScalar(25).add(new V3(0, 2.6, 0)).addScaledVector(player.vel, 0.6); } // ~30 m at full loft
 const NG = { body: new THREE.SphereGeometry(0.075, 12, 9), cyl: new THREE.CylinderGeometry(0.045, 0.045, 0.15, 12), box: new THREE.BoxGeometry(0.11, 0.06, 0.11), neck: new THREE.CylinderGeometry(0.018, 0.035, 0.1, 10) };
 function nadeMesh(kind) { // a recognisable model for each throwable
   const g = new THREE.Group(), em = MAT({ color: 0x3b4a2a, emissive: 0x000000, roughness: 0.6 }); let m;
@@ -4043,7 +4086,7 @@ function throwGrenade(fuse = 2.0, under = false, kind = 'frag', slot = 'lethal')
   const vel = nadeVel(under);
   const nm = nadeMesh(kind); nm.g.position.copy(pos); fx.add(nm.g); grenades.push({ pos, vel, mesh: nm.g, em: nm.em, t: fuse, owner: MP.active ? MP.myId : 'player', kind, spin: new V3(rand(4, 9), rand(-3, 3), rand(-2, 2)) });
   if (MP.active) netSend({ t: 'nade', p: v3a(pos), v: v3a(vel), f: Math.round(fuse * 100) / 100, k: kind });
-  sfx.play('throw'); vm.kick = 0.6; noise(player.pos, 6, PLAYER_T);
+  sfx.play('throw'); sfx.voice('effort', { self: true, pitch: settings.vpitch || 120, vol: 0.7 }); vm.kick = 0.6; noise(player.pos, 6, PLAYER_T);
 }
 function nadeEquip(quick, slot = 'lethal') {
   const have = slot === 'tactical' ? player.tacticals : player.grenades, kind = getLO()[slot];
@@ -4064,13 +4107,14 @@ function arcShow(on) {
 }
 function nadePull(under) { if (!ng.on || ng.cook >= 0 || ng.throwT > 0 || (ng.slot === 'tactical' ? player.tacticals : player.grenades) <= 0) return; ng.cook = 0; ng.under = !!under; sfx.play('pin'); }
 function nadeRelease() {
-  if (!ng.on || ng.cook < 0) return; const E = EQUIP[ng.kind], fuse = E.cook ? Math.max(0.05, E.fuse - ng.cook) : E.fuse; ng.cook = -1;
-  throwGrenade(fuse, ng.under, ng.kind, ng.slot); ng.throwT = 0.45; arcShow(false);
+  if (!ng.on || ng.cook < 0) return; const E = EQUIP[ng.kind], fuse = E.cook ? Math.max(0.05, E.fuse - ng.cook - 0.14) : E.fuse; ng.cook = -1;
+  ng.pending = { fuse, under: ng.under, kind: ng.kind, slot: ng.slot }; ng.throwT = NADE_THROW; arcShow(false); sfx.play('swing', { vol: 0.35 }); // the grenade leaves the hand at the top of the swing
 }
+const NADE_THROW = 0.52, NADE_REL = 0.14;
 function nadeQuickStart(slot = 'lethal') { if (nadeEquip(true, slot)) nadePull(false); }
 function updateNade(dt) {
   ng.raise = Math.min(1, ng.raise + dt * 5);
-  if (ng.throwT > 0) { ng.throwT -= dt; if (ng.throwT <= 0) { if (ng.quick || player.grenades <= 0) nadeExit(); } return; }
+  if (ng.throwT > 0) { if (ng.pending && NADE_THROW - ng.throwT >= NADE_REL) { const q = ng.pending; ng.pending = null; throwGrenade(q.fuse, q.under, q.kind, q.slot); } ng.throwT -= dt; if (ng.throwT <= 0) { if (ng.quick || player.grenades <= 0) nadeExit(); } return; }
   if (!player.alive) { nadeExit(); return; }
   const L = mouseL, R = mouseR;
   if (!ng.quick && ng.raise > 0.6) { if (L && !ng.prevL) nadePull(false); else if (R && !ng.prevR) nadePull(true); if (ng.cook >= 0 && ((!ng.under && !L) || (ng.under && !R))) nadeRelease(); }
@@ -4098,12 +4142,17 @@ function knifeTrail(side, k) { trailMesh.material.opacity = k * 0.34; trailMesh.
 function updateNadeVM(dt) {
   if (!(WEAPONS[wst.cur].id === 'knife' && wst.swingT > 0)) trailMesh.visible = false;
   nadeVM.visible = ng.on && player.alive; vmRoot.visible = !ng.on; if (!ng.on) return;
-  const P = player, bob = Math.sin(P.bob || 0) * 0.01, t = ng.throwT > 0 ? 1 - ng.throwT / 0.45 : 0, cook = ng.cook >= 0 ? 1 : 0, low = 1 - ng.raise;
+  const P = player, bob = Math.sin(P.bob || 0) * 0.01, t = ng.throwT > 0 ? 1 - ng.throwT / NADE_THROW : 0, cook = ng.cook >= 0 ? 1 : 0, low = 1 - ng.raise;
   let x = 0.16, y = -0.15 - low * 0.25 + bob, z = -0.36, rx = 0, rz = 0;
   if (cook) { if (ng.under) { y -= 0.08; z += 0.05; rx = 0.4; } else { y += 0.06; z += 0.12; x += 0.03; rx = -0.6; } }
-  if (t > 0) { const k = Math.sin(Math.min(1, t * 1.6) * Math.PI); z -= k * 0.25; y += ng.under ? -0.05 : k * 0.08; rx += k * 0.9; if (t > 0.3) y -= (t - 0.3) * 0.6; }
-  nadeVM.position.set(x, y, z); nadeVM.rotation.set(rx, 0.3, rz); nadeVM.userData.ring.visible = !cook && t <= 0;
-  nadeVM.children[0].visible = !(t > 0.35); nadeVM.children[1].visible = nadeVM.children[2].visible = !(t > 0.35);
+  let ry = 0.3; const rel = NADE_REL / NADE_THROW;
+  if (t > 0) { const e = (a, b) => smooth(a, b, t);
+    if (!ng.under) { const wind = e(0, rel * 0.8) * (1 - e(rel * 0.8, rel * 1.5)), whip = e(rel * 0.55, rel * 1.7), fol = e(rel * 1.4, 1); // overarm: cock back -> whip -> follow through across the body
+      x += 0.06 * wind - 0.12 * fol; y += 0.13 * wind + 0.14 * whip * (1 - fol) - 0.42 * fol; z += 0.12 * wind - 0.38 * whip * (1 - fol * 0.5); rx += -0.9 * wind + 1.5 * whip * (1 - fol * 0.3) + 0.4 * fol; rz += -0.35 * wind + 0.5 * fol; ry += 0.3 * wind - 0.5 * fol; }
+    else { const back = e(0, rel) * (1 - e(rel, rel * 1.8)), swing = e(rel * 0.6, rel * 1.8), fol = e(rel * 1.6, 1); // underhand: dip back, lob up and forward
+      y += -0.1 * back + 0.08 * swing * (1 - fol) - 0.3 * fol; z += 0.08 * back - 0.25 * swing; rx += 0.7 * back - 0.9 * swing; } }
+  nadeVM.position.set(x, y, z); nadeVM.rotation.set(rx, ry, rz); nadeVM.userData.ring.visible = !cook && t <= 0;
+  const held = !(t > rel); nadeVM.children[0].visible = held; nadeVM.children[1].visible = nadeVM.children[2].visible = held;
 }
 function pointInBox(x, y, z, r) { for (const b of world.boxes) if (!b.dead && x + r > b.x0 && x - r < b.x1 && y + r > b.y0 && y - r < b.y1 && z + r > b.z0 && z - r < b.z1) return true; return !!TERR && y - r < TH(x, z); }
 const smokes = [];
@@ -4260,7 +4309,7 @@ function updatePlayer(dt) {
   if (P.jumpBuf > 0 && P.coyote > 0) {
     P.vel.y = 7.4 * cls().jump; P.jumpBuf = 0; P.coyote = 0; P.onGround = false;
     if (P.sliding) { P.sliding = false; P.slideCD = 0.3; }
-    sfx.play('jump');
+    sfx.play('jump'); if (Math.random() < 0.3) sfx.voice('effort', { self: true, pitch: settings.vpitch || 120, vol: 0.5 });
   }
   // pads
   if (P.onGround && P.ground && P.ground.pad) {
@@ -4271,6 +4320,7 @@ function updatePlayer(dt) {
   moveBody(P, dt);
   if (!wasGround && P.onGround && vyBefore < -11.5 && !P.mantle && game.time > (P.protT || 0)) { // fall damage (≈3.2 m+; 7 m ≈ half your health, ~11 m+ (a Bazaar rooftop) deadly), loud and obvious
     const dmg = Math.round(Math.pow(-vyBefore - 11.5, 1.3) * 4.9 * hpMul()); if (dmg > 0) { damagePlayer(dmg, null, null); sfx.play('fallhurt'); game.shake = Math.min(1.2, game.shake + 0.6); showHint('FALL DAMAGE −' + dmg, '#ff6b5a'); noise(P.pos, 14, PLAYER_T); } }
+  if (P.alive && P.hp < P.maxHp * 0.33) { P.brT = (P.brT || 0) - dt; if (P.brT <= 0) { P.brT = rand(1.5, 2.2); sfx.voice('breath', { self: true, vol: 0.7 }); } } // hurt: you can hear yourself breathing hard
   if (!wasGround && P.onGround && vyBefore < -5) { P.landKick = Math.min(-vyBefore * 0.008, 0.12); sfx.play('land', { vol: clamp(-vyBefore / 14, 0.3, 1) }); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: clamp(-vyBefore / 12, 0.3, 1), gait: 'sprint', near: true }); if (-vyBefore > 6) noise(P.pos, 12, PLAYER_T); }
   if (P.pos.y < -15) { const s = world.L.spawn; P.pos.set(s.x, s.y + 0.1, s.z); P.vel.set(0, 0, 0); }
   // footsteps
@@ -4541,9 +4591,10 @@ function renderLoadout(el, onChange) {
     if (cats.length > 1) { const chips = mk('div', 'chips'); for (const c of ['ALL'].concat(cats)) { const b = mk('button', LO_CAT === c ? 'on' : ''); b.textContent = c === 'ALL' ? 'ALL' : CAT_NAMES[c]; b.onclick = () => { LO_CAT = c; renderLoadout(el, onChange); }; chips.appendChild(b); } right.appendChild(chips); }
     const grid = mk('div', 'wcards');
     for (const w of all.filter(w => LO_CAT === 'ALL' || (w.cat || 'MELEE') === LO_CAT)) {
-      const b = mk('button', 'wcard' + (lo[LO_SLOT] === w.id ? ' on' : '')); b.dataset.w = w.id;
+      const lk = !isUnlocked(w.id), b = mk('button', 'wcard' + (lo[LO_SLOT] === w.id ? ' on' : '') + (lk ? ' locked' : '')); b.dataset.w = w.id;
       b.innerHTML = (THUMBS[w.id] ? `<img class="thumb" src="${THUMBS[w.id]}" alt="">` : '<div class="thumb"></div>') + `<b>${w.name}</b><span>${w.desc}</span>` + (w.melee ? `<em>${w.dmg} damage · ${w.backstab} backstab · reach ${w.reach}m</em>` : `${statBars(w)}<em>${w.mag} rounds · ${w.launcher ? 'rocket' : w.auto && !w.shell ? 'full-auto' : w.shell ? 'pump / semi' : w.bolt ? 'bolt-action' : 'semi-auto'}</em>`);
-      b.onclick = () => { setLO(LO_SLOT, w.id); renderLoadout(el, onChange); onChange && onChange(); previewSelect(w.id); }; b.onmouseenter = () => previewSelect(w.id); grid.appendChild(b); }
+      if (lk) b.insertAdjacentHTML('beforeend', `<i class="lock">🔒 LEVEL ${unlockLvl(w.id)}</i>`);
+      b.onclick = () => { if (lk) { sfx.play('hit'); showMenuToast(`${w.name} unlocks at level ${unlockLvl(w.id)}`); previewSelect(w.id); return; } setLO(LO_SLOT, w.id); renderLoadout(el, onChange); onChange && onChange(); previewSelect(w.id); }; b.onmouseenter = () => previewSelect(w.id); grid.appendChild(b); }
     right.appendChild(grid);
     const sel = WEAPONS[widx(lo[LO_SLOT])], kinds = [['optic', ATT_OPTS.optic[sel.id] || []], ['muzzle', ATT_OPTS.muzzle[sel.id] ? ['none', 'supp', 'comp'] : []], ['mag', ATT_OPTS.mag[sel.id] ? ['std', 'ext'] : []]].filter(k => k[1].length > 1);
     if (kinds.length) { const ab = mk('div', 'attrow'); ab.innerHTML = `<small>${sel.short} ATTACHMENTS</small>`;
@@ -4551,7 +4602,7 @@ function renderLoadout(el, onChange) {
         for (const o of opts) { const bt = mk('button', o === cur ? 'on' : ''); bt.textContent = ATT_NAMES[o]; bt.onclick = () => { settings.att[sel.id] = Object.assign({}, settings.att[sel.id], { [kind]: o }); saveSettings(); applyAttachments(sel); renderLoadout(el, onChange); onChange && onChange(); previewSelect(sel.id, true); }; grp.appendChild(bt); }
         ab.appendChild(grp); } right.appendChild(ab); }
   } else { const grid = mk('div', 'wcards');
-    for (const id in EQUIP) { const E = EQUIP[id]; if (E.slot !== LO_SLOT) continue; const b = mk('button', 'wcard' + (lo[LO_SLOT] === id ? ' on' : '')); b.innerHTML = `<b>${E.name}</b><span>${E.desc}</span>`; b.onclick = () => { setLO(LO_SLOT, id); renderLoadout(el, onChange); onChange && onChange(); }; grid.appendChild(b); }
+    for (const id in EQUIP) { const E = EQUIP[id]; if (E.slot !== LO_SLOT) continue; const lk = !isUnlocked(id), b = mk('button', 'wcard' + (lo[LO_SLOT] === id ? ' on' : '') + (lk ? ' locked' : '')); b.innerHTML = `<b>${E.name}</b><span>${E.desc}</span>` + (lk ? `<i class="lock">🔒 LEVEL ${unlockLvl(id)}</i>` : ''); b.onclick = () => { if (lk) { sfx.play('hit'); showMenuToast(`${E.name} unlocks at level ${unlockLvl(id)}`); return; } setLO(LO_SLOT, id); renderLoadout(el, onChange); onChange && onChange(); }; grid.appendChild(b); }
     right.appendChild(grid); }
   el.appendChild(left); el.appendChild(right);
 }
@@ -4572,7 +4623,7 @@ function toMenu() { setTimeout(() => { if (game.state === 'menu') music.play('ti
 function die() {
   if (MP.active) return mpDie();
   if (game.mode === 'botdm') return botPlayerDie();
-  player.alive = false; game.state = 'dying'; game.dieT = 1.6; mouseL = mouseR = false; wst.reloading = false;
+  player.alive = false; sfx.voice('death', { self: true, pitch: settings.vpitch || 120, vol: 0.8 }); game.state = 'dying'; game.dieT = 1.6; mouseL = mouseR = false; wst.reloading = false;
   showMsg('YOU DIED', '', 1.5);
 }
 function finishDeath() {
@@ -4808,7 +4859,7 @@ function handleGame(d) {
     case 'pane': { const pn = panes[num(d.i, -1)]; if (pn) breakPane(pn, false, true); break; }
     case 'hm': if (d.to === MP.myId && game.state === 'playing') hitMarker(!!d.kill, false, d.k === 'stun' ? 'stun' : 'nade'); break;
     case 'die': {
-      const victim = d.id, killer = typeof d.by === 'string' ? d.by : victim;
+      const victim = d.id, killer = typeof d.by === 'string' ? d.by : victim; if (r && victim !== MP.myId) { const sp = spatial(r.pos); sfx.voice('death', { pos: sp.pos, vol: sp.vol * 1.8, pitch: 95 + (hashStr(String(victim)) % 60) }); }
       killFeed(killer === victim ? null : pname(killer), null, wShort(d.w), !!d.head && killer !== victim, pname(victim), null, killer === MP.myId || victim === MP.myId);
       if (killer === MP.myId && victim !== MP.myId) mpKillConfirm(victim, !!d.head);
       break;
@@ -4907,7 +4958,8 @@ class Remote {
   }
   damage(d, head) {
     if (this.dead) return false;
-    netSend({ t: 'hit', to: this.id, dmg: Math.round(d), head: !!head, w: game.nadeDmg ? 'nade' : WEAPONS[wst.cur].id }); this.flashT = 0.12; return false;
+    netSend({ t: 'hit', to: this.id, dmg: Math.round(d), head: !!head, w: game.nadeDmg ? 'nade' : WEAPONS[wst.cur].id }); this.flashT = 0.12;
+    if (!this.vT || game.time - this.vT > 0.45) { this.vT = game.time; const sp = spatial(this.pos); sfx.voice('pain', { pos: sp.pos, vol: sp.vol * 1.6, pitch: 95 + (hashStr(String(this.id)) % 60) }); } return false;
   }
 }
 function clearRemotes() { for (const r of remotes.values()) if (world) world.group.remove(r.group); remotes.clear(); remoteList = []; }
@@ -4998,7 +5050,7 @@ function updateMP(dt) {
   if (MP.isHost && MP.matchT <= 0) hostEndMatch('Time limit reached');
 }
 function mpDie() {
-  player.alive = false; MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
+  player.alive = false; sfx.voice('death', { self: true, pitch: settings.vpitch || 120, vol: 0.8 }); MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
   const by = MP.lastAttacker && game.time - MP.lastAttackT < 8 ? MP.lastAttacker : MP.myId;
   netSend({ t: 'die', by, head: MP.lastHead, w: by === MP.myId ? '' : MP.lastWeapon || '' });
   showMsg('ELIMINATED', by === MP.myId ? 'Respawning…' : 'by ' + pname(by), 3);
@@ -5528,8 +5580,8 @@ resize(); loadMap(settings.map); world.shadows = QUALITY[settings.quality].shado
 initUI(); initMpUI(); initDmgNumbers(); initPreview(); applyMapThumbs();
 try { for (const m of MAPS) { localStorage.removeItem('bp_mthumb_' + m.name); localStorage.removeItem('bp_mthumb2_' + m.name); } } catch (e) {} applyMapThumbs(); // old captured thumbnails are no longer used
 addEventListener('bp-assets', () => { makeThumbs(); PV.mode = 'char'; buildPreview(); });
-for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
-  const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); };
+for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['voices', 'voices', v => v === '1'], ['unlockAll', 'unlockAll', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
+  const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); if (key === 'unlockAll' && $('loadout')) renderLoadout($('loadout')); };
 }
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
