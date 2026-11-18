@@ -1136,7 +1136,7 @@ function wallZ2(L, z0, z1, x, th, y0, h, ops, m) {
   }
   if (cur < z1) L.box(x - th / 2, y0, cur, x + th / 2, y0 + h, z1, m);
 }
-const D2 = c => ({ c, w: 1.8, y0: 0, y1: 2.5 }), W2 = c => ({ c, w: 1.4, y0: 0.95, y1: 2.4 }); // windows: 1.45 m tall, sill at hip height, so you can vault through crouched
+const D2 = c => ({ c, w: 1.8, y0: 0, y1: 2.5 }), W2 = c => ({ c, w: 1.5, y0: 0.8, y1: 2.75 }); // windows: 1.95 m tall, sill at hip height: vault straight through standing
 // a real window in a wall opening: wooden frame + a fill chosen from the position (same on every client)
 function winOpening(L, ax, a, b, c, th, y0, y1, o) {
   if (o.open || y1 - y0 < 0.5) return;
@@ -1148,7 +1148,7 @@ function winOpening(L, ax, a, b, c, th, y0, y1, o) {
 }
 // two-storey house: doors {n,s,e,w: [centers]}, interior stair along the north wall, upper-floor windows on every side, pitched roof
 function house2(L, x0, z0, w, d, o = {}) {
-  const fh = 3.4, th = 0.4, x1 = x0 + w, z1 = z0 + d, m = o.m || 'tudor', run = clamp(w - 3.4, 3.8, 5.6), sw = 1.5;
+  const fh = 3.4, th = 0.4, x1 = x0 + w, z1 = z0 + d, m = o.m || 'tudor', run = clamp(w - 3.4, 3.8, 5.6), sw = 1.8;
   const dr = o.doors || {}, wn = (a, b) => { const r = []; for (let c = a + 1.6; c < b - 1.2; c += 2.6) r.push(W2(c)); return r; };
   const stx0 = x0 + th + 1.1 - 0.9, stx1 = x0 + th + 1.1 + run + 0.9; // no ground-floor window on the north wall where the stair runs behind it
   const gOps = (side, a, b) => (dr[side] || []).map(D2).concat(o.gwin === false ? [] : wn(a, b).filter(wo => !(dr[side] || []).some(dc => Math.abs(dc - wo.c) < 2) && !(side === 'n' && wo.c > stx0 && wo.c < stx1)));
@@ -1191,7 +1191,7 @@ function stairTower(L, x0, z0, s, m) {
 
 // ---------------------------------------------------------------- MAP 4: MILLBROOK VILLAGE (large, three lanes, river)
 function buildMillbrook(L) {
-  L.hills = 2.6; L.hillScale = 30; L.hillMask = (x, z) => smooth(6, 12, Math.abs(x));
+  L.hills = 4.4; L.hillScale = 34; L.hillRamp = 10; L.hillMask = (x, z) => smooth(6, 12, Math.abs(x));
   L.bounds = [-64, -48, 64, 48]; L.ground = 'grassMud'; L.groundScale = 7; L.grass = 0.9; L.flowers = 2; L.padStyle = 'mushroom'; L.big = true;
   L.groundY = (x, z) => { const a = Math.abs(x); return a < 2.8 ? -0.9 : a < 4.2 ? lerp(-0.9, 0, (a - 2.8) / 1.4) : 0; };
   L.box(-68, -1, -52, -4, 0, 52, 'floor').noRender = true; L.box(4, -1, -52, 68, 0, 52, 'floor').noRender = true;
@@ -1239,7 +1239,7 @@ function buildMillbrook(L) {
   wallZ2(L, bz0 + 0.5, bz0 + bd - 0.5, bx0 + 0.25, 0.5, 0, bh, [{ c: bz0 + bd / 2, w: 4.5, y0: 0, y1: 4.2 }, { c: bz0 + bd / 2, w: 2, y0: 5.4, y1: 7.2 }], 'planks');
   wallZ2(L, bz0 + 0.5, bz0 + bd - 0.5, bx0 + bw - 0.25, 0.5, 0, bh, [{ c: bz0 + bd / 2, w: 4.5, y0: 0, y1: 4.2 }], 'planks');
   L.box(bx0 + 0.5, 4.2, bz0 + 0.5, bx0 + 7, 4.45, bz0 + bd - 0.5, 'planks');               // hayloft (west half)
-  L.stairs(bx0 + 12.5, bz0 + 1.4, 'nx', 1.6, 0, 4.45, 5.5, 'planks');
+  L.stairs(bx0 + 12.5, bz0 + 1.5, 'nx', 1.9, 0, 4.45, 5.5, 'planks');
   L.box(bx0 + 7.0, 4.45, bz0 + 2.4, bx0 + 7.1, 5.4, bz0 + bd - 0.5, 'planks', { col: false });
   L.box(bx0 - 0.3, bh, bz0 - 0.3, bx0 + bw + 0.3, bh + 0.2, bz0 + bd + 0.3, 'roof');
   L.prop('gable', bx0 + bw / 2, bh + 0.2, bz0 + bd / 2, 1, { w: bw + 0.6, d: bd + 0.6, h: 5.5, oh: 0.4, axis: 'x', mat: 'tiles' });
@@ -1281,7 +1281,7 @@ function doorway(L, x0, x1, z, gap0, gap1, h = 5.5, m = 'plasterB', th = 0.7) { 
 function crates(L, x, z, n = 1, big = false) { const s = big ? 1.6 : 1.2; L.B(x, z, s, s, s, 0, 'crate'); if (n > 1) L.B(x + 0.05, z - 0.05, s, s, s, s, 'crate'); }
 function buildOldQuarter(L) {
   L.postcard = { hk: 0.36, dk: 1.15 };
-  L.hills = 1.0; L.hillScale = 18; L.hillFlat = 1.0; L.hillRamp = 5;
+  L.hills = 1.8; L.hillScale = 22; L.hillFlat = 1.0; L.hillRamp = 7.5;
   L.bounds = [-52, -46, 52, 46]; L.ground = 'cobble'; L.groundScale = 3.2; L.groundTint = 0xf0dcbc; L.grass = 0.05; L.big = true; L.padStyle = 'rune';
   L.box(-56, -1, -50, 56, 0, 50, 'floor').noRender = true;
   L.box(-53, 0, -47, 53, 9, -46, 'plasterB'); L.box(-53, 0, 46, 53, 9, 47, 'plasterB'); L.box(-53, 0, -46, -52, 9, 46, 'plasterB'); L.box(52, 0, -46, 53, 9, 46, 'plasterB');
@@ -1392,7 +1392,7 @@ function cityBlock(L, x0, z0, x1, z1, R) {
   if (alleyX && alleyZ) { crates(L, mx, mz + 0.6); L.prop('keg', mx + 0.8, 0, mz - 0.8); }
 }
 function buildCrossroads(L) {
-  L.hills = 1.5; L.hillScale = 24;
+  L.hills = 2.6; L.hillScale = 28; L.hillRamp = 9;
   const R = seeded(1337);
   L.bounds = [-96, -80, 96, 80]; L.ground = 'asphalt'; L.groundScale = 6; L.groundTint = 0xd8d6d0; L.grass = 0; L.big = true; L.padStyle = 'rune'; L.smoke = L.smoke || []; L.noLamps = true;
   L.box(-100, -1, -84, 100, 0, 84, 'floor').noRender = true;
@@ -1449,7 +1449,7 @@ function watchtower(L, cx, cz, dir, y = 4.5) { // stilted tower with sandbag par
   if (dir !== 'nx') L.box(cx - s, y, cz - s, cx - s + e, y + ph, cz + s, 'sandbag'); if (dir !== 'px') L.box(cx + s - e, y, cz - s, cx + s, y + ph, cz + s, 'sandbag');
   L.box(cx - s - 0.2, y + 2.6, cz - s - 0.2, cx + s + 0.2, y + 2.8, cz + s + 0.2, 'canvas', { col: false });
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) L.box(cx + dx * (s - 0.1) - 0.06, y, cz + dz * (s - 0.1) - 0.06, cx + dx * (s - 0.1) + 0.06, y + 2.6, cz + dz * (s - 0.1) + 0.06, 'wood', { col: false });
-  const run = y / 0.34 * 0.45, sw = 1.3;
+  const run = y / 0.34 * 0.45, sw = 1.7;
   if (dir === 'pz') L.stairs(cx, cz + s + run, 'nz', sw, 0, y, run, 'wood');
   else if (dir === 'nz') L.stairs(cx, cz - s - run, 'pz', sw, 0, y, run, 'wood');
   else if (dir === 'px') L.stairs(cx + s + run, cz, 'nx', sw, 0, y, run, 'wood');
@@ -1457,7 +1457,7 @@ function watchtower(L, cx, cz, dir, y = 4.5) { // stilted tower with sandbag par
 }
 function bunker(L, x0, z0, w, d, doors, m = 'concrete') { // single-storey building with interior; doors {n,s,e,w:[centres]}, flat roof
   const h = 3.2, th = 0.4, x1 = x0 + w, z1 = z0 + d, ops = side => (doors[side] || []).map(D2).concat([]);
-  const wins = (a, b, side) => { const r = []; for (let c = a + 2.2; c < b - 1.6; c += 3.6) if (!(doors[side] || []).some(dc => Math.abs(dc - c) < 2.3)) r.push({ c, w: 1.4, y0: 1.0, y1: 2.4 }); return r; };
+  const wins = (a, b, side) => { const r = []; for (let c = a + 2.2; c < b - 1.6; c += 3.6) if (!(doors[side] || []).some(dc => Math.abs(dc - c) < 2.3)) r.push({ c, w: 1.5, y0: 0.85, y1: 2.85 }); return r; };
   wallX2(L, x0, x1, z1 - th / 2, th, 0, h, ops('n').concat(wins(x0, x1, 'n')), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, h, ops('s').concat(wins(x0, x1, 's')), m);
   wallZ2(L, z0 + th, z1 - th, x1 - th / 2, th, 0, h, ops('e').concat(wins(z0, z1, 'e')), m); wallZ2(L, z0 + th, z1 - th, x0 + th / 2, th, 0, h, ops('w').concat(wins(z0, z1, 'w')), m);
   L.box(x0 - 0.25, h, z0 - 0.25, x1 + 0.25, h + 0.3, z1 + 0.25, m);
@@ -1484,7 +1484,7 @@ function warehouse(L, x0, z0, w, d, o = {}) { // big shed: corrugated walls, rol
 // ---------------------------------------------------------------- MAP: FREIGHT YARD (CoD-style container port, medium)
 function buildFreight(L) {
   L.postcard = { sx: -1, sz: 1, hk: 0.14, dk: 0.85 };
-  L.hills = 1.3; L.hillScale = 22;
+  L.hills = 2.1; L.hillScale = 26; L.hillRamp = 9;
   const R = seeded(77);
   L.bounds = [-64, -50, 64, 50]; L.ground = 'asphalt'; L.groundScale = 6; L.groundTint = 0xc8c4bc; L.grass = 0; L.big = true; L.noLamps = true;
   L.box(-68, -1, -54, 68, 0, 54, 'floor').noRender = true;
@@ -1527,7 +1527,7 @@ function buildFreight(L) {
 }
 // ---------------------------------------------------------------- MAP: FIREBASE (Battlefield-style desert outpost, huge)
 function buildFirebase(L) {
-  L.hills = 3.2; L.hillScale = 32;
+  L.hills = 5.5; L.hillScale = 38; L.hillRamp = 11;
   const R = seeded(4242);
   L.bounds = [-100, -90, 100, 90]; L.ground = 'sand'; L.groundScale = 5; L.groundTint = 0xf2e2c4; L.grass = 0; L.big = true; L.noLamps = true; L.smoke = [];
   L.box(-104, -1, -94, 104, 0, 94, 'floor').noRender = true;
@@ -1601,7 +1601,7 @@ function facade(L, R, x0, z0, x1, z1, h, side) {
   if (R() < 0.5) { const c = R() < 0.5 ? a0 + 0.15 : a1 - 0.15; B(c - 0.05, c + 0.05, 0, h, 0, 0.1, 'metal'); } // drainpipe
 }
 function buildBazaar(L) {
-  L.hills = 1.7; L.hillScale = 20; L.hillFlat = 1.0; L.hillRamp = 5;
+  L.hills = 2.7; L.hillScale = 24; L.hillFlat = 1.0; L.hillRamp = 7.5;
   const R = seeded(9001);
   L.bounds = [-70, -54, 70, 54]; L.ground = 'dirtroad'; L.groundScale = 4; L.groundTint = 0xf0e6d8; L.grass = 0; L.big = true; L.noLamps = true; L.smoke = [];
   L.box(-74, -1, -58, 74, 0, 58, 'floor').noRender = true;
@@ -1654,18 +1654,18 @@ function buildBazaar(L) {
   const Hh = (i, j) => (i < 0 || j < 0 || i >= nx || j >= nz ? 0 : H[j * nx + i]);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { // rooftop stairs: climb from a roof onto the next storey up
     const h = Hh(i, j); if (h <= 0 || h > 7 || rstairs >= 34 || R() > 0.45) continue; const [x0, z0, x1, z1] = cellB(i, j), y = h + 0.12;
-    if (Math.abs(Hh(i + 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs(x0 + 0.3, (z0 + z1) / 2, 'px', 1.3, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
-    else if (Math.abs(Hh(i, j + 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs((x0 + x1) / 2, z0 + 0.3, 'pz', 1.3, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (0), j + (1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
-    else if (Math.abs(Hh(i - 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs(x1 - 0.3, (z0 + z1) / 2, 'nx', 1.3, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (-1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
-    else if (Math.abs(Hh(i, j - 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs((x0 + x1) / 2, z1 - 0.3, 'nz', 1.3, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (0), j + (-1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    if (Math.abs(Hh(i + 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs(x0 + 0.3, (z0 + z1) / 2, 'px', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    else if (Math.abs(Hh(i, j + 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs((x0 + x1) / 2, z0 + 0.3, 'pz', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (0), j + (1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    else if (Math.abs(Hh(i - 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs(x1 - 0.3, (z0 + z1) / 2, 'nx', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (-1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    else if (Math.abs(Hh(i, j - 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs((x0 + x1) / 2, z1 - 0.3, 'nz', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (0), j + (-1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
   }
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const h = H[j * nx + i]; if (h <= 0) continue; const [x0, z0, x1, z1] = cellB(i, j);
     if (h <= 3.3 && stairs < 30 && R() < 0.6) { // street stairs up the side wall onto a single-storey roof
-      if (openIn(i - 1, j) && openIn(i - 2, j)) { L.stairs(x0 - 3.6, z1 - 0.85, 'px', 1.3, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
-      if (openIn(i, j - 1) && openIn(i, j - 2)) { L.stairs(x1 - 0.85, z0 - 3.6, 'pz', 1.3, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
-      if (openIn(i + 1, j) && openIn(i + 2, j)) { L.stairs(x1 + 3.6, z0 + 0.85, 'nx', 1.3, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
-      if (openIn(i, j + 1) && openIn(i, j + 2)) { L.stairs(x0 + 0.85, z1 + 3.6, 'nz', 1.3, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i - 1, j) && openIn(i - 2, j)) { L.stairs(x0 - 3.6, z1 - 1.05, 'px', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i, j - 1) && openIn(i, j - 2)) { L.stairs(x1 - 1.05, z0 - 3.6, 'pz', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i + 1, j) && openIn(i + 2, j)) { L.stairs(x1 + 3.6, z0 + 1.05, 'nx', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i, j + 1) && openIn(i, j + 2)) { L.stairs(x0 + 1.05, z1 + 3.6, 'nz', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
     }
     if (!busy.has(i + ',' + j)) { const rr = R(), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; // rooftop clutter: water tanks, antennas, AC units
       if (rr < 0.14) L.prop('fueltank', cx, h + 0.12, cz, 0.38); else if (rr < 0.24) L.prop('mast', x0 + 0.6, h + 0.12, z0 + 0.6, 0.12); else if (rr < 0.36) L.B(cx, cz, 0.8, 0.6, 0.55, h + 0.12, 'acunit'); }
@@ -1681,10 +1681,10 @@ function buildBazaar(L) {
     for (let j = 0; j < nz && want.size; j++) for (let i = 0; i < nx && want.size; i++) { const k = j * nx + i, h = H[k], root = f(k); if (h <= 0 || h > 9.8 || !want.has(root) || busy.has(i + ',' + j)) continue;
       const [x0, z0, x1, z1] = cellB(i, j), run = (h + 0.12) * 1.12, y = h + 0.12; let ok = false;
       const nc = Math.ceil((run + 0.4) / cs), clear = (di, dj) => { for (let q = 1; q <= nc; q++) if (!openIn(i + di * q, j + dj * q)) return false; return true; };
-      if (clear(-1, 0)) { L.stairs(x0 - run, z1 - 0.85, 'px', 1.3, 0, y, run, 'concrete'); ok = true; }
-      else if (clear(1, 0)) { L.stairs(x1 + run, z0 + 0.85, 'nx', 1.3, 0, y, run, 'concrete'); ok = true; }
-      else if (clear(0, -1)) { L.stairs(x1 - 0.85, z0 - run, 'pz', 1.3, 0, y, run, 'concrete'); ok = true; }
-      else if (clear(0, 1)) { L.stairs(x0 + 0.85, z1 + run, 'nz', 1.3, 0, y, run, 'concrete'); ok = true; }
+      if (clear(-1, 0)) { L.stairs(x0 - run, z1 - 1.05, 'px', 1.7, 0, y, run, 'concrete'); ok = true; }
+      else if (clear(1, 0)) { L.stairs(x1 + run, z0 + 1.05, 'nx', 1.7, 0, y, run, 'concrete'); ok = true; }
+      else if (clear(0, -1)) { L.stairs(x1 - 1.05, z0 - run, 'pz', 1.7, 0, y, run, 'concrete'); ok = true; }
+      else if (clear(0, 1)) { L.stairs(x0 + 1.05, z1 + run, 'nz', 1.7, 0, y, run, 'concrete'); ok = true; }
       if (!ok) continue; want.delete(root); busy.add(i + ',' + j); stairs++;
       // clear any rooftop clutter where the stair lands
       for (let q = L.boxes.length - 1; q >= 0; q--) { const b = L.boxes[q]; if (Math.abs(b.y0 - y) < 0.05 && b.x0 < x1 && b.x1 > x0 && b.z0 < z1 && b.z1 > z0 && !b.stair) L.boxes.splice(q, 1); }
@@ -1924,7 +1924,7 @@ class Nav {
             if (this.blocked(mx, Math.max(h1, h2, hm) + 0.47, mz, R, HT - 0.45)) continue;
             if (diag && (!this.hasNear(i + DI[d], j, h1, h2) || !this.hasNear(i, j + DJ[d], h1, h2))) continue;
             eTo.push(m); eC.push((diag ? 1.414 : 1) * cs + Math.abs(dh) * 0.4);
-          } else if (dh < -0.6 && dh > -4.6 && !diag) { // drop down a ledge (one way)
+          } else if (dh < -0.6 && dh > -7.2 && !diag) { // drop down a ledge (one way; a roof-to-street hop is fine)
             if (this.blocked(cx + DI[d] * cs * 0.9, h1 + 0.47, cz + DJ[d] * cs * 0.9, R, HT - 0.45)) continue;
             if (this.blocked(cx + DI[d] * cs, h2 + 0.47, cz + DJ[d] * cs, R * 0.9, h1 - h2 + HT - 0.6)) continue; // a body must fit all the way down
             { let floor = false; for (let q = cellStart[nk]; q < cellStart[nk + 1]; q++) if (q !== m && this.nodeH[q] > h2 + 0.3 && this.nodeH[q] < h1 + 0.6) floor = true; if (floor) continue; } // something solid between the ledge and the landing
@@ -1975,7 +1975,13 @@ class Nav {
   }
   freeAt(x, y, z) { const k = this.cellIdx(x, z); if (k < 0) return false; for (let m = this.cellStart[k]; m < this.cellStart[k + 1]; m++) if (Math.abs(this.nodeH[m] - y) < 0.6) return true; return false; }
   lineFreeAt(ax, ay, az, bx, by, bz) { const dx = bx - ax, dz = bz - az, n = Math.ceil(Math.hypot(dx, dz) / 0.45); for (let i = 1; i <= n; i++) { const t = i / n; if (!this.freeAt(ax + dx * t, ay + (by - ay) * t, az + dz * t)) return false; } return true; }
-  randomNode() { return this.n ? Math.floor(Math.random() * this.n) : -1; }
+  randomNode() { if (this.safe && this.safe.length) return this.safe[Math.floor(Math.random() * this.safe.length)]; return this.n ? Math.floor(Math.random() * this.n) : -1; }
+  markSafe(sx, sy, sz) { // nodes you can reach from spawn AND get back from: the only places bots wander to
+    const s0 = this.nodeAt(sx, sy, sz, 5); if (s0 < 0) return; const fw = new Uint8Array(this.n), bw = new Uint8Array(this.n), rev = Array.from({ length: this.n }, () => []);
+    for (let n = 0; n < this.n; n++) for (let e = this.eS[n]; e < this.eS[n + 1]; e++) rev[this.eTo[e]].push(n);
+    let st = [s0]; fw[s0] = 1; while (st.length) { const n = st.pop(); for (let e = this.eS[n]; e < this.eS[n + 1]; e++) { const q = this.eTo[e]; if (!fw[q]) { fw[q] = 1; st.push(q); } } }
+    st = [s0]; bw[s0] = 1; while (st.length) { const n = st.pop(); for (const q of rev[n]) if (!bw[q]) { bw[q] = 1; st.push(q); } }
+    const out = []; for (let n = 0; n < this.n; n++) if (fw[n] && bw[n]) out.push(n); this.safe = Int32Array.from(out); }
   // ---- ground-layer API kept for spawns and scenery
   free(x, z) { const k = this.cellIdx(x, z); return k >= 0 && !this.blk[k]; }
   center(k) { return [this.x0 + ((k % this.W) + 0.5) * this.cs, this.z0 + (Math.floor(k / this.W) + 0.5) * this.cs]; }
@@ -3620,6 +3626,7 @@ function loadMap(i) {
       for (let q = L.boxes.length - 1; q >= 0; q--) if (db.has(L.boxes[q])) L.boxes.splice(q, 1); for (let q = L.links.length - 1; q >= 0; q--) if (dl.has(L.links[q])) L.links.splice(q, 1);
       world.boxes = L.boxes; world.nav = new Nav(L.boxes, L.bounds, L.links); L.rstairs = L.rstairs.filter(r => !dl.has(r.link)); } else break;
   }
+  world.nav.markSafe(L.spawn.x, L.spawn.y, L.spawn.z);
   buildLevelMeshes(L, th, world.group);
   world.anim = {}; buildScenery(L, th, world.group); buildEnvironment(L, th, world.group, world.anim);
   for (const pk of L.pickups) if (!world.nav.freeAt(pk[1], pk[2], pk[3]) && !world.nav.freeAt(pk[1], TH(pk[1], pk[3]), pk[3])) { const k = world.nav.nearestFree(pk[1], pk[3], 5); if (k >= 0) { const [cx, cz] = world.nav.center(k); pk[1] = cx; pk[2] = TH(cx, cz); pk[3] = cz; } }
@@ -4187,7 +4194,7 @@ function updatePlayer(dt) {
   else if (P.crouch > 0) { if (!anyOverlap(P.pos.x, P.pos.y, P.pos.z, P.r, 1.75)) P.crouch = Math.max(0, P.crouch - dt * 7); }
   P.h = lerp(1.75, 1.1, P.crouch);
   // move
-  let max = (P.crouch > 0.5 ? 3.0 : P.sprinting ? 8.6 : 5.8) * (WEAPONS[wst.cur].speedMul || 1);
+  let max = (P.crouch > 0.5 ? 3.0 : P.sprinting ? 7.8 : 5.8) * (WEAPONS[wst.cur].speedMul || 1);
   max *= lerp(1, 0.62, wst.ads) * cls().speed * (P.stimT > 0 ? 1.3 : 1) * (keys.AltLeft && !P.sprinting ? 0.6 : 1); // Alt = slow, quiet walk
   if (P.onGround) {
     const f = P.sliding ? 0.8 : 7.5;
@@ -4217,8 +4224,8 @@ function updatePlayer(dt) {
   }
   const vyBefore = P.vel.y, wasGround = P.onGround;
   moveBody(P, dt);
-  if (!wasGround && P.onGround && vyBefore < -9.6 && !P.mantle && game.time > (P.protT || 0)) { // fall damage (≈2.2 m+), loud and obvious
-    const dmg = Math.round(Math.pow(-vyBefore - 9.6, 1.35) * 5.5 * hpMul()); if (dmg > 0) { damagePlayer(dmg, null, null); sfx.play('fallhurt'); game.shake = Math.min(1.2, game.shake + 0.6); showHint('FALL DAMAGE −' + dmg, '#ff6b5a'); noise(P.pos, 14, PLAYER_T); } }
+  if (!wasGround && P.onGround && vyBefore < -11.5 && !P.mantle && game.time > (P.protT || 0)) { // fall damage (≈3.2 m+; 7 m ≈ a third of your health, ~15 m deadly), loud and obvious
+    const dmg = Math.round(Math.pow(-vyBefore - 11.5, 1.3) * 3.4 * hpMul()); if (dmg > 0) { damagePlayer(dmg, null, null); sfx.play('fallhurt'); game.shake = Math.min(1.2, game.shake + 0.6); showHint('FALL DAMAGE −' + dmg, '#ff6b5a'); noise(P.pos, 14, PLAYER_T); } }
   if (!wasGround && P.onGround && vyBefore < -5) { P.landKick = Math.min(-vyBefore * 0.008, 0.12); sfx.play('land', { vol: clamp(-vyBefore / 14, 0.3, 1) }); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: clamp(-vyBefore / 12, 0.3, 1), gait: 'sprint', near: true }); if (-vyBefore > 6) noise(P.pos, 12, PLAYER_T); }
   if (P.pos.y < -15) { const s = world.L.spawn; P.pos.set(s.x, s.y + 0.1, s.z); P.vel.set(0, 0, 0); }
   // footsteps
@@ -5149,7 +5156,7 @@ function captureMapThumb() {
   try { const c = document.createElement('canvas'); const src = renderer.domElement, W = Math.min(1280, src.width), H = Math.round(W * src.height / src.width); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, W, H); const url = c.toDataURL('image/jpeg', 0.8); // big enough to fill the loading screen sharply
     const key = 'bp_mthumb2_' + world.def.name; try { for (const m of MAPS) localStorage.removeItem('bp_mthumb_' + m.name); localStorage.setItem(key, url); } catch (e) {} applyMapThumbs(); } catch (e) {}
 }
-const MAPIMG = i => `thumbs/${i}.jpg?v=1`; // baked aerial postcards (see postcard())
+const MAPIMG = i => `thumbs/${i}.jpg?v=2`; // baked aerial postcards (see postcard())
 function applyMapThumbs() { MAPS.forEach((m, i) => { const u = MAPIMG(i); const card = $('maps').children[i]; if (card && u) { card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,0) 25%,rgba(12,14,19,.55) 60%,rgba(12,14,19,.9)),url(${u})`; card.style.backgroundSize = 'cover'; card.style.backgroundPosition = 'center 68%'; } }); }
 
 // ============================================================ GAMEPAD (Xbox / PlayStation via the Gamepad API)
