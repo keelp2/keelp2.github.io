@@ -3621,6 +3621,10 @@ addEventListener('keydown', e => {
   const typing = e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
   if (!typing && (game.state === 'play' || game.state === 'dying') && (e.ctrlKey || e.metaKey || e.altKey)) e.preventDefault(); // Ctrl-crouch + D/S/A etc. must not bookmark, save or select the page
   if (e.code === 'KeyB' && game.state === 'armory' && !e.repeat) { resumeGame(); return; }
+  if (SURV.open && game.state === 'play' && /^Digit[1-9]$/.test(e.code)) { buyItem(+e.code.slice(5) - 1); e.preventDefault(); return; }
+  if (SURV.open && (e.code === 'Escape' || e.code === 'KeyB')) { closeBuy(); return; }
+  if (SURV.open && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) { const n = ARMORY[SURV.open.kind].items().length; SURV.sel = (SURV.sel + (e.code === 'ArrowDown' ? 1 : n - 1)) % n; renderBuy(); e.preventDefault(); return; }
+  if (SURV.open && e.code === 'Enter') { buyItem(SURV.sel); return; }
   if ((e.code === 'ControlLeft' || e.code === 'ControlRight') && !kbLocked && game.state === 'play' && !hud.ctrlWarned) { hud.ctrlWarned = true; showHint('C = CROUCH · Ctrl+W CLOSES THE TAB OUTSIDE FULLSCREEN', '#ff9b6b'); }
   if (e.code === 'AltLeft' || e.code === 'AltRight') e.preventDefault();
   if (e.code === 'Escape' && game.state === 'play' && !e.repeat) { if (document.pointerLockElement) document.exitPointerLock(); pauseGame(); return; } // with keyboard lock, Esc reaches the page
@@ -3638,6 +3642,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyQ' && game.state === 'play') nadeQuickStart('tactical');
   if (e.code === 'Digit4' && game.state === 'play') { if (ng.on && ng.slot === 'lethal') switchTo(wst.cur); else nadeEquip(false, 'lethal'); }
   if (e.code === 'Digit5' && game.state === 'play') { if (ng.on && ng.slot === 'tactical') switchTo(wst.cur); else nadeEquip(false, 'tactical'); }
+  if (e.code === 'KeyF' && !e.repeat && game.state === 'play' && (SURV.open || nearStation())) { if (SURV.open) closeBuy(); else openBuy(nearStation()); return; }
   if (e.code === 'KeyE' || e.code === 'KeyF') useAbility();
   if (e.code === 'Space') player.jumpBuf = 0.14;
 });
@@ -3821,6 +3826,7 @@ function updateSunShadow() {
   sun.target.position.set(cx, 0, cz); sun.position.set(cx, 0, cz).addScaledVector(world.sunDir, 120); sun.target.updateMatrixWorld();
 }
 function resetRun() {
+  closeBuy(); for (const st of SURV.stations) { if (world) world.group.remove(st.g); const i = world ? world.boxes.indexOf(st.box) : -1; if (i >= 0) world.boxes.splice(i, 1); } SURV.stations = []; SURV.eq = {}; for (const m of SURV.markers) m.style.display = 'none';
   ng.on = false; ng.cook = -1; ng.throwT = 0; ng.pending = null; if (settings.pendingLO !== undefined && settings.pendingLO !== null) { applyCustom(settings.pendingLO); settings.pendingLO = null; }
   for (const e of enemies) { world.group.remove(e.group); if (e.laser) world.group.remove(e.laser); }
   enemies = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
@@ -3882,10 +3888,10 @@ function updateWaves(dt) {
     game.spawnT -= dt;
     if (game.spawnT <= 0 && game.queue.length && alive < game.maxAlive) { spawnEnemy(game.queue.shift()); game.spawnT = rand(0.5, 1.3); }
     if (!game.queue.length && alive === 0) {
-      const bonus = 250 * game.wave; game.score += bonus; game.phase = 'inter'; game.interT = 8;
+      const bonus = 250 * game.wave; game.score += bonus; addCash(500 + 100 * game.wave, 'WAVE BONUS'); game.phase = 'inter'; game.interT = survOn() ? 20 : 8;
       player.hp = Math.min(player.maxHp, player.hp + 25); player.regenCap = Math.min(player.maxHp, Math.max(player.regenCap, Math.ceil(player.hp / 25) * 25));
       if (player.grenades < cls().nadeMax) player.grenades++; player.tacticals = Math.min(3, (player.tacticals || 0) + 1);
-      showMsg('WAVE CLEARED', '+' + bonus + '  ·  +25 HP  ·  +1 GRENADE', 3); sfx.play('clear');
+      showMsg('WAVE CLEARED', '+' + bonus + '  ·  +25 HP  ·  +1 GRENADE' + (survOn() ? '  ·  20s to visit an armory' : ''), 3); sfx.play('clear');
     }
   }
 }
@@ -3896,7 +3902,7 @@ function onKill(e, head) {
   game.lastKill = game.time;
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
   if (game.streak >= 2) { const b = 50 * game.streak; pts += b; showStreak((names[Math.min(game.streak, 5)] || 'RAMPAGE') + '  +' + b); }
-  game.score += pts;
+  game.score += pts; addCash(pts, head ? 'HEADSHOT' : '');
   killFeed(settings.name || 'You', '#ffd27a', game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short, head, e.T.name + '  +' + pts, null, true);
   hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
   const r = Math.random();
@@ -4159,7 +4165,7 @@ function throwGrenade(fuse = 2.0, under = false, kind = 'frag', slot = 'lethal')
   sfx.play('throw'); sfx.voice('effort', { self: true, pitch: settings.vpitch || 120, vol: 0.7 }); vm.kick = 0.6; noise(player.pos, 6, PLAYER_T);
 }
 function nadeEquip(quick, slot = 'lethal') {
-  const have = slot === 'tactical' ? player.tacticals : player.grenades, kind = getLO()[slot];
+  const have = slot === 'tactical' ? player.tacticals : player.grenades, kind = eqKind(slot);
   if (!player.alive || have <= 0 || ng.throwT > 0 || ng.cook >= 0) { if (have <= 0 && player.alive) showHint('NO ' + EQUIP[kind].short + ' LEFT', '#ff6b5a'); return false; }
   if (!ng.on || ng.slot !== slot) { ng.on = true; ng.from = wst.cur; ng.raise = 0; wst.reloading = false; wst.ads = 0; sfx.play('switch'); }
   ng.slot = slot; ng.kind = kind; nadeVMKind(kind); ng.quick = !!quick; return true;
@@ -4531,6 +4537,76 @@ function drawRadar() {
   g.strokeStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(S / 2, S / 2, 12 * R, 0, 7); g.stroke();
 }
 let fpsAcc = 0, fpsN = 0;
+// ============================================================ SURVIVAL ECONOMY (MW3-style): start light, earn cash, buy at armories on the map
+const SURV = { cash: 0, eq: {}, stations: [], open: null, sel: 0, markers: [] };
+const ARMORY = {
+  weapons: { name: 'WEAPON ARMORY', col: 0xff8a3d, items: () => [['ammo', 'Refill ammo (all guns)', 300]].concat([['smg', 1000], ['mp5', 1200], ['ump', 1300], ['shotgun', 1200], ['rifle', 1500], ['ak', 1700], ['grau', 1800], ['p90', 1800], ['dmr', 2000], ['scar', 2300], ['autoshotgun', 2200], ['lmg', 2500], ['sniper', 2600], ['mg', 3000], ['revolver', 700], ['deagle', 900], ['rpg', 4000]].map(([id, c]) => ['w:' + id, (WEAPONS[widx(id)] || {}).name || id, c])) },
+  equipment: { name: 'EQUIPMENT ARMORY', col: 0x52b8ff, items: () => [['e:frag', 'Frag grenades ×2', 400], ['e:semtex', 'Semtex ×2', 500], ['e:molotov', 'Molotov ×2', 500], ['e:flash', 'Flashbangs ×2', 300], ['e:smoke', 'Smoke grenades ×2', 250], ['armor', 'Armor plates (+75)', 750], ['heal', 'Field medkit (full health)', 400]] },
+  support: { name: 'AIR SUPPORT', col: 0xff5a5a, items: () => [['air', 'Precision airstrike (on your crosshair)', 2500], ['air3', 'Carpet bombing run', 4500]] },
+};
+const survOn = () => game.mode === 'survival' && world && SURV.stations.length;
+const eqKind = slot => (game.mode === 'survival' && SURV.eq[slot]) || getLO()[slot];
+function addCash(n, why) { SURV.cash = Math.max(0, SURV.cash + Math.round(n)); if (n > 0 && why) { const el = document.createElement('div'); el.className = 'xppop cashpop'; el.innerHTML = `<b>+$${Math.round(n)}</b> ${why}`; $('hud').appendChild(el); setTimeout(() => el.remove(), 1500); } }
+function labelSprite(text, col) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const g = c.getContext('2d'), hex = '#' + new THREE.Color(col).getHexString();
+  g.fillStyle = 'rgba(8,10,14,0.78)'; g.beginPath(); g.roundRect ? g.roundRect(8, 16, 496, 96, 18) : g.rect(8, 16, 496, 96); g.fill(); g.strokeStyle = hex; g.lineWidth = 6; g.stroke();
+  g.font = '800 46px Inter, Arial, sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 256, 66);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: true, transparent: true })); sp.scale.set(2.6, 0.65, 1); return sp;
+}
+function placeArmories() {
+  for (const st of SURV.stations) { world.group.remove(st.g); const i = world.boxes.indexOf(st.box); if (i >= 0) world.boxes.splice(i, 1); }
+  SURV.stations = []; const nav = world.nav, sf = nav.safe || [], L = world.L, Rg = seeded(hashStr(world.def.name + 'armory')), S = L.spawn, picks = [];
+  const open = (x, y, z) => { for (let a = 0; a < 8; a++) if (!nav.freeAt(x + Math.cos(a * 0.785) * 1.3, y, z + Math.sin(a * 0.785) * 1.3)) return false; return true; };
+  for (const [kind, r0, r1] of [['weapons', 7, 16], ['equipment', 18, 34], ['support', 30, 55]]) {
+    let best = null; for (let tries = 0; tries < 900 && !best; tries++) { const n = sf[Math.floor(Rg() * sf.length)]; if (n === undefined) break; const [x, y, z] = nav.nodePos(n), d = Math.hypot(x - S.x, z - S.z);
+      if (d < r0 || d > r1 || y > TH(x, z) + 0.3 || !open(x, y, z) || picks.some(p => Math.hypot(p[0] - x, p[2] - z) < 14)) continue; best = [x, y, z]; }
+    if (!best) { const [x, y, z] = nav.nodePos(sf[Math.floor(Rg() * sf.length)] || 0); best = [x, y, z]; } picks.push(best);
+    const A = ARMORY[kind], [x, y, z] = best, g = new THREE.Group(); g.position.set(x, y, z); world.group.add(g);
+    const crate = new THREE.Mesh(_gBox, MAT({ color: 0x3a4030, roughness: 0.8 })); crate.scale.set(1.5, 0.95, 0.85); crate.position.y = 0.475; crate.castShadow = true; g.add(crate);
+    const lid = new THREE.Mesh(_gBox, MAT({ color: 0x2a2e26, roughness: 0.6 })); lid.scale.set(1.56, 0.08, 0.9); lid.position.y = 0.99; g.add(lid);
+    const strip = new THREE.Mesh(_gBox, new THREE.MeshBasicMaterial({ color: A.col })); strip.scale.set(1.52, 0.07, 0.87); strip.position.y = 0.7; g.add(strip);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 6, 6, 1, true), new THREE.MeshBasicMaterial({ color: A.col, transparent: true, opacity: 0.25, depthWrite: false })); beam.position.y = 4; beam.userData.noAO = true; g.add(beam);
+    const sp = labelSprite(A.name, A.col); sp.position.y = 2.1; g.add(sp);
+    const box = { x0: x - 0.75, y0: y, z0: z - 0.43, x1: x + 0.75, y1: y + 1.03, z1: z + 0.43, m: 'metal' }; world.boxes.push(box);
+    SURV.stations.push({ kind, x, y, z, g, box, sp, strip });
+  }
+  if (!SURV.markers.length) for (let i = 0; i < 3; i++) { const d = document.createElement('div'); d.className = 'armk'; $('hud').appendChild(d); SURV.markers.push(d); }
+}
+function nearStation() { if (!survOn() || !player.alive) return null; for (const st of SURV.stations) if (Math.hypot(st.x - player.pos.x, st.z - player.pos.z) < 2.3 && Math.abs(st.y - player.pos.y) < 1.6) return st; return null; }
+function openBuy(st) { SURV.open = st; SURV.sel = 0; sfx.play('switch'); renderBuy(); }
+function closeBuy() { SURV.open = null; const b = $('buymenu'); if (b) b.classList.remove('on'); }
+function renderBuy() {
+  let b = $('buymenu'); if (!b) { b = document.createElement('div'); b.id = 'buymenu'; $('hud').appendChild(b); }
+  const st = SURV.open; if (!st) return b.classList.remove('on'); const A = ARMORY[st.kind], items = A.items();
+  b.innerHTML = `<h4 style="border-color:#${new THREE.Color(A.col).getHexString()}">${A.name}<span>$${SURV.cash}</span></h4>` + items.map((it, i) => { const [id, name, cost] = it, owned = id.startsWith('w:') && carry.includes(widx(id.slice(2)));
+    return `<div class="bi${i === SURV.sel ? ' on' : ''}${SURV.cash < cost ? ' poor' : ''}"><kbd>${i < 9 ? i + 1 : ''}</kbd><b>${esc(name)}${owned ? ' <em>OWNED</em>' : ''}</b><i>$${cost}</i></div>`; }).join('') + `<small>1–9 or ↑↓ + Enter · D-pad + A · F / B to close</small>`;
+  b.classList.add('on');
+}
+function buyItem(i) {
+  const st = SURV.open; if (!st) return; const it = ARMORY[st.kind].items()[i]; if (!it) return; const [id, name, cost] = it;
+  if (SURV.cash < cost) { sfx.play('hit'); showHint('NOT ENOUGH CASH', '#ff6b5a'); return; }
+  if (id.startsWith('w:')) { const k = widx(id.slice(2)), W = WEAPONS[k]; if (carry.includes(k)) { inv[k] = { mag: W.mag, res: W.res }; } else { const slot = W.slot === 'secondary' ? 1 : 0; carry[slot] = k; inv[k] = { mag: W.mag, res: W.res }; rebuildViewmodels(); renderSlots(); switchTo(k); } }
+  else if (id === 'ammo') { for (const k of carry) { const W = WEAPONS[k]; if (W && !W.melee) inv[k] = { mag: W.mag, res: W.res }; } }
+  else if (id.startsWith('e:')) { const k = id.slice(2), E = EQUIP[k]; SURV.eq[E.slot] = k; if (E.slot === 'lethal') player.grenades = Math.min((player.grenades || 0) + 2, 4); else player.tacticals = Math.min((player.tacticals || 0) + 2, 4); }
+  else if (id === 'armor') { player.shield = Math.min(150, (player.shield || 0) + 75); player.shieldT = 1e9; }
+  else if (id === 'heal') { player.hp = player.maxHp; player.regenCap = player.maxHp; }
+  else if (id === 'air' || id === 'air3') { aimBasis(); const h = raycast(camera.position, _f, 250, false); const at = camera.position.clone().addScaledVector(_f, Math.min(h.t, 250)); callAirstrike(at, id === 'air3'); }
+  SURV.cash -= cost; sfx.play('pickup'); showHint('PURCHASED · ' + name.toUpperCase(), '#9cff8a'); renderBuy();
+}
+function callAirstrike(at, carpet) { // jets roar over, then a string of heavy impacts walks across the target
+  showHint(carpet ? 'CARPET BOMBING INBOUND' : 'AIRSTRIKE INBOUND', '#ff6b5a'); ambience.flyby && ambience.flyby(true);
+  const n = carpet ? 9 : 4, dir = new V3(rand(-1, 1), 0, rand(-1, 1)).normalize();
+  for (let i = 0; i < n; i++) setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; const p = at.clone().addScaledVector(dir, (i - n / 2) * (carpet ? 5 : 3.5)); p.x += rand(-1.5, 1.5); p.z += rand(-1.5, 1.5); p.y = TH(p.x, p.z) + 0.3; explosion(p, carpet ? 6.5 : 7.5, carpet ? 170 : 220, 'player'); }, 2200 + i * (carpet ? 240 : 330));
+}
+function updateSurvival(dt) {
+  if (!survOn()) { for (const m of SURV.markers) m.style.display = 'none'; return; }
+  const ns = nearStation(); if (SURV.open && SURV.open !== ns) closeBuy();
+  setText('cash', '$' + SURV.cash); const pr = $('interact'); if (pr) { pr.style.opacity = ns && !SURV.open ? 1 : 0; if (ns) pr.innerHTML = `<kbd>F</kbd> / <kbd>X</kbd> ${ARMORY[ns.kind].name}`; }
+  SURV.stations.forEach((st, i) => { st.strip.material.color.setHex(ARMORY[st.kind].col).multiplyScalar(0.7 + 0.3 * Math.sin(game.time * 4 + i)); const m = SURV.markers[i]; if (!m) return; // on-screen waypoint
+    const v = new V3(st.x, st.y + 2.6, st.z).project(camera), d = Math.hypot(st.x - player.pos.x, st.z - player.pos.z), behind = v.z > 1;
+    let x = (v.x * 0.5 + 0.5) * innerWidth, y = (-v.y * 0.5 + 0.5) * innerHeight; if (behind) { x = innerWidth - x; y = innerHeight - 40; } x = clamp(x, 40, innerWidth - 40); y = clamp(y, 60, innerHeight - 40);
+    m.style.display = d < 3 ? 'none' : 'block'; m.style.transform = `translate(${x}px,${y}px)`; m.style.setProperty('--c', '#' + new THREE.Color(ARMORY[st.kind].col).getHexString()); m.innerHTML = `<b>${{ weapons: '⌖', equipment: '◆', support: '✈' }[st.kind]}</b><small>${Math.round(d)}m</small>`; });
+}
 function updateHUD(dt) {
   const w = WEAPONS[wst.cur], s = inv[wst.cur];
   const alive = enemies.filter(e => !e.dead).length;
@@ -4559,10 +4635,10 @@ function updateHUD(dt) {
   if (hudCache.inv !== showInv) { hudCache.inv = showInv; $('invp').style.display = showInv ? 'block' : 'none'; }
   if (showInv) { hud.invT = (hud.invT || 0) - dt; if (hud.invT <= 0) { hud.invT = 0.4; renderInventory(); } }
   const canArm = game.phase === 'inter' && player.alive;
-  if (hudCache.arm !== canArm) { hudCache.arm = canArm; $('armhint').style.opacity = canArm ? 1 : 0; }
+  if (hudCache.arm !== canArm) { hudCache.arm = canArm; $('armhint').style.opacity = canArm ? 1 : 0; $('armhint').textContent = survOn() ? 'BREAK — SPEND YOUR CASH AT AN ARMORY (FOLLOW THE ICONS)' : 'PRESS B — ARMORY (CHANGE WEAPONS)'; }
   if (hud.blood > 0 || hud.bloodOn) { hud.blood = Math.max(0, (hud.blood || 0) - dt * 0.6); const bo = $('bloodov'); if (bo) bo.style.opacity = String(Math.min(0.6, hud.blood)); hud.bloodOn = hud.blood > 0; }
   if (hud.flashT > 0 || hud.flashOn) { hud.flashT = Math.max(0, hud.flashT - dt); const fo = $('flashov'); fo.style.opacity = String(Math.min(1, hud.flashT / 1.3)); hud.flashOn = hud.flashT > 0; }
-  { const lo = getLO(); setText('nades', EQUIP[lo.lethal].short + ' ' + '●'.repeat(player.grenades) + '○'.repeat(Math.max(0, cls().nadeMax - player.grenades)) + ' · ' + EQUIP[lo.tactical].short + ' ' + '●'.repeat(player.tacticals || 0)); }
+  { const lo = { lethal: eqKind('lethal'), tactical: eqKind('tactical') }; setText('nades', EQUIP[lo.lethal].short + ' ' + '●'.repeat(player.grenades) + '○'.repeat(Math.max(0, cls().nadeMax - player.grenades)) + ' · ' + EQUIP[lo.tactical].short + ' ' + '●'.repeat(player.tacticals || 0)); }
   // crosshair
   const spread = currentSpread(w), px = Math.tan(spread) * (innerHeight / 2) / Math.tan(camera.fov * Math.PI / 360);
   const gap = 4 + px, xh = $('xh');
@@ -4589,11 +4665,16 @@ function updateHUD(dt) {
 
 // ============================================================ FLOW
 function showScreen(id) { for (const s of ['menu', 'pause', 'over', 'armory', 'mp', 'mpover']) $(s).classList.toggle('on', s === id); $('hud').classList.toggle('on', id === null || id === 'pause'); }
+function survivalStart() { // MW3-style: pistol + knife, one frag, $500 — everything else is bought on the map
+  SURV.cash = 500; SURV.eq = { lethal: 'frag', tactical: 'flash' }; closeBuy();
+  const pi = widx('pistol'), kn = widx('knife') >= 0 ? widx('knife') : carry[2]; carry = [pi, pi, kn]; inv[pi] = { mag: WEAPONS[pi].mag, res: WEAPONS[pi].res }; rebuildViewmodels(); renderSlots();
+  Object.assign(wst, { cur: pi, last: pi }); vmModels.forEach((m, i) => m.g.visible = i === pi); player.grenades = 1; player.tacticals = 0; placeArmories();
+}
 function startGame() {
   sfx.init(); music.play('start'); resize(); if (MP.peer) { sayBye(); mpCleanup(); }
   if (!world || world.def !== MAPS[settings.map] || world.shadows !== QUALITY[settings.quality].shadows) { loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows; }
-  resetRun(); game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock();
-  startIntro('SURVIVAL · ' + { easy: 'RECRUIT', normal: 'VETERAN', hard: 'ELITE' }[settings.difficulty], 'Hold out against endless waves. Re-arm in the armory between waves.');
+  resetRun(); survivalStart(); game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock();
+  startIntro('SURVIVAL · ' + { easy: 'RECRUIT', normal: 'VETERAN', hard: 'ELITE' }[settings.difficulty], 'Start with a pistol. Earn cash, buy guns and gear at the armories.');
 }
 function pauseGame() { if (game.state !== 'play') return; if (game.intro) { game.intro.t = game.intro.dur; updateIntro(0); } game.state = 'paused'; showScreen('pause'); renderPauseClasses(); pauseSettings(false); $('ptitle').textContent = MP.active ? 'MATCH IN PROGRESS' : 'PAUSED'; $('resume').textContent = MP.active ? 'BACK TO MATCH' : 'RESUME'; $('ponline').style.display = MP.active ? 'block' : 'none'; mouseL = mouseR = false; for (const k in keys) keys[k] = false; $('restart').style.display = MP.active ? 'none' : 'block'; $('quit').textContent = MP.active ? 'LEAVE MATCH' : 'QUIT TO MENU'; }
 function renderPauseClasses() {
@@ -4683,6 +4764,7 @@ function applyLoadoutMidRun() {
   vmModels.forEach((m, i) => { if (m) { m.g.visible = i === wst.cur; m.flash.visible = false; } }); renderSlots(); hudCache = {}; refreshAvatar();
 }
 function openArmory() {
+  if (survOn()) { showHint('FIND AN ARMORY ON THE MAP', '#ffcf6b'); return; }
   if (MP.active || game.mode === 'botdm') { showHint('ARMORY: SURVIVAL ONLY — CHANGE LOADOUT IN THE LOBBY', '#ff6b5a'); return; }
   if (game.state !== 'play' || game.phase !== 'inter' || !player.alive) { if (game.state === 'play') showHint('ARMORY OPENS BETWEEN WAVES', '#ff6b5a'); return; }
   game.state = 'armory'; mouseL = mouseR = false; for (const k in keys) keys[k] = false;
@@ -5431,7 +5513,8 @@ function pollGamepad(dt) {
     if (pr(1)) { if (player.sprinting || Math.hypot(player.vel.x, player.vel.z) > 6.2) { gp.crouch = true; gp.slideStand = true; gp.sprint = false; } else gp.crouch = !gp.crouch; }
     if (gp.slideStand && gp.crouch && !player.sliding && gp.prevSliding) { gp.crouch = false; gp.slideStand = false; } gp.prevSliding = player.sliding;
     if (gp.crouch !== gp.crouchPrev) { keys.KeyC = gp.crouch; gp.crouchPrev = gp.crouch; }
-    if (pr(2)) startReload(); if (pr(3)) { if (!player.alive && (MP.active || game.mode === 'botdm')) pauseGame(); else switchTo(wst.cur === carry[0] ? carry[1] : carry[0]); }
+    if (SURV.open) { if (pr(12) || pr(13)) { const n = ARMORY[SURV.open.kind].items().length; SURV.sel = (SURV.sel + (pr(13) ? 1 : n - 1)) % n; renderBuy(); gp.prev[12] = gp.prev[13] = true; } if (pr(0)) { buyItem(SURV.sel); gp.prev[0] = true; } if (pr(1)) { closeBuy(); gp.prev[1] = true; } }
+    if (pr(2) && (SURV.open || nearStation())) { if (SURV.open) closeBuy(); else openBuy(nearStation()); } else if (pr(2)) startReload(); if (pr(3)) { if (!player.alive && (MP.active || game.mode === 'botdm')) pauseGame(); else switchTo(wst.cur === carry[0] ? carry[1] : carry[0]); }
     if (pr(5)) nadeQuickStart('lethal'); if (pr(4)) nadeQuickStart('tactical'); if ((rl(5) || rl(4)) && ng.quick) nadeRelease(); if (pr(11)) quickMelee();
     if (pr(10)) { gp.sprint = !gp.sprint; gp.crouch = false; }
     if (gp.my > -0.35 || gp.ads || gp.fire) gp.sprint = false; // releasing the stick, aiming or firing ends a sprint
@@ -5616,7 +5699,7 @@ function frame(now) {
       game.dieT -= dt;
       if (game.dieT <= 0) finishDeath();
     }
-    updateHUD(dt); updateDmgNumbers(dt);
+    updateHUD(dt); updateSurvival(dt); updateDmgNumbers(dt);
     }
   } else if ((game.state === 'menu' || game.state === 'mpover') && world) {
     menuT += dt * 0.05; const [x0, z0, x1, z1] = world.L.bounds, r = Math.max(x1 - x0, z1 - z0) * 0.42;
@@ -5721,5 +5804,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { PV, anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { PV, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
