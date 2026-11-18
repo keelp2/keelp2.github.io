@@ -262,6 +262,24 @@ const sfx = {
     if (!sup && !far) this.nz(dest, { t: t + 0.02, dur: 0.5, type: 'bandpass', f: 700, f2: 180, q: 0.6, g: 0.12 });
     if (P.mech && d < 6) this.nz(dest, { t: t + P.mech, dur: 0.03, type: 'bandpass', f: 3300, q: 5, g: 0.18 });
   },
+  // footsteps: o = { pan, vol, muffle (0..1, walls/floors between), gait: 'sneak'|'walk'|'sprint', near (own steps) }
+  step(surf, o = {}) {
+    if (!this.ok()) return; const v = o.vol === undefined ? 1 : o.vol; if (v < 0.01) return;
+    const mf = o.muffle || 0, dest = this.chain(o.pan || 0, o.near ? 0.04 : 0.12 + mf * 0.2, mf > 0.05 ? 3200 - mf * 2700 : 0, v), t = this.ctx.currentTime + Math.random() * 0.01;
+    const N = x => this.nz(dest, Object.assign({ t: t + (x.d || 0) }, x)), T = x => this.osc(dest, Object.assign({ t: t + (x.d || 0) }, x)), j = rand(0.88, 1.14), hard = o.gait === 'sprint' ? 1.25 : o.gait === 'sneak' ? 0.55 : 1;
+    switch (surf) {
+      case 'wood': T({ f: 190 * j, f2: 120, dur: 0.12, g: 0.5 * hard }); N({ type: 'bandpass', f: 850 * j, q: 2.2, dur: 0.09, g: 0.4 * hard }); N({ type: 'bandpass', f: 1600 * j, q: 3, dur: 0.04, g: 0.15, d: 0.05 });
+        if (Math.random() < 0.12) T({ type: 'sawtooth', f: 330 * j, f2: 300, dur: 0.18, g: 0.018, d: 0.04 }); break; // floorboard creak
+      case 'metal': N({ type: 'highpass', f: 2400, dur: 0.045, g: 0.35 * hard }); T({ type: 'triangle', f: 540 * j, dur: 0.28, g: 0.09 * hard }); T({ f: 1330 * j, dur: 0.2, g: 0.05 * hard }); T({ f: 95, f2: 60, dur: 0.07, g: 0.3 * hard }); N({ type: 'bandpass', f: 3100, q: 6, dur: 0.12, g: 0.06, d: 0.02 }); break;
+      case 'grass': N({ f: 950 * j, f2: 260, dur: 0.15, g: 0.38 * hard, a: 0.02 }); N({ type: 'highpass', f: 4800, dur: 0.1, g: 0.06 * hard, a: 0.02 }); T({ f: 80, f2: 50, dur: 0.06, g: 0.12 * hard }); break;
+      case 'sand': for (let i = 0; i < 4; i++) N({ type: 'bandpass', f: rand(2300, 3800), q: 1.6, dur: 0.022, g: 0.13 * hard, d: i * rand(0.012, 0.022) }); N({ f: 420, dur: 0.09, g: 0.25 * hard }); break;
+      case 'water': N({ type: 'bandpass', f: 1300 * j, f2: 450, q: 1.2, dur: 0.26, g: 0.45 * hard, a: 0.02 }); N({ type: 'highpass', f: 4200, dur: 0.14, g: 0.12 * hard, d: 0.03 }); break;
+      case 'dirt': N({ f: 650 * j, f2: 200, dur: 0.11, g: 0.45 * hard }); N({ type: 'bandpass', f: 1900, q: 1.5, dur: 0.04, g: 0.1 * hard, d: 0.01 }); T({ f: 85, f2: 55, dur: 0.06, g: 0.2 * hard }); break;
+      case 'stone': N({ type: 'bandpass', f: 2100 * j, q: 1.4, dur: 0.045, g: 0.5 * hard }); T({ f: 120, f2: 65, dur: 0.06, g: 0.3 * hard }); N({ type: 'bandpass', f: 2800 * j, q: 2, dur: 0.03, g: 0.22 * hard, d: 0.045 }); T({ f: 1900 * j, dur: 0.05, g: 0.015 }); break;
+      default: /* concrete / asphalt */ N({ type: 'bandpass', f: 1450 * j, q: 1.2, dur: 0.05, g: 0.5 * hard }); T({ f: 110, f2: 60, dur: 0.065, g: 0.34 * hard }); N({ type: 'highpass', f: 3600, dur: 0.03, g: 0.1 * hard, d: 0.02 }); N({ type: 'bandpass', f: 2000 * j, q: 1.4, dur: 0.03, g: 0.24 * hard, d: 0.048 });
+    }
+    if (o.gait === 'sprint') { N({ type: 'bandpass', f: 4600, q: 8, dur: 0.03, g: 0.06, d: 0.03 }); N({ type: 'bandpass', f: 3800, q: 7, dur: 0.025, g: 0.04, d: 0.07 }); } // gear rattle
+  },
   boom(dist = 0, pan = 0, big = 1) {
     if (!this.ok()) return; const far = clamp(dist / 120, 0, 1);
     const dest = this.chain(pan, 0.45 + far * 0.5, far > 0.02 ? 6000 - far * 5200 : 0, big / (1 + dist * 0.02)), t = this.ctx.currentTime;
@@ -291,6 +309,8 @@ const sfx = {
       case 'hurt': N({ dur: 0.2, f: 700, f2: 150, g: 0.7 }); T({ f: 90, f2: 45, dur: 0.18, g: 0.55 }); break;
       case 'step': N({ dur: 0.08, f: rand(450, 750), f2: 140, g: 0.2 }); N({ dur: 0.03, type: 'highpass', f: 3000, g: 0.03, delay: 0.01 }); break;
       case 'land': N({ dur: 0.16, f: 500, f2: 90, g: 0.5 }); break;
+      case 'pin': N({ dur: 0.05, type: 'bandpass', f: 3800, q: 6, g: 0.45 }); T({ type: 'triangle', f: 2400, f2: 1800, dur: 0.08, g: 0.08, delay: 0.03 }); N({ dur: 0.04, type: 'bandpass', f: 2600, q: 5, g: 0.3, delay: 0.12 }); break;
+      case 'tick': N({ dur: 0.015, type: 'bandpass', f: 3000, q: 8, g: 0.12 }); break;
       case 'jump': N({ dur: 0.08, f: 900, f2: 300, g: 0.12 }); break;
       case 'slide': N({ dur: 0.6, type: 'bandpass', f: 900, f2: 300, q: 0.8, g: 0.28, a: 0.05 }); break;
       case 'pad': T({ type: 'sine', f: 200, f2: 1200, dur: 0.35, g: 0.35 }); N({ dur: 0.4, type: 'bandpass', f: 600, f2: 3000, g: 0.25 }); break;
@@ -419,14 +439,14 @@ const music = {
 
 // ============================================================ LEVEL BUILDER
 class LevelBuilder {
-  constructor() { this.smoke = []; this.links = []; this.props = []; this.water = []; this.glows = []; this.padStyle = 'mushroom'; this.boxes = []; this.decor = []; this.pads = []; this.barrels = []; this.pickups = []; this.enemySpawns = []; this.spawn = { x: 0, y: 0, z: 0, yaw: 0 }; this.bounds = [-30, -30, 30, 30]; }
+  constructor() { this.lights = []; this.smoke = []; this.links = []; this.props = []; this.water = []; this.glows = []; this.padStyle = 'mushroom'; this.boxes = []; this.decor = []; this.pads = []; this.barrels = []; this.pickups = []; this.enemySpawns = []; this.spawn = { x: 0, y: 0, z: 0, yaw: 0 }; this.bounds = [-30, -30, 30, 30]; }
   box(x0, y0, z0, x1, y1, z1, m = 'wall', o = {}) {
     const b = { x0: Math.min(x0, x1), y0: Math.min(y0, y1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), m, tint: o.tint };
     (o.col === false ? this.decor : this.boxes).push(b); return b;
   }
   B(cx, cz, w, d, h, y = 0, m = 'wall', o) { return this.box(cx - w / 2, y, cz - d / 2, cx + w / 2, y + h, cz + d / 2, m, o); }
   stairs(x, z, dir, w, h0, h1, run, m = 'metal') {
-    const n = Math.max(1, Math.ceil((h1 - h0) / 0.34)), sd = run / n;
+    const n = Math.max(1, Math.ceil(Math.abs(h1 - h0) / 0.21)), sd = run / n; // low risers = smooth climbing
     { const dx = dir === 'px' ? 1 : dir === 'nx' ? -1 : 0, dz = dir === 'pz' ? 1 : dir === 'nz' ? -1 : 0; // nav link bottom -> top
       this.links.push([x - dx * 0.6, h0, z - dz * 0.6, x + dx * (run + 0.6), h1, z + dz * (run + 0.6), run + 1.2]); }
     for (let i = 0; i < n; i++) {
@@ -634,6 +654,10 @@ const TEXF = {
     let v = 150 + n * 50 + fine * 14 - Math.max(0, st - 0.55) * 120; if (x % 256 < 2 || y % 128 < 2) v *= 0.72; const hx = (x % 128) - 64, hy = (y % 128) - 64; if (hx * hx + hy * hy < 9) v *= 0.55;
     o[0] = v * 0.98; o[1] = v * 0.97; o[2] = v * 0.94;
   }),
+  hesco: () => pixCanvas(256, (x, y, o) => { // HESCO bastion: sand-filled geotextile behind welded wire mesh
+    const n = fbm(NZ, x, y, 256, 6, 4), w = ((x >> 1) + (y >> 1)) % 2 ? 0.92 : 1.04, wire = (x % 32 < 2 || y % 32 < 2) ? 0.45 : 1, seam = x % 128 < 3 ? 0.7 : 1, sag = 1 - Math.max(0, fbm(NZ2, x, y, 256, 2, 3) - 0.6) * 0.8;
+    const v = (165 + n * 55) * w * wire * seam * sag; o[0] = v * 0.98; o[1] = v * 0.88; o[2] = v * 0.68;
+  }),
   burlap: () => pixCanvas(128, (x, y, o) => { const w = ((x >> 1) + (y >> 1)) % 2 ? 0.88 : 1.06, n = fbm(NZ, x, y, 128, 8, 3), v = (150 + n * 60) * w; o[0] = v; o[1] = v * 0.88; o[2] = v * 0.66; }),
   camo: () => pixCanvas(256, (x, y, o) => { // multi-tone camouflage fabric with weave
     const a = fbm(NZ, x, y, 256, 3, 4), b = fbm(NZ2, x, y, 256, 4, 3), weave = ((x + y) % 4 < 2 ? 0.96 : 1.04) * (0.94 + NZ(x * 1.7, y * 1.7, 977) * 0.12);
@@ -694,12 +718,14 @@ const MATDEF = {
   planks: { t: 'planks', s: 2 }, crate: { t: 'wood', local: true }, bark: { t: 'bark', s: 2 }, logwall: { t: 'bark', s: 1.2 }, hutwall: { t: 'brick', c: 0xa88a68, s: 2 },
   tudor: { t: 'tudor', s: 3 }, tudor2: { t: 'tudor', c: 0xf2dcc0, s: 3 }, roof: { t: 'castle', c: 0x8f8476, s: 3 }, hay: { t: 'hay', s: 1.2 }, cloth: { t: 'stripes', s: 1.3 },
   rope: { c: 0x8a7350 }, thatch: { t: 'thatch', s: 2 }, tiles: { t: 'rooftiles', s: 2 }, slate: { t: 'rooftiles', c: 0x6a7a9a, s: 2 }, flag: { t: 'flagstone', s: 4 },
-  pad: { e: 0x6dff9a }, rune: { e: 0x6fd8ff }, glass: { e: 0xffc870 }, lampglow: { e: 0xffd890 }, dark: { c: 0x1a1714 },
+  pad: { e: 0x6dff9a }, rune: { e: 0x6fd8ff }, skylight: { e: 0xdfe8f0 }, glass: { e: 0xffc870 }, lampglow: { e: 0xffd890 }, dark: { c: 0x1a1714 },
   leaf: { t: 'leaves', vc: true }, rock: { t: 'cliff', s: 2 }, mushcap: { t: 'mushcap' }, stem: { c: 0xe8dcc0 }, reed: { c: 0x8a9a5a }, metal: { c: 0x3a3a40, mt: 0.7, r: 0.45 },
   wood: { t: 'planks', s: 1 }, banner: { t: 'stripes' }, staves: { t: 'staves' }, mountain: { c: 0xffffff, fogless: true }, snow: { c: 0xf4f6fa, fogless: true },
   gold: { c: 0xc9a227, mt: 1, r: 0.35 },
   brickW: { t: 'brick', c: 0xc49a84, s: 2.4 }, concrete: { t: 'concrete', s: 4, r: 0.92 }, pavement: { t: 'concrete', c: 0xc8c4bc, s: 2, r: 0.95 }, carpaint: { c: 0xffffff, mt: 0.55, r: 0.4, env: 1 },
-  sandbag: { t: 'burlap', c: 0xc8b894, s: 1 }, tire: { c: 0x161616, r: 0.95 }, carglass: { c: 0x1c242c, mt: 0.3, r: 0.12, env: 1.4 }, burnt: { c: 0x2a2725, r: 0.95 }, red: { c: 0x9a2a2a }, white: { c: 0xf0ece4 },
+  sandbag: { t: 'burlap', c: 0xc8b894, s: 1 }, container: { t: 'corrugated', s: 2.6, mt: 0.35, r: 0.55 }, metalwall: { t: 'corrugated', c: 0xd4d8dc, s: 3, mt: 0.12, r: 0.65 },
+  grate: { t: 'corrugated', c: 0x46484c, s: 0.8, mt: 0.6, r: 0.5 }, hesco: { t: 'hesco', s: 2.2, r: 0.95 }, canvas: { t: 'burlap', c: 0x8a8664 }, hull: { t: 'corrugated', c: 0x7a2a22, s: 6, mt: 0.3, r: 0.6 },
+  crane: { c: 0xd8a020, mt: 0.4, r: 0.5 }, fuel: { c: 0xc8c8c0, mt: 0.3, r: 0.45 }, forklift: { c: 0xe0a020, mt: 0.2, r: 0.5 }, tire: { c: 0x161616, r: 0.95 }, carglass: { c: 0x1c242c, mt: 0.3, r: 0.12, env: 1.4 }, burnt: { c: 0x2a2725, r: 0.95 }, red: { c: 0x9a2a2a }, white: { c: 0xf0ece4 },
   plasterA: { t: 'plaster', c: 0xecd6b0, s: 3, nrm: 0.4 }, plasterB: { t: 'plaster', c: 0xdcb88e, s: 3, nrm: 0.4 }, sandstone: { t: 'castle', c: 0xdcc49a, s: 3 }, palmleaf: { t: 'leaves', vc: true },
 };
 // ground-contact grime on vertical surfaces: dirt and damp near the ground, the way real walls weather
@@ -808,6 +834,21 @@ const PROPT = {
     return out; },
   sandbags: p => { const out = [], n = Math.max(2, Math.round(p.len / 0.62)); for (let r = 0; r < 3; r++) for (let i = 0; i < n - (r % 2); i++) { const x = -p.len / 2 + 0.31 + i * (p.len - 0.62) / (n - 1) + (r % 2) * 0.31;
       out.push(['sandbag', PG.blob, M4(x, 0.17 + r * 0.31, rand(-0.04, 0.04), 0, rand(-0.2, 0.2), 0, 0.33, 0.17, 0.42), tint(0xffffff, 0.08)]); } return out; },
+  bollard: () => [['metal', PG.cyl, M4(0, 0.35, 0, 0, 0, 0, 0.18, 0.7, 0.18)], ['metal', PG.cyl, M4(0, 0.72, 0, 0, 0, 0, 0.26, 0.06, 0.26)]],
+  cranewheel: () => [['metal', PG.box, M4(0, 0.5, 0, 0, 0, 0, 1.8, 1, 1.4)], ['tire', PG.cyl, M4(0, 0.4, 0.5, 0, 0, Math.PI / 2, 0.4, 1.9, 0.4)], ['tire', PG.cyl, M4(0, 0.4, -0.5, 0, 0, Math.PI / 2, 0.4, 1.9, 0.4)]],
+  forklift: () => { const out = [['forklift', PG.box, M4(0, 0.75, -0.2, 0, 0, 0, 1.2, 1.0, 1.9)], ['metal', PG.box, M4(-0.45, 1.4, 1.0, 0, 0, 0, 0.1, 2.6, 0.1)], ['metal', PG.box, M4(0.45, 1.4, 1.0, 0, 0, 0, 0.1, 2.6, 0.1)],
+      ['metal', PG.box, M4(-0.3, 0.12, 1.6, 0, 0, 0, 0.12, 0.05, 1.1)], ['metal', PG.box, M4(0.3, 0.12, 1.6, 0, 0, 0, 0.12, 0.05, 1.1)], ['metal', PG.box, M4(0, 2.1, -0.3, 0, 0, 0, 1.1, 0.06, 1.2)],
+      ['metal', PG.box, M4(-0.5, 1.6, -0.85, 0, 0, 0, 0.06, 1.2, 0.06)], ['metal', PG.box, M4(0.5, 1.6, -0.85, 0, 0, 0, 0.06, 1.2, 0.06)], ['dark', PG.box, M4(0, 1.35, -0.4, 0, 0, 0, 0.5, 0.25, 0.5)]];
+    for (const [x, z] of [[-0.62, 0.55], [0.62, 0.55], [-0.62, -0.75], [0.62, -0.75]]) out.push(['tire', PG.cyl, M4(x, 0.3, z, 0, 0, Math.PI / 2, 0.3, 0.22, 0.3)]); return out; },
+  heli: () => { const c = new THREE.Color(0x5a5f48); return [['carpaint', PG.box, M4(0, 1.3, 0.4, 0.05, 0, 0.12, 2.2, 2.0, 5), c], ['carglass', PG.box, M4(0, 1.5, 3.1, 0.3, 0, 0.12, 1.8, 1.3, 1.1)], ['carpaint', PG.box, M4(0.2, 1.9, -4.2, 0, 0, 0.12, 0.5, 0.55, 5.2), c],
+      ['carpaint', PG.box, M4(0.3, 2.6, -6.6, 0, 0, 0.12, 0.1, 1.5, 0.9), c], ['metal', PG.box, M4(1.0, 0.12, 0.4, 0, 0, 0, 0.1, 0.1, 4.6)], ['metal', PG.box, M4(-1.0, 0.12, 0.4, 0, 0, 0, 0.1, 0.1, 4.6)],
+      ['metal', PG.box, M4(0, 2.5, 0.4, 0, 0.6, 0.12, 0.3, 0.06, 7.5)], ['metal', PG.box, M4(1.5, 1.2, 2, 0.4, 1.9, 0.5, 0.3, 0.06, 3.5)], ['burnt', PG.box, M4(0, 1.95, 0.6, 0, 0, 0.12, 1.6, 0.6, 3)], ['metal', PG.cyl, M4(0, 2.4, 0.4, 0, 0, 0, 0.3, 0.3, 0.3)]]; },
+  fueltank: () => [['fuel', PG.cyl, M4(0, 1.6, 0, 0, 0, 0, 1.55, 3.2, 1.55)], ['fuel', PG.cyl, M4(0, 3.25, 0, 0, 0, 0, 1.35, 0.1, 1.35)], ['metal', PG.box, M4(1.6, 1.6, 0, 0, 0, 0, 0.05, 3.2, 0.05)], ['red', PG.box, M4(0, 2.2, 1.56, 0, 0, 0, 1.2, 0.3, 0.02)]],
+  mast: () => { const out = [['crane', PG.box, M4(0, 12, 0, 0, 0, 0, 0.22, 24, 0.22)]]; for (let y = 2; y < 24; y += 3) { out.push(['crane', PG.box, M4(0, y, 0, 0, 0, 0, 1.4, 0.08, 0.08)], ['crane', PG.box, M4(0, y + 1.5, 0, 0, 0, 0, 0.08, 0.08, 1.4)]); }
+    out.push(['white', PG.cyl, M4(0.6, 18, 0, 0, 0, Math.PI / 2, 0.7, 0.15, 0.7)], ['white', PG.cyl, M4(-0.5, 21, 0.3, Math.PI / 2, 0, 0, 0.5, 0.12, 0.5)], ['red', PG.sph, M4(0, 24.2, 0, 0, 0, 0, 0.2, 0.2, 0.2)]); return out; },
+  tank: () => { const c = new THREE.Color(0x4a4a3a), out = [['carpaint', PG.box, M4(0, 1.0, 0, 0, 0, 0, 3.2, 1.1, 6.6), c], ['carpaint', PG.box, M4(0, 1.55, 2.9, -0.5, 0, 0, 3.0, 0.15, 1.2), c], ['tire', PG.box, M4(1.55, 0.5, 0, 0, 0, 0, 0.7, 1.0, 7)], ['tire', PG.box, M4(-1.55, 0.5, 0, 0, 0, 0, 0.7, 1.0, 7)],
+      ['carpaint', PG.box, M4(0, 2.0, -0.4, 0, 0.35, 0, 2.2, 0.8, 2.8), c], ['metal', PG.cyl, M4(0.9, 2.0, 2.2, Math.PI / 2 - 0.12, 0.35, 0, 0.11, 4.2, 0.11)], ['metal', PG.cyl, M4(0.2, 2.5, -0.8, 0, 0, 0, 0.35, 0.15, 0.35)], ['burnt', PG.box, M4(0, 1.56, -1.5, 0, 0, 0, 2.8, 0.02, 3)]];
+    for (let i = -3; i <= 3; i++) out.push(['metal', PG.cyl, M4(1.62, 0.45, i, 0, 0, Math.PI / 2, 0.36, 0.5, 0.36)], ['metal', PG.cyl, M4(-1.62, 0.45, i, 0, 0, Math.PI / 2, 0.36, 0.5, 0.36)]); return out; },
   keg: () => [['staves', PG.cylT, M4(0, 0.45, 0, 0, 0, 0, 0.33, 0.9, 0.33)], ['metal', PG.cyl, M4(0, 0.2, 0, 0, 0, 0, 0.32, 0.04, 0.32)], ['metal', PG.cyl, M4(0, 0.75, 0, 0, 0, 0, 0.3, 0.04, 0.3)]],
   well: () => [['stonewall', PG.cyl, M4(0, 0.45, 0, 0, 0, 0, 0.9, 0.9, 0.9)], ['dark', PG.cyl, M4(0, 0.91, 0, 0, 0, 0, 0.75, 0.02, 0.75)], ['wood', PG.box, M4(0.8, 1.4, 0, 0, 0, 0, 0.1, 1.9, 0.1)], ['wood', PG.box, M4(-0.8, 1.4, 0, 0, 0, 0, 0.1, 1.9, 0.1)], ['thatch', gableGeo(1.9, 1.4, 0.6, 0.15), M4(0, 2.3, 0, 0, Math.PI / 2, 0)]],
   statue: () => [['stone', PG.box, M4(0, 0.5, 0, 0, 0, 0, 1, 1, 1)], ['stone', PG.cylT, M4(0, 1.5, 0, 0, 0, 0, 0.28, 1.1, 0.28)], ['stone', PG.sph, M4(0, 2.25, 0, 0, 0, 0, 0.2, 0.22, 0.2)], ['stone', PG.cyl8, M4(0.28, 2.0, 0, 0, 0, -0.6, 0.06, 0.7, 0.06)], ['gold', PG.sph, M4(0.5, 2.35, 0, 0, 0, 0, 0.09, 0.09, 0.09)]],
@@ -911,6 +952,7 @@ function buildEnvironment(L, th, group, anim) {
       const fpts = new THREE.Points(fg, new THREE.PointsMaterial({ size: 0.45, map: getTex('flame_') || TEX.flash, color: 0xffd080, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
       group.add(fpts); anim.flames = fpts;
     }
+    if (settings.quality !== 'low') for (const [x, y, z, c, i, d] of L.lights) { const l = new THREE.PointLight(c, i, d, 1.6); l.position.set(x, y, z); group.add(l); }
     if (HQ) { // a few real lights for the brightest fires
       L.glows.filter(g => g[5] && g[4] >= 1.5).slice(0, 4).forEach(g => { const l = new THREE.PointLight(g[3] || 0xff9040, 18, 12, 2); l.position.set(g[0], g[1] + 0.3, g[2]); group.add(l); });
     }
@@ -955,170 +997,6 @@ function mountains(L, colors, snow) {
 }
 
 // ---------------------------------------------------------------- MAP 1: BOGWATER SWAMP
-function buildSwamp(L) {
-  L.bounds = [-32, -24, 32, 24]; L.ground = 'grassMud'; L.groundScale = 7; L.grass = 1; L.fireflies = 140; L.padStyle = 'mushroom';
-  L.box(-34, -1, -26, 34, 0, 26, 'floor').noRender = true;
-  // mossy cliffs ring the swamp; a dark pine forest crowns them
-  L.box(-33, 0, -25, 33, 9, -24, 'cliff'); L.box(-33, 0, 24, 33, 9, 25, 'cliff'); L.box(-33, 0, -24, -32, 9, 24, 'cliff'); L.box(32, 0, -24, 33, 9, 24, 'cliff');
-  for (let x = -36; x <= 36; x += 3.6) for (const z of [-26.5, 26.5, -30, 30, -34, 34]) L.prop('pine', x + rand(-1.4, 1.4), 9, z + rand(-1, 1), rand(1.3, 2), { bg: Math.abs(z) > 27 });
-  for (let z = -28; z <= 28; z += 3.6) for (const x of [-34.5, 34.5, -38, 38]) L.prop('pine', x + rand(-1, 1), 9, z + rand(-1.4, 1.4), rand(1.3, 2), { bg: Math.abs(x) > 35 });
-  for (let i = 0; i < 40; i++) { const side = randi(0, 3), t = rand(-30, 30); L.prop('rock', side < 2 ? t : (side === 2 ? -31.3 : 31.3), 0, side < 2 ? (side ? 23.3 : -23.3) : t * 0.75, rand(0.6, 1.4), { sy: rand(0.4, 0.8) }); }
-  // boardwalks (elevated walkways) over the reed-choked water
-  for (const s of [1, -1]) {
-    const ez = 19 * s;
-    L.box(-28, 3.5, ez, 28, 3.8, 24 * s, 'planks');
-    L.box(-28, 4.72, ez - 0.03, 28, 4.78, ez + 0.03, 'rope', { col: false });
-    for (let x = -28; x <= 28; x += 4) { L.box(x - 0.07, 3.8, ez - 0.07, x + 0.07, 4.85, ez + 0.07, 'bark', { col: false }); }
-    for (let x = -24; x <= 24; x += 8) L.B(x, ez + s * 0.4, 0.4, 0.4, 3.5, 0, 'bark');
-    for (const x of [-24, 24]) L.stairs(x, 13 * s, s > 0 ? 'pz' : 'nz', 3, 0, 3.8, 6, 'planks');
-    L.B(-10, 21.5 * s, 1.2, 1.2, 1.2, 3.8, 'crate'); L.B(10, 21.5 * s, 3, 0.6, 1.0, 3.8, 'logwall');
-    L.water.push([-31.5, Math.min(18.8 * s, 23.8 * s), 31.5, Math.max(18.8 * s, 23.8 * s)]);
-    for (let x = -29; x <= 29; x += rand(3, 6)) L.prop('reeds', x, 0, ez + s * rand(0.2, 4), rand(0.8, 1.3));
-    for (let x = -20; x <= 20; x += 13) { L.prop('lantern', x, 3.8, ez + s * 0.25, 0.9, { ry: s > 0 ? Math.PI / 2 : -Math.PI / 2 }); L.glow(x, 3.8 + 2.1 * 0.9, ez + s * 0.25 + (s > 0 ? -0.38 : 0.38), 0xffb860, 1.2); }
-  }
-  // central deck — the ogre's porch
-  L.B(0, 0, 12, 10, 1.4, 0, 'planks');
-  for (const z of [-5, 5]) L.box(-6.05, 1.32, z - 0.06, 6.05, 1.44, z + 0.06, 'bark', { col: false });
-  for (const [x, z] of [[-5.9, -4.9], [5.9, -4.9], [-5.9, 4.9], [5.9, 4.9], [0, -4.9], [0, 4.9]]) L.box(x - 0.12, 0, z - 0.12, x + 0.12, 1.4, z + 0.12, 'bark', { col: false });
-  L.stairs(9, 0, 'nx', 4, 0, 1.4, 3, 'planks'); L.stairs(-9, 0, 'px', 4, 0, 1.4, 3, 'planks');
-  L.B(0, -2.6, 4, 0.6, 1.0, 1.4, 'logwall'); L.B(0, 2.6, 4, 0.6, 1.0, 1.4, 'logwall');
-  L.B(-4.2, -3.6, 1.2, 1.2, 1.2, 1.4, 'crate'); L.B(4.2, 3.6, 1.2, 1.2, 1.2, 1.4, 'crate');
-  for (const [x, z] of [[-5.6, -4.6], [5.6, 4.6], [-5.6, 4.6], [5.6, -4.6]]) { L.prop('lantern', x, 1.4, z, 0.8, { ry: Math.atan2(-x, -z) + Math.PI / 2 }); }
-  L.glow(-5.6 + 0.34, 1.4 + 1.68, -4.6, 0xffb860, 1.2); L.glow(5.6 - 0.34, 1.4 + 1.68, 4.6, 0xffb860, 1.2);
-  L.prop('keg', 2, 1.4, -3.9); L.prop('keg', -2.5, 1.4, 3.8);
-  // fallen mossy logs (were shipping containers): you can climb onto them via crates
-  const logs = [[-16, -9, 'x'], [-16, 9, 'z'], [16, -9, 'z'], [16, 9, 'x']];
-  for (const [x, z, ax] of logs) { const b = ax === 'x' ? L.B(x, z, 6, 2.5, 2.6, 0, 'bark') : L.B(x, z, 2.5, 6, 2.6, 0, 'bark'); b.noRender = true; L.prop('log', x, 0, z, 1, { axis: ax, len: 6.4, r: 1.3, ry: 0 }); }
-  L.B(-12.4, -9.6, 1.2, 1.2, 1.2, 0, 'crate'); L.B(-12.4, -8.4, 1.2, 1.2, 1.2, 0, 'crate'); L.B(-12.4, -8.4, 1.2, 1.2, 1.2, 1.2, 'crate');
-  L.B(12.4, 9.6, 1.2, 1.2, 1.2, 0, 'crate'); L.B(12.4, 8.4, 1.2, 1.2, 1.2, 0, 'crate'); L.B(12.4, 8.4, 1.2, 1.2, 1.2, 1.2, 'crate');
-  // mud-brick hut (west) with thatched roof
-  L.B(-25.5, -2, 5, 5, 3.6, 0, 'hutwall');
-  L.prop('gable', -25.5, 3.6, -2, 1, { w: 5, d: 5, h: 2.4, oh: 0.5, axis: 'z', mat: 'thatch' });
-  L.prop('chimney', -24.3, 4.2, -3.2, 1, { h: 2.2 });
-  L.box(-23.02, 0, -2.6, -22.98, 2.2, -1.4, 'planks', { col: false }); L.box(-23.02, 1.6, -0.6, -22.98, 2.4, 0.4, 'glass', { col: false }); L.glow(-22.7, 2.0, -0.1, 0xffa850, 1.6);
-  // hollow-stump house (east)
-  L.octo(25.5, 2, 2.5, 5.2, 'bark'); L.prop('coneroof', 25.5, 5.2, 2, 1, { r: 3.3, h: 2.6, mat: 'thatch' });
-  L.box(22.97, 0, 1.4, 23.02, 2.3, 2.6, 'planks', { col: false }); L.box(23.0, 2.8, 3.0, 23.05, 3.6, 3.8, 'glass', { col: false }); L.glow(22.7, 3.2, 3.4, 0xffa850, 1.6);
-  // great swamp trees (collision trunks were the pillars)
-  for (const [x, z] of [[-10, 6], [10, -6], [-10, -6], [10, 6]]) { L.B(x, z, 1.2, 1.2, 9, 0, 'bark').noRender = true; L.prop('bigtree', x, 0, z, 1); }
-  for (const [x, z] of [[-29.5, -13], [29.5, 13]]) { L.B(x, z, 0.6, 0.6, 5, 0, 'bark').noRender = true; L.prop('deadtree', x, 0, z, 1.2); }
-  // crate stacks & log barricades
-  for (const [x, z, st] of [[-6, 14, 1], [-4.8, 14.2, 0], [6, -14, 1], [4.8, -14.2, 0], [-28, 12, 1], [28, -12, 1], [-10, -16, 0], [10, 16, 0], [-21, 16, 0], [21, -16, 0]]) {
-    L.B(x, z, 1.2, 1.2, 1.2, 0, 'crate'); if (st) L.B(x + 0.1, z - 0.1, 1.2, 1.2, 1.2, 1.2, 'crate');
-  }
-  L.B(0, -14, 5, 0.6, 1.1, 0, 'logwall'); L.B(0, 14, 5, 0.6, 1.1, 0, 'logwall'); L.B(-20, 0, 0.6, 4, 1.1, 0, 'logwall'); L.B(20, 0, 0.6, 4, 1.1, 0, 'logwall');
-  // ponds, reeds, mushrooms, bushes
-  L.water.push([-22, -16, -16, -12.5], [17, 12.5, 22, 16]);
-  for (const [x, z] of [[-22.5, -14], [-15.5, -12], [22.5, 14], [16.5, 12]]) L.prop('reeds', x, 0, z, 1);
-  for (let i = 0; i < 26; i++) { const x = rand(-30, 30), z = rand(-17, 17); if (Math.abs(x) < 8 && Math.abs(z) < 7) continue; L.prop('mushrooms', x, 0, z, rand(0.8, 1.4)); }
-  for (let i = 0; i < 22; i++) { const side = randi(0, 3), t = rand(-28, 28); L.prop('bush', side < 2 ? t : (side === 2 ? -31 : 31), 0, side < 2 ? (side ? 17.5 : -17.5) * 0 + (side ? 23 : -23) : t * 0.6, rand(0.8, 1.4)); }
-  L.prop('cart', -7, 0, -19.5, 1, { ry: 0.3 }); L.B(-7, -19.5, 1.6, 2.6, 1.2, 0, 'wood').noRender = true;
-  L.pad(12, 15, 0, 14, 0, 6); L.pad(-12, -15, 0, 14, 0, -6);
-  mountains(L, [0x5d7287, 0x6a7f92, 0x52677a], false);
-  L.spawn = { x: 0, y: 1.4, z: 0, yaw: 0 };
-  L.enemySpawns = [[-29, -21], [29, 21], [-29, 21], [29, -21], [-29, 8], [29, -8], [0, -21], [0, 21], [-14, -21], [14, 21]];
-  L.pickups = [['health', -20, 0, 3], ['health', 20, 0, -3], ['ammo', 0, 3.8, 21.5], ['ammo', 0, 3.8, -21.5], ['ammo', -16, 2.6, -9], ['health', 16, 2.6, 9]];
-  L.barrels = [[-8, -10], [8, 10], [-27, 15], [27, -15], [-3, -20], [3, 20], [-22, -6], [22, 6]];
-}
-
-// ---------------------------------------------------------------- MAP 2: KINGDOM MARKET
-function buildKingdom(L) {
-  L.bounds = [-36, -36, 36, 36]; L.ground = 'cobble'; L.groundScale = 3.5; L.grass = 0.18; L.flowers = 2; L.padStyle = 'rune';
-  L.box(-40, -1, -40, 40, 0, 40, 'floor').noRender = true;
-  // town walls with crenellations and corner towers
-  L.box(-37, 0, -37, 37, 7, -36, 'castle'); L.box(-37, 0, 36, 37, 7, 37, 'castle'); L.box(-37, 0, -36, -36, 7, 36, 'castle'); L.box(36, 0, -36, 37, 7, 36, 'castle');
-  for (let t = -36.5; t <= 36.5; t += 2) { L.box(t - 0.45, 7, -37, t + 0.45, 7.9, -36, 'castle', { col: false }); L.box(t - 0.45, 7, 36, t + 0.45, 7.9, 37, 'castle', { col: false }); L.box(-37, 7, t - 0.45, -36, 7.9, t + 0.45, 'castle', { col: false }); L.box(36, 7, t - 0.45, 37, 7.9, t + 0.45, 'castle', { col: false }); }
-  for (const [x, z] of [[-37, -37], [37, -37], [-37, 37], [37, 37], [0, -37.5], [0, 37.5]]) L.prop('tower', x, 0, z, 1, { r: 3.2, h: 12 });
-  // town beyond the walls (skyline)
-  for (let i = 0; i < 34; i++) {
-    const side = i % 4, t = rand(-50, 50), d = rand(41, 62);
-    const x = side === 0 ? t : side === 1 ? t : side === 2 ? -d : d, z = side === 0 ? -d : side === 1 ? d : t;
-    L.prop('house', x, 0, z, 1, { w: rand(6, 10), d: rand(5, 7), h: rand(6, 11), rh: rand(3, 4.5), ry: side < 2 ? 0 : Math.PI / 2, wall: pick(['tudor', 'tudor2']), roof: pick(['tiles', 'tiles', 'slate', 'thatch']) });
-  }
-  L.prop('tower', 20, 8, -120, 3.2, { r: 4, h: 22 }); L.prop('tower', -5, 8, -125, 3.2, { r: 5, h: 30 }); L.prop('tower', 35, 8, -118, 3.2, { r: 3.5, h: 18 });
-  L.prop('house', 8, 8, -122, 3.2, { w: 12, d: 7, h: 12, rh: 5, wall: 'castle', roof: 'slate' });
-  // market houses (gameplay buildings)
-  L.building(-30, 14, -16, 28, 4.5, { s: [door(-23)], e: [door(21)], n: [win(-26), win(-20)], w: [win(21)], roofGap: [-29.4, -26.6] }, 'tudor', 'roof', 0.7);
-  L.stairs(-28, 6, 'pz', 2.4, 0, 4.8, 8, 'stone');
-  L.building(16, -28, 30, -14, 4.5, { n: [door(23)], w: [door(-21)], s: [win(20), win(26)], e: [win(-21)] }, 'tudor2', 'roof', 0);
-  L.box(16 - 0.2, 4.8, -28.2, 30.2, 5.5, -27.85, 'stone'); L.box(29.85, 4.8, -28.2, 30.2, 5.5, -13.8, 'stone'); L.box(15.8, 4.8, -28.2, 16.15, 5.5, -13.8, 'stone'); L.box(15.8, 4.8, -14.15, 26.6, 5.5, -13.8, 'stone');
-  L.stairs(28, -6, 'nz', 2.4, 0, 4.8, 8, 'stone');
-  L.building(18, 18, 26, 26, 6, { s: [door(22)], w: [door(22)], n: [win(22)], e: [win(22)] }, 'castle', 'roof', 0.7);
-  L.building(-26, -26, -18, -18, 6, { n: [door(-22)], e: [door(-22)], s: [win(-22)], w: [win(-22)] }, 'castle', 'roof', 0.7);
-  for (const [x0, z0, x1, z1, y] of [[18, 18, 26, 26, 7.0], [-26, -26, -18, -18, 7.0]]) for (let t = 0.5; t < 8; t += 1.6) { L.box(x0 - 0.2 + t, y, z0 - 0.2, x0 + 0.4 + t, y + 0.6, z0 + 0.15, 'castle', { col: false }); L.box(x0 - 0.2 + t, y, z1 - 0.15, x0 + 0.4 + t, y + 0.6, z1 + 0.2, 'castle', { col: false }); }
-  for (const [x, z, c] of [[-23, 13.7, 0x9a2a2a], [23, -13.7, 0x2a4a9a], [21.5, 25.8, 0x9a2a2a], [-22.5, -25.8, 0x2a4a9a]]) L.prop('banner', x, 4.2, z, 1, { c, ry: z > 0 ? 0 : Math.PI });
-  L.pad(22, 14, 0, 17, 0, 5); L.pad(-22, -14, 0, 17, 0, -5);
-  // plaza fountain with statue
-  L.B(0, 0, 7, 7, 0.7, 0, 'stone'); L.water.push([-3.2, -3.2, 3.2, 3.2, 0.62]);
-  L.B(0, 0, 1.2, 1.2, 2.6, 0, 'stone'); L.B(0, 0, 2.6, 2.6, 0.3, 2.6, 'stone'); L.prop('statue', 0, 2.9, 0, 0.9);
-  const awn = [0xb33a3a, 0x2f6fae, 0x3f8f4a, 0xd98a2b];
-  [[-11, 0, 0], [11, 0, 0], [0, 11, 1], [0, -11, 1]].forEach(([cx, cz, r], i) => {
-    const w = r ? 3.4 : 1, d = r ? 1 : 3.4, aw = r ? 4 : 2.6, ad = r ? 2.6 : 4;
-    L.B(cx, cz, w, d, 1.1, 0, 'planks');
-    L.B(cx, cz, aw, ad, 0.1, 2.7, 'cloth', { col: false, tint: awn[i] });
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) L.B(cx + sx * (aw / 2 - 0.1), cz + sz * (ad / 2 - 0.1), 0.12, 0.12, 2.7, 0, 'planks', { col: false });
-    L.prop('keg', cx + (r ? 1.2 : 0.9), 1.1, cz + (r ? 0.2 : 1.1), 0.5); L.prop('bush', cx + (r ? -1.1 : 0), 1.1, cz + (r ? 0 : -1.2), 0.25, { leaf: pick([0xc04040, 0xe0a030, 0x6a9a3a]) });
-  });
-  for (const [x, z, w, d] of [[-12, -15, 5, 1], [12, 15, 5, 1], [-6, 22, 1, 4], [6, -22, 1, 4], [-21, 2, 1, 5], [21, -2, 1, 5], [-30, -30, 4, 1], [30, 30, 4, 1]]) L.B(x, z, w, d, 1.0, 0, 'hay');
-  L.B(-10, -26, 0.6, 12, 3, 0, 'stonewall'); L.B(10, 26, 0.6, 12, 3, 0, 'stonewall');
-  L.B(27, 6, 9, 0.6, 3, 0, 'stonewall'); L.B(-27, -6, 9, 0.6, 3, 0, 'stonewall');
-  for (const [x, z] of [[-17, -9], [17, 9]]) { L.B(x, z - 2, 0.8, 0.8, 4, 0, 'castle'); L.B(x, z + 2, 0.8, 0.8, 4, 0, 'castle'); L.B(x, z, 0.9, 5, 0.8, 4, 'castle'); }
-  for (const [x, z] of [[-15, 9], [15, -9], [-5, 31], [5, -31], [31, -24], [-31, 24]]) { L.B(x, z, 0.6, 0.6, 3, 0, 'bark').noRender = true; L.prop('oak', x, 0, z, rand(1, 1.25)); }
-  for (const [x, z, st] of [[-6, -7, 1], [7, 6, 0], [-14, -30, 1], [14, 30, 1], [29, 32, 0], [-29, -32, 0], [-30, 8, 0], [30, -8, 1], [-4, -18, 0], [4, 18, 0]]) {
-    L.B(x, z, 1.2, 1.2, 1.2, 0, 'crate'); if (st) L.B(x, z, 1.2, 1.2, 1.2, 1.2, 'crate');
-  }
-  for (const [x, z] of [[-8, -8], [8, 8], [-8, 8], [8, -8], [-34, -20], [34, 20], [-20, 34], [20, -34]]) { L.prop('lantern', x, 0, z, 1, { ry: rand(0, 6) }); L.glow(x + 0.42 * Math.cos(0), 2.1, z, 0xffc070, 1.1); }
-  L.prop('well', -28, 0, -16); L.B(-28, -16, 1.8, 1.8, 1, 0, 'stonewall').noRender = true;
-  L.prop('cart', 28, 0, 16, 1, { ry: 0.4 }); L.B(28, 16, 1.8, 2.8, 1.2, 0, 'wood').noRender = true;
-  for (let i = 0; i < 18; i++) { const side = randi(0, 3), t = rand(-33, 33); L.prop('bush', side < 2 ? t : (side === 2 ? -35.2 : 35.2), 0, side < 2 ? (side ? 35.2 : -35.2) : t, rand(0.6, 1)); }
-  mountains(L, [0x7a8ea8, 0x8798b0, 0x6f86a0], true);
-  L.spawn = { x: 0, y: 0, z: -32, yaw: Math.PI };
-  L.enemySpawns = [[-33, 33], [33, 33], [0, 34], [-34, 0], [34, 0], [-33, -33], [33, -33], [20, 9], [-20, -9], [-12, 32], [12, -33]];
-  L.pickups = [['health', -23, 0, 21], ['health', 23, 0, -21], ['health', 22, 6.3, 22], ['ammo', -22, 6.3, -22], ['ammo', -23, 4.8, 18], ['ammo', 23, 4.8, -18], ['health', 2.6, 0.7, 2.6], ['ammo', -22, 0, -22]];
-  L.barrels = [[-8, -20], [8, 20], [-30, 0], [30, 10], [-14, 12], [14, -12], [-3, 8], [3, -8]];
-}
-
-// ---------------------------------------------------------------- MAP 3: DRAGON KEEP
-function buildKeep(L) {
-  L.bounds = [-30, -30, 30, 30]; L.ground = 'flagstone'; L.groundScale = 4; L.grass = 0.08; L.fireflies = 90; L.fireflyColor = 0xffa040; L.emberRise = true; L.padStyle = 'rune';
-  L.box(-32, -1, -32, 32, 0, 32, 'floor').noRender = true;
-  L.box(-31, 0, -31, 31, 10, -30, 'castle'); L.box(-31, 0, 30, 31, 10, 31, 'castle'); L.box(-31, 0, -30, -30, 10, 30, 'castle'); L.box(30, 0, -30, 31, 10, 30, 'castle');
-  for (let t = -30.5; t <= 30.5; t += 2.2) { L.box(t - 0.5, 10, -31, t + 0.5, 11.1, -30.4, 'castle', { col: false }); L.box(t - 0.5, 10, 30.4, t + 0.5, 11.1, 31, 'castle', { col: false }); L.box(-31, 10, t - 0.5, -30.4, 11.1, t + 0.5, 'castle', { col: false }); L.box(30.4, 10, t - 0.5, 31, 11.1, t + 0.5, 'castle', { col: false }); }
-  for (const [x, z] of [[-31, -31], [31, -31], [-31, 31], [31, 31]]) L.prop('tower', x, 0, z, 1, { r: 3.6, h: 16, roof: 'slate' });
-  // inner wall-walk ring (gaps mid-side to jump)
-  const ring = [[-30, 26, -2, 30], [2, 26, 30, 30], [-30, -30, -2, -26], [2, -30, 30, -26], [26, -26, 30, -2], [26, 2, 30, 26], [-30, -26, -26, -2], [-30, 2, -26, 26]];
-  for (const [x0, z0, x1, z1] of ring) L.box(x0, 4, z0, x1, 4.4, z1, 'stone');
-  for (const [x, z, w, d] of [[-14, 28, 2.2, 1], [14, -28, 2.2, 1], [28, 14, 1, 2.2], [-28, -14, 1, 2.2], [14, 28, 1, 1], [-14, -28, 1, 1]]) L.B(x, z, w, d, 1, 4.4, 'castle');
-  L.stairs(20, 14, 'pz', 3, 0, 4.4, 12, 'castle'); L.stairs(-20, -14, 'nz', 3, 0, 4.4, 12, 'castle');
-  L.stairs(-14, 20, 'nx', 3, 0, 4.4, 12, 'castle'); L.stairs(14, -20, 'px', 3, 0, 4.4, 12, 'castle');
-  // torches on the inner face of the walls + banners
-  for (let t = -22; t <= 22; t += 11) for (const [x, z, ry] of [[t, 29.85, Math.PI], [t, -29.85, 0], [29.85, t, -Math.PI / 2], [-29.85, t, Math.PI / 2]]) {
-    L.prop('torch', x, 6.6, z, 1.4, { ry }); const dx = Math.sin(ry) * 0.38, dz = Math.cos(ry) * 0.38; L.glow(x + dx, 6.6 + 0.6, z + dz, 0xff8a30, 1.7, true);
-    if (Math.abs(t) === 11) L.prop('banner', x + Math.sin(ry) * 0.06, 9.4, z + Math.cos(ry) * 0.06, 1.6, { ry, c: t > 0 ? 0x7a1a1a : 0x1a2a6a });
-  }
-  // the keep at the centre
-  L.B(0, 0, 7, 7, 1.2, 0, 'castle');
-  L.B(0, 0, 2.6, 2.6, 7, 0, 'castle');
-  for (const [x, z] of [[-1.15, -1.15], [1.15, -1.15], [-1.15, 1.15], [1.15, 1.15]]) L.box(x - 0.25, 7, z - 0.25, x + 0.25, 7.7, z + 0.25, 'castle', { col: false });
-  L.prop('brazier', 0, 7, 0, 1); L.glow(0, 7.7, 0, 0xff7a20, 2.6, true);
-  for (const [x, z, ry] of [[0, 1.32, 0], [0, -1.32, Math.PI]]) L.prop('banner', x, 6.2, z, 1.2, { ry, c: 0x7a1a1a });
-  L.stairs(5.5, 0, 'nx', 2.4, 0, 1.2, 2, 'castle'); L.stairs(-5.5, 0, 'px', 2.4, 0, 1.2, 2, 'castle');
-  L.stairs(0, 5.5, 'nz', 2.4, 0, 1.2, 2, 'castle'); L.stairs(0, -5.5, 'pz', 2.4, 0, 1.2, 2, 'castle');
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) { L.B(10 * sx, 10 * sz, 2, 2, 3.6, 0, 'castle'); L.prop('brazier', 10 * sx, 3.6, 10 * sz, 0.9); L.glow(10 * sx, 4.25, 10 * sz, 0xff7a20, 1.8, true); }
-  for (const [x, z, w, d] of [[0, 13, 7, 0.8], [0, -13, 7, 0.8], [13, 0, 0.8, 7], [-13, 0, 0.8, 7]]) L.B(x, z, w, d, 1.2, 0, 'stonewall');
-  for (const [x, z, w, d] of [[-18, 6, 1, 4], [18, -6, 1, 4], [6, 19, 4, 1], [-6, -19, 4, 1], [-22, -22, 2, 2], [22, 22, 2, 2]]) L.B(x, z, w, d, 2.2, 0, 'castle');
-  L.box(-3, 0, 29.6, 3, 6, 29.95, 'planks', { col: false }); L.box(-3.3, 6, 29.6, 3.3, 6.4, 29.95, 'castle', { col: false });
-  for (const [x, z] of [[-24, 8], [24, -8], [8, 24], [-8, -24]]) { L.prop('keg', x, 0, z, 1); L.prop('keg', x + 0.7, 0, z + 0.3, 0.9); }
-  for (let i = 0; i < 14; i++) L.prop('rock', rand(-28, 28), 0, pick([-28.8, 28.8]), rand(0.4, 0.8), { sy: 0.5, c: 0x8a8580 });
-  L.pad(16, 8, 0, 15, 10, 0); L.pad(-16, -8, 0, 15, -10, 0); L.pad(8, -16, 0, 15, 0, -10); L.pad(-8, 16, 0, 15, 0, 10);
-  mountains(L, [0x2a2440, 0x332a4a, 0x241f38], false);
-  L.spawn = { x: 0, y: 1.2, z: -2.6, yaw: 0 };
-  L.enemySpawns = [[-27, -27], [27, 27], [-27, 27], [27, -27], [0, 27], [0, -27], [27, 0], [-27, 0]];
-  L.pickups = [['health', 15, 4.4, 28], ['health', -15, 4.4, -28], ['ammo', 28, 4.4, -15], ['ammo', -28, 4.4, 15], ['health', 0, 0, 20], ['ammo', 0, 0, -20]];
-  L.barrels = [[-10, 4], [10, -4], [22, -25], [-22, 25], [4, 10], [-4, -10]];
-}
-
-// ---------------------------------------------------------------- MULTI-STOREY BUILDING HELPERS
 function wallX2(L, x0, x1, z, th, y0, h, ops, m) {
   let cur = x0;
   for (const o of (ops || []).slice().sort((a, b) => a.c - b.c)) {
@@ -1146,7 +1024,7 @@ function wallZ2(L, z0, z1, x, th, y0, h, ops, m) {
 const D2 = c => ({ c, w: 1.8, y0: 0, y1: 2.5 }), W2 = c => ({ c, w: 1.3, y0: 1.0, y1: 2.3 });
 // two-storey house: doors {n,s,e,w: [centers]}, interior stair along the north wall, upper-floor windows on every side, pitched roof
 function house2(L, x0, z0, w, d, o = {}) {
-  const fh = 3.4, th = 0.4, x1 = x0 + w, z1 = z0 + d, m = o.m || 'tudor', run = 3.8, sw = 1.5;
+  const fh = 3.4, th = 0.4, x1 = x0 + w, z1 = z0 + d, m = o.m || 'tudor', run = clamp(w - 3.4, 3.8, 5.6), sw = 1.5;
   const dr = o.doors || {}, wn = (a, b) => { const r = []; for (let c = a + 1.6; c < b - 1.2; c += 2.6) r.push(W2(c)); return r; };
   const gOps = (side, a, b) => (dr[side] || []).map(D2).concat(o.gwin === false ? [] : wn(a, b).filter(wo => !(dr[side] || []).some(dc => Math.abs(dc - wo.c) < 2)));
   wallX2(L, x0, x1, z1 - th / 2, th, 0, fh, gOps('n', x0, x1), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, fh, gOps('s', x0, x1), m);
@@ -1154,10 +1032,11 @@ function house2(L, x0, z0, w, d, o = {}) {
   const y2 = fh + 0.25;
   wallX2(L, x0, x1, z1 - th / 2, th, y2, fh - 0.25, wn(x0, x1), m); wallX2(L, x0, x1, z0 + th / 2, th, y2, fh - 0.25, wn(x0, x1), m);
   wallZ2(L, z0 + th, z1 - th, x1 - th / 2, th, y2, fh - 0.25, wn(z0, z1), m); wallZ2(L, z0 + th, z1 - th, x0 + th / 2, th, y2, fh - 0.25, wn(z0, z1), m);
-  L.box(x0 - 0.05, fh, z0 - 0.05, x1 + 0.05, y2, z1 + 0.05, 'stone', { col: false });
+  L.box(x0 - 0.08, fh, z0 - 0.08, x1 + 0.08, y2, z0 + 0.02, 'stone', { col: false }); L.box(x0 - 0.08, fh, z1 - 0.02, x1 + 0.08, y2, z1 + 0.08, 'stone', { col: false });
+  L.box(x0 - 0.08, fh, z0 + 0.02, x0 + 0.02, y2, z1 - 0.02, 'stone', { col: false }); L.box(x1 - 0.02, fh, z0 + 0.02, x1 + 0.08, y2, z1 - 0.02, 'stone', { col: false });
   // upper floor slab with a stairwell along the north wall
   const sx0 = x0 + th + 1.1, sx1 = sx0 + run, sz0 = z1 - th - sw, hz = sz0 - 0.55;
-  L.box(x0 + th, fh, z0 + th, x1 - th, y2, hz, 'planks'); L.box(sx1 + 0.2, fh, hz, x1 - th, y2, z1 - th, 'planks');
+  L.box(x0 + th, fh, z0 + th, x1 - th, y2, hz, 'planks'); L.box(sx1, fh, hz, x1 - th, y2, z1 - th, 'planks');
   L.stairs(sx0, sz0 + sw / 2, 'px', sw, 0, y2, run, 'planks');
   L.box(x0 + th, fh + 0.9, hz - 0.06, sx1 + 0.2, fh + 1.0, hz, 'planks', { col: false });
   L.box(x0 - 0.3, fh * 2, z0 - 0.3, x1 + 0.3, fh * 2 + 0.2, z1 + 0.3, o.roofM === 'thatch' ? 'thatch' : 'roof');
@@ -1420,39 +1299,148 @@ function buildCrossroads(L) {
   L.barrels = [[-6, 24], [6, -24], [-24, 6], [24, -6], [-52, 16], [52, -16], [16, 44], [-16, -44]];
 }
 
+// ---------------------------------------------------------------- shared military props
+function container(L, x, z, len, axis, stack = 1, col, y0 = 0, solid = true) { // ISO shipping container(s): 12.2 / 6.1 x 2.44 x 2.6 m
+  const c = col !== undefined ? col : pick([0xa8382a, 0x2f5f8a, 0x3f7a4a, 0xc08a2a, 0x8a8f94, 0x6a3a6a, 0xb85a20]);
+  for (let k = 0; k < stack; k++) {
+    const y = y0 + k * 2.6, cc = k ? pick([0xa8382a, 0x2f5f8a, 0x3f7a4a, 0xc08a2a, 0x8a8f94]) : c, w = axis === 'x' ? len : 2.44, d = axis === 'x' ? 2.44 : len;
+    L.B(x, z, w, d, 2.6, y, 'container', { tint: cc, col: solid });
+    for (const e of [-1, 1]) { // door / end frames
+      if (axis === 'x') L.box(x + e * len / 2 - 0.06, y + 0.05, z - 1.25, x + e * len / 2 + 0.06, y + 2.55, z + 1.25, 'metal', { col: false });
+      else L.box(x - 1.25, y + 0.05, z + e * len / 2 - 0.06, x + 1.25, y + 2.55, z + e * len / 2 + 0.06, 'metal', { col: false });
+    }
+  }
+}
+function hesco(L, x0, z0, x1, z1, h = 2.2) { L.box(x0, 0, z0, x1, h, z1, 'hesco'); }
+function watchtower(L, cx, cz, dir, y = 4.5) { // stilted tower with sandbag parapet; stairs leave towards dir
+  const s = 2.2; for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) L.B(cx + dx * (s - 0.15), cz + dz * (s - 0.15), 0.3, 0.3, y, 0, 'wood');
+  L.B(cx, cz, s * 2, s * 2, 0.25, y - 0.25, 'planks');
+  const e = 0.3, ph = 1.0; // parapet (gap on the stair side)
+  if (dir !== 'nz') L.box(cx - s, y, cz - s, cx + s, y + ph, cz - s + e, 'sandbag'); if (dir !== 'pz') L.box(cx - s, y, cz + s - e, cx + s, y + ph, cz + s, 'sandbag');
+  if (dir !== 'nx') L.box(cx - s, y, cz - s, cx - s + e, y + ph, cz + s, 'sandbag'); if (dir !== 'px') L.box(cx + s - e, y, cz - s, cx + s, y + ph, cz + s, 'sandbag');
+  L.box(cx - s - 0.2, y + 2.6, cz - s - 0.2, cx + s + 0.2, y + 2.8, cz + s + 0.2, 'canvas', { col: false });
+  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) L.box(cx + dx * (s - 0.1) - 0.06, y, cz + dz * (s - 0.1) - 0.06, cx + dx * (s - 0.1) + 0.06, y + 2.6, cz + dz * (s - 0.1) + 0.06, 'wood', { col: false });
+  const run = y / 0.34 * 0.45, sw = 1.3;
+  if (dir === 'pz') L.stairs(cx, cz + s + run, 'nz', sw, 0, y, run, 'wood');
+  else if (dir === 'nz') L.stairs(cx, cz - s - run, 'pz', sw, 0, y, run, 'wood');
+  else if (dir === 'px') L.stairs(cx + s + run, cz, 'nx', sw, 0, y, run, 'wood');
+  else L.stairs(cx - s - run, cz, 'px', sw, 0, y, run, 'wood');
+}
+function bunker(L, x0, z0, w, d, doors, m = 'concrete') { // single-storey building with interior; doors {n,s,e,w:[centres]}, flat roof
+  const h = 3.2, th = 0.4, x1 = x0 + w, z1 = z0 + d, ops = side => (doors[side] || []).map(D2).concat([]);
+  const wins = (a, b, side) => { const r = []; for (let c = a + 2; c < b - 1.5; c += 3.5) if (!(doors[side] || []).some(dc => Math.abs(dc - c) < 2.2)) r.push({ c, w: 1.2, y0: 1.2, y1: 2.0 }); return r; };
+  wallX2(L, x0, x1, z1 - th / 2, th, 0, h, ops('n').concat(wins(x0, x1, 'n')), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, h, ops('s').concat(wins(x0, x1, 's')), m);
+  wallZ2(L, z0 + th, z1 - th, x1 - th / 2, th, 0, h, ops('e').concat(wins(z0, z1, 'e')), m); wallZ2(L, z0 + th, z1 - th, x0 + th / 2, th, 0, h, ops('w').concat(wins(z0, z1, 'w')), m);
+  L.box(x0 - 0.25, h, z0 - 0.25, x1 + 0.25, h + 0.3, z1 + 0.25, m);
+  L.box(x0 - 0.25, h + 0.3, z0 - 0.25, x1 + 0.25, h + 0.6, z0 + 0.05, m, { col: false }); L.box(x0 - 0.25, h + 0.3, z1 - 0.05, x1 + 0.25, h + 0.6, z1 + 0.25, m, { col: false });
+}
+function warehouse(L, x0, z0, w, d, o = {}) { // big shed: corrugated walls, roll-up doors, catwalk mezzanine with stairs
+  const h = 9, th = 0.35, x1 = x0 + w, z1 = z0 + d, m = 'metalwall', big = c => ({ c, w: 5.5, y0: 0, y1: 4.8 });
+  wallX2(L, x0, x1, z1 - th / 2, th, 0, h, (o.n || []).map(big), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, h, (o.s || []).map(big), m);
+  wallZ2(L, z0 + th, z1 - th, x1 - th / 2, th, 0, h, (o.e || []).map(big), m); wallZ2(L, z0 + th, z1 - th, x0 + th / 2, th, 0, h, (o.w || []).map(big), m);
+  L.box(x0 - 0.4, h, z0 - 0.4, x1 + 0.4, h + 0.3, z1 + 0.4, 'metalwall');
+  L.prop('gable', (x0 + x1) / 2, h + 0.3, (z0 + z1) / 2, 1, { w: w + 0.8, d: d + 0.8, h: Math.min(w, d) * 0.12, oh: 0.1, axis: w >= d ? 'x' : 'z', mat: 'metalwall' });
+  // mezzanine along the back wall
+  const mx0 = o.backX === 'min' ? x0 + th : x1 - th - 4, mx1 = mx0 + 4, my = 4.2, mz0 = z0 + 9, mz1 = z1 - 2;
+  L.box(mx0, my - 0.2, mz0, mx1, my, mz1, 'grate');
+  L.box(o.backX === 'min' ? mx1 - 0.08 : mx0, my, mz0, o.backX === 'min' ? mx1 : mx0 + 0.08, my + 1.05, mz1, 'metal', { col: false });
+  L.box(o.backX === 'min' ? mx1 - 0.1 : mx0, my - 0.2, mz0, o.backX === 'min' ? mx1 : mx0 + 0.1, my + 1.0, mz0 + 0.1, 'metal', { col: false });
+  L.stairs((mx0 + mx1) / 2, z0 + 1.2, 'pz', 2.4, 0, my, mz0 - z0 - 1.2, 'grate');
+  for (let z = mz0 + 1; z < mz1; z += 3.2) L.box(o.backX === 'min' ? mx1 - 0.05 : mx0, my, z - 0.04, o.backX === 'min' ? mx1 : mx0 + 0.05, my + 1.05, z + 0.04, 'metal', { col: false });
+  for (let z = z0 + 5; z < z1 - 3; z += 8) { L.glow((x0 + x1) / 2, h - 0.6, z, 0xfff2d8, 1.4); L.box((x0 + x1) / 2 - 0.9, h - 0.5, z - 0.2, (x0 + x1) / 2 + 0.9, h - 0.4, z + 0.2, 'lampglow', { col: false }); }
+  for (let z = z0 + 4; z < z1 - 4; z += 9) L.box(x0 + w * 0.3, h + 0.28, z, x1 - w * 0.3, h + 0.32, z + 2.2, 'skylight', { col: false }); // skylights
+  L.box(x0 + th, 0, z0 + th, x1 - th, 0.025, z1 - th, 'pavement', { col: false }); // concrete slab floor
+  L.lights.push([(x0 + x1) / 2, h - 1.2, z0 + d * 0.3, 0xfff0d8, 60, 30], [(x0 + x1) / 2, h - 1.2, z0 + d * 0.72, 0xfff0d8, 60, 30]);
+}
+// ---------------------------------------------------------------- MAP: FREIGHT YARD (CoD-style container port, medium)
+function buildFreight(L) {
+  const R = seeded(77);
+  L.bounds = [-64, -50, 64, 50]; L.ground = 'asphalt'; L.groundScale = 6; L.groundTint = 0xc8c4bc; L.grass = 0; L.big = true; L.noLamps = true;
+  L.box(-68, -1, -54, 68, 0, 54, 'floor').noRender = true;
+  L.box(-65, 0, -51, 65, 4, -50, 'concrete'); L.box(-65, 0, -50, -64, 4, 48, 'concrete'); L.box(64, 0, -50, 65, 4, 48, 'concrete');
+  L.box(-65, 0, 48, 65, 1.2, 49, 'concrete'); L.box(-65, 1.2, 48, 65, 6, 49, 'floor').noRender = true; // quay edge (invisible guard)
+  for (let x = -60; x <= 60; x += 8) L.prop('bollard', x, 1.2, 48.5, 1);
+  // docked cargo ship beyond the quay
+  L.box(-70, -6, 51, 58, 9, 68, 'hull', { col: false }); L.box(-70, 9, 51, 58, 9.4, 68, 'metal', { col: false }); L.box(30, 9.4, 53, 50, 22, 66, 'white', { col: false });
+  for (let x = -60; x < 26; x += 13) { container(L, x, 57, 12.2, 'x', 2, undefined, 9.4, false); container(L, x + 1, 62, 12.2, 'x', 1, undefined, 9.4, false); }
+  L.water.push([-90, 49, 90, 120, 0.03]);
+  warehouse(L, -62, -24, 26, 44, { e: [-12, 10], n: [-49], backX: 'min' });
+  warehouse(L, 36, -24, 26, 44, { w: [-12, 10], n: [49], backX: 'max' });
+  // container yard: lanes, stacks, climbable single stacks
+  const C = [[-22, -32, 12.2, 'x', 1], [-6, -32, 6.1, 'x', 2], [10, -32, 12.2, 'x', 1], [24, -30, 6.1, 'z', 2],
+    [-28, -18, 12.2, 'z', 2], [-15, -20, 12.2, 'z', 1], [0, -18, 6.1, 'z', 2], [14, -20, 12.2, 'z', 1], [27, -14, 6.1, 'x', 1],
+    [-20, -5, 12.2, 'x', 2], [18, -6, 12.2, 'x', 1], [-3, -7, 6.1, 'x', 1],
+    [-18, 7, 12.2, 'x', 1], [20, 6, 12.2, 'x', 2], [3, 7, 6.1, 'x', 1],
+    [-27, 16, 6.1, 'x', 1], [-14, 20, 12.2, 'z', 1], [0, 18, 6.1, 'z', 2], [15, 20, 12.2, 'z', 1], [28, 18, 12.2, 'z', 2],
+    [-24, 31, 6.1, 'z', 2], [-10, 32, 12.2, 'x', 1], [6, 32, 6.1, 'x', 2], [22, 32, 12.2, 'x', 1]];
+  for (const [x, z, len, ax, st] of C) container(L, x, z, len, ax, st);
+  // metal stairs up onto four single containers (high ground over the lanes)
+  L.stairs(-22, -27.35, 'nz', 2.2, 0, 2.6, 3.4, 'grate'); L.stairs(18, -10.65, 'pz', 2.2, 0, 2.6, 3.4, 'grate');
+  L.stairs(-18, 11.65, 'nz', 2.2, 0, 2.6, 3.4, 'grate'); L.stairs(22, 27.35, 'pz', 2.2, 0, 2.6, 3.4, 'grate');
+  // gantry crane straddling the yard
+  for (const [x, z] of [[-31, -38], [31, -38], [-31, 38], [31, 38]]) { L.B(x, z, 1.1, 1.1, 22, 0, 'crane'); L.prop('cranewheel', x, 0, z, 1); }
+  L.box(-32, 20, -38.6, 32, 22, -37.4, 'crane', { col: false }); L.box(-32, 20, 37.4, 32, 22, 38.6, 'crane', { col: false });
+  L.box(-32, 21, -38, -30, 23, 38, 'crane', { col: false }); L.box(30, 21, -38, 32, 23, 38, 'crane', { col: false }); L.box(-6, 17, -4, 6, 21, 4, 'crane', { col: false });
+  // south: harbour office (two storeys) + truck lot
+  house2(L, -8, -47, 16, 10, { m: 'concrete', roofM: 'tiles', doors: { n: [0], e: [-42], w: [-42] } });
+  for (const x of [-28, 26]) { L.B(x, -43, 2.6, 13, 1.25, 0, 'metal'); container(L, x, -44.5, 12.2, 'z', 1, 0x8a8f94, 1.25); L.B(x, -36.6, 2.5, 2.6, 2.9, 0, 'carpaint', { tint: 0xd0d0d0 }); }
+  for (const [x, z] of [[-46, -34], [48, 30], [-33, 41], [33, -43]]) { L.B(x, z, 1.4, 2.6, 2.1, 0, 'forklift').noRender = true; L.prop('forklift', x, 0, z, 1, { ry: R() * 6.28 }); }
+  for (const [x, z] of [[-34, 0], [34, 0], [-6, 44], [10, -44], [-34, -42], [34, 44], [-2, 0], [0, 26], [0, -26]]) crates(L, x, z, R() < 0.5 ? 2 : 1);
+  for (const [x, z, a] of [[-34, 26, 'z'], [34, -26, 'z'], [-8, 40, 'x'], [8, -40, 'x']]) sandbags(L, x, z, 3.6, a);
+  for (const [x, z] of [[-34, -46], [34, -46], [-34, 46], [34, 46], [0, 0]]) L.prop('lantern', x, 0, z, 2.2, { ry: R() * 6.28 });
+  L.spawn = { x: -50, y: 0, z: 0, yaw: -Math.PI / 2 };
+  L.teamSpawns = [[[-50, -14], [-50, -2], [-50, 10], [-44, -18], [-44, 14], [-54, 4], [-46, 30], [-46, -32]], [[50, -14], [50, -2], [50, 10], [44, -18], [44, 14], [54, 4], [46, 30], [46, -32]]];
+  L.enemySpawns = L.teamSpawns[1].concat(L.teamSpawns[0], [[0, 40], [0, -40], [-8, 0], [8, 0], [-34, 34], [34, -34]]);
+  L.pickups = [['health', 0, 0, 0], ['ammo', 3, 0, 26], ['ammo', -3, 0, -26], ['health', -22, 2.6, -32], ['health', 22, 2.6, 32], ['ammo', -60, 4.2, 5], ['ammo', 60, 4.2, 5], ['health', -34, 0, 12], ['health', 34, 0, -12], ['ammo', 0, 0, 44]];
+  L.barrels = [[-34, -8], [34, 8], [-10, -12], [10, 12], [-4, 40], [4, -40]];
+}
+// ---------------------------------------------------------------- MAP: FIREBASE (Battlefield-style desert outpost, huge)
+function buildFirebase(L) {
+  const R = seeded(4242);
+  L.bounds = [-100, -90, 100, 90]; L.ground = 'sand'; L.groundScale = 5; L.groundTint = 0xf2e2c4; L.grass = 0; L.big = true; L.noLamps = true; L.smoke = [];
+  L.box(-104, -1, -94, 104, 0, 94, 'floor').noRender = true;
+  for (const [a, b, c, d] of [[-101, -91, 101, -90], [-101, 90, 101, 91], [-101, -90, -100, 90], [100, -90, 101, 90]]) L.box(a, 0, b, c, 10, d, 'cliff', { tint: 0xd8c0a0 });
+  // ---- the compound: HESCO perimeter with four gates
+  const X0 = -38, X1 = 38, Z0 = -32, Z1 = 32, g = 4;
+  hesco(L, X0, Z0, -g, Z0 + 1.1); hesco(L, g, Z0, X1, Z0 + 1.1); hesco(L, X0, Z1 - 1.1, -g, Z1); hesco(L, g, Z1 - 1.1, X1, Z1);
+  hesco(L, X0, Z0 + 1.1, X0 + 1.1, -g); hesco(L, X0, g, X0 + 1.1, Z1 - 1.1); hesco(L, X1 - 1.1, Z0 + 1.1, X1, -g); hesco(L, X1 - 1.1, g, X1, Z1 - 1.1);
+  hesco(L, -20, Z0, -17, Z0 + 1.1, 1.1); hesco(L, 17, Z1 - 1.1, 20, Z1, 1.1); // knee-high breaches you can vault
+  for (const [x, z] of [[-g - 0.6, Z0 - 2], [g + 0.6, Z0 - 2], [-g - 0.6, Z1 + 2], [g + 0.6, Z1 + 2]]) L.B(x, z, 0.6, 0.6, 3, 0, 'hesco');
+  watchtower(L, X0 + 4, Z0 + 4, 'pz'); watchtower(L, X1 - 4, Z0 + 4, 'pz'); watchtower(L, X0 + 4, Z1 - 4, 'nz'); watchtower(L, X1 - 4, Z1 - 4, 'nz');
+  // command post (two storeys), barracks, motor pool
+  house2(L, -30, -24, 16, 12, { m: 'concrete', roofM: 'tiles', doors: { n: [-26, -18], e: [-18], s: [-22] } });
+  bunker(L, 10, -26, 18, 9, { n: [14, 24], w: [-21.5] }); bunker(L, 10, 17, 18, 9, { s: [14, 24], e: [21.5] }); bunker(L, -28, 14, 12, 9, { s: [-22], e: [18.5] });
+  // helipad + downed helicopter
+  L.box(-7, 0, -7, 7, 0.06, 7, 'concrete', { col: false }); L.box(-0.3, 0.06, -4, 0.3, 0.07, 4, 'white', { col: false }); L.box(-3, 0.06, -0.3, 3, 0.07, 0.3, 'white', { col: false });
+  L.B(2, 1, 3, 9, 2.6, 0, 'carpaint', { tint: 0x5a5f48 }).noRender = true; L.prop('heli', 2, 0, 1, 1, { ry: 0.35 }); L.glow(1.5, 2.2, 3, 0xff8030, 2, true); L.smoke.push([1.5, 2.6, 3]);
+  // fuel farm & comms mast
+  for (const [x, z] of [[-30, -4], [-24, -4]]) { L.B(x, z, 3.2, 3.2, 3.2, 0, 'fuel').noRender = true; L.prop('fueltank', x, 0, z, 1); }
+  L.B(28, 0, 1.2, 1.2, 24, 0, 'crane').noRender = true; L.prop('mast', 28, 0, 0, 1);
+  for (const [x, z, rot] of [[-12, 22, 1], [-4, 22, 1], [22, 6, 0], [26, -8, 0]]) car(L, x, z, rot, false);
+  for (const [x, z, a] of [[-8, -26, 'x'], [8, 26, 'x'], [-32, 8, 'z'], [32, -8, 'z'], [0, -12, 'x'], [0, 12, 'x'], [-14, 0, 'z'], [14, 0, 'z']]) sandbags(L, x, z, 4, a);
+  for (const [x, z] of [[-16, -12], [16, 12], [-6, 28], [6, -28], [-34, -16], [34, 16]]) crates(L, x, z, R() < 0.5 ? 2 : 1);
+  // ---- west: shelled village
+  for (const [x0, z0, w, d] of [[-86, -48, 14, 11], [-70, -16, 12, 10], [-88, 14, 14, 11], [-72, 40, 12, 10]]) house2(L, x0, z0, w, d, { m: pick(['plasterA', 'plasterB', 'sandstone']), roofM: 'tiles', doors: { n: [x0 + w / 2], s: [x0 + w * 0.3], e: [z0 + d / 2], w: [z0 + d / 2] } });
+  for (const [x0, z0, x1, z1] of [[-90, -24, -78, -14], [-66, -42, -54, -30], [-62, 12, -50, 24], [-90, 34, -80, 46], [-66, 58, -52, 70], [-88, -70, -76, -60]]) ruin(L, x0, z0, x1, z1, R);
+  for (const [x, z] of [[-60, 0], [-80, 0], [-74, 28], [-78, -36]]) { L.prop('palm', x, 0, z, rand(0.9, 1.2)); L.B(x, z, 0.5, 0.5, 4, 0, 'bark').noRender = true; }
+  // ---- east: rocky ridge with a fighting position
+  for (let i = 0; i < 16; i++) { const x = 56 + R() * 36, z = -70 + R() * 140, w = 3 + R() * 7, d = 3 + R() * 7, h = 1.2 + R() * 5; L.box(x - w / 2, 0, z - d / 2, x + w / 2, h, z + d / 2, 'cliff', { tint: 0xd8bc98 }); for (let k = 0; k < 3; k++) L.prop('rock', x + rand(-w, w) * 0.6, 0, z + rand(-d, d) * 0.6, rand(1.2, 2.4), { sy: rand(0.5, 1.1), c: 0xc8ac88 }); }
+  bunker(L, 66, -6, 10, 8, { w: [-2], s: [70] }, 'sandstone');
+  // ---- open desert: wrecks, berms and nests
+  for (const [x, z, ry] of [[-24, -58, 0.4], [30, 60, 2.1], [52, -50, 1.2], [-46, 62, 2.8], [12, -74, 0.2]]) { const k = Math.round(ry / (Math.PI / 2)); L.B(x, z, k % 2 ? 7 : 3.6, k % 2 ? 3.6 : 7, 2.4, 0, 'carpaint').noRender = true; L.prop('tank', x, 0, z, 1, { ry: k * (Math.PI / 2) }); if (R() < 0.6) { L.glow(x, 2.6, z, 0xff7a20, 1.6, true); L.smoke.push([x, 2.8, z]); } }
+  for (const [x, z, a] of [[0, -50, 'x'], [0, 50, 'x'], [-30, -44, 'x'], [30, 44, 'x'], [44, -20, 'z'], [-46, 20, 'z'], [40, -64, 'x'], [-36, 72, 'x']]) sandbags(L, x, z, 5, a);
+  for (const [x, z, w, d] of [[-14, -66, 14, 1.6], [18, 70, 14, 1.6], [46, 40, 1.6, 12], [-50, -34, 1.6, 12]]) L.B(x, z, w, d, 1.3, 0, 'hesco');
+  for (let i = 0; i < 30; i++) { const x = (R() - 0.5) * 180, z = (R() - 0.5) * 160; if (Math.abs(x) < 44 && Math.abs(z) < 38) continue; L.prop('rock', x, 0, z, rand(0.6, 1.6), { sy: rand(0.4, 0.9), c: 0xc8ac88 }); }
+  for (const [x, z] of [[-g - 1.5, Z0 - 1], [g + 1.5, Z1 + 1], [X0 - 1, -6], [X1 + 1, 6]]) L.prop('lantern', x, 0, z, 2, { ry: R() * 6 });
+  mountains(L, [0xb89a76, 0xa88a68, 0xc8aa84], false);
+  L.spawn = { x: 0, y: 0, z: 82, yaw: 0 };
+  L.teamSpawns = [[[-40, 82], [-20, 84], [0, 82], [20, 84], [40, 82], [-60, 80], [60, 80], [0, 74]], [[-40, -82], [-20, -84], [0, -82], [20, -84], [40, -82], [-60, -80], [60, -80], [0, -74]]];
+  L.enemySpawns = L.teamSpawns[1].concat(L.teamSpawns[0], [[-80, -4], [-56, 30], [80, 30], [80, -30], [0, -20], [0, 20], [-20, 0], [20, 0]]);
+  L.pickups = [['health', 0, 0, -18], ['ammo', 0, 0, 18], ['health', -22, 0, 2], ['ammo', 22, 0, -2], ['health', -78, 0, 0], ['ammo', 74, 0, 20], ['health', 0, 0, -60], ['ammo', 0, 0, 60], ['health', -34, 4.5, -28], ['ammo', 34, 4.5, 28]];
+  L.barrels = [[-20, -8], [20, 8], [-26, 4], [6, -20], [-60, -10], [46, -4]];
+}
+
 const MAPS = [
-  {
-    name: 'MILLBROOK', desc: 'Countryside village, three lanes: river crossings, a climbable bell tower, two-storey houses, a barn with a hayloft.', tag: 'Large · all ranges · multi-floor', build: buildMillbrook,
-    theme: {
-      skyTop: 0x4a82c8, skyBottom: 0xf0d8b0, sunColor: 0xffe2b0, sunDir: [0.55, 0.42, 0.3], fog: 0xc8d0c8, fogNear: 60, fogFar: 220,
-      hemiSky: 0xdfeaff, hemiGround: 0x5a6a3a, hemi: 1.25, sun: 2.5, sunLight: 0xffe6c0, shadowSun: [0.55, 0.8, 0.3], farGround: 0x4a5a32, water: 0x4f7a78, clouds: 18, cloudColor: 0xfff0dc,
-      mats: {},
-    },
-  },
-  {
-    name: 'BAYOU', desc: 'Flooded bayou outpost at golden hour. Boardwalks, shacks and fallen logs.', tag: 'Close–mid range · verticality', build: buildSwamp,
-    theme: {
-      skyTop: 0x4f78a6, skyBottom: 0xf3c98e, sunColor: 0xffc98a, sunDir: [0.75, 0.22, 0.35], fog: 0xa8ad8c, fogNear: 28, fogFar: 150,
-      hemiSky: 0xe3ecff, hemiGround: 0x4a5a2a, hemi: 1.35, sun: 2.3, sunLight: 0xffd2a0, shadowSun: [0.7, 0.75, 0.35], farGround: 0x3d4a2a, water: 0x5a7a5a, clouds: 14, cloudColor: 0xffe2c0,
-      mats: { crate: { t: 'wood', local: true } },
-    },
-  },
-  {
-    name: 'MARKET TOWN', desc: 'Walled old-world market town. Timber houses, rooftops and a fountain plaza.', tag: 'Mid–long range · rooftops', build: buildKingdom,
-    theme: {
-      skyTop: 0x3a7ccc, skyBottom: 0xd2e4f4, sunColor: 0xfff2d0, sunDir: [-0.45, 0.75, 0.4], fog: 0xc8d8e6, fogNear: 55, fogFar: 230,
-      hemiSky: 0xdfeeff, hemiGround: 0x8a7a5a, hemi: 1.25, sun: 2.6, sunLight: 0xfff0d6, shadowSun: [-0.5, 1, 0.4], farGround: 0x6a7a4a, water: 0x5a8aa0, clouds: 22, cloudColor: 0xffffff,
-      mats: {},
-    },
-  },
-  {
-    name: 'FORTRESS', desc: 'Torch-lit fortress courtyard at dusk. Wall-walks, launch pads and a central keep.', tag: 'Fast · arena flow', build: buildKeep,
-    theme: {
-      skyTop: 0x0c1030, skyBottom: 0x7a4058, sunColor: 0xc8d4ff, sunDir: [-0.3, 0.42, -0.6], fog: 0x2e2640, fogNear: 26, fogFar: 120, stars: true,
-      hemiSky: 0x8a90c8, hemiGround: 0x3a2a2a, hemi: 1.5, sun: 1.25, sunLight: 0xb0bcff, shadowSun: [-0.3, 1, -0.5], farGround: 0x221c2a, clouds: 8, cloudColor: 0x6a5a7a,
-      mats: { castle: { c: 0xb8b0b0 }, stone: { c: 0xc8c0c0 } },
-    },
-  },
   {
     name: 'OLD QUARTER', desc: 'Tactical two-site town in the desert sun: long A, mid doors, B tunnels and a catwalk. Built for Team Deathmatch.', tag: 'Competitive · lanes & angles', build: buildOldQuarter,
     theme: {
@@ -1469,7 +1457,33 @@ const MAPS = [
       mats: {},
     },
   },
+  {
+    name: 'FREIGHT YARD', desc: 'Container port at sunset: three lanes through stacked containers, warehouses with catwalks, a docked cargo ship.', tag: 'Medium · close–mid · CoD-style lanes', build: buildFreight,
+    theme: {
+      skyTop: 0x557aa6, skyBottom: 0xf0c89a, sunColor: 0xffc890, sunDir: [0.65, 0.3, -0.45], fog: 0xbcbcb8, fogNear: 45, fogFar: 210,
+      hemiSky: 0xd8e2f0, hemiGround: 0x5a5650, hemi: 1.2, sun: 2.4, sunLight: 0xffd8b0, shadowSun: [0.65, 0.75, -0.45], farGround: 0x4a4a48, water: 0x2f5566, clouds: 14, cloudColor: 0xf0d8c0,
+      mats: {},
+    },
+  },
+  {
+    name: 'FIREBASE', desc: 'Huge desert outpost: HESCO compound with watchtowers, a shelled village, rocky ridges and burning armour.', tag: 'Huge · long range · Battlefield-style', build: buildFirebase,
+    theme: {
+      skyTop: 0x4a82c8, skyBottom: 0xf2dcb4, sunColor: 0xfff2d8, sunDir: [0.3, 0.75, 0.45], fog: 0xe4d4b8, fogNear: 70, fogFar: 280,
+      hemiSky: 0xe8f0ff, hemiGround: 0xa08a64, hemi: 1.25, sun: 2.8, sunLight: 0xfff0d8, shadowSun: [0.3, 1, 0.45], farGround: 0xcaac84, clouds: 8, cloudColor: 0xffffff,
+      mats: {},
+    },
+  },
+  {
+    name: 'MILLBROOK', desc: 'Countryside village, three lanes: river crossings, a climbable bell tower, two-storey houses, a barn with a hayloft.', tag: 'Large · all ranges · multi-floor', build: buildMillbrook,
+    theme: {
+      skyTop: 0x4a82c8, skyBottom: 0xf0d8b0, sunColor: 0xffe2b0, sunDir: [0.55, 0.42, 0.3], fog: 0xc8d0c8, fogNear: 60, fogFar: 220,
+      hemiSky: 0xdfeaff, hemiGround: 0x5a6a3a, hemi: 1.25, sun: 2.5, sunLight: 0xffe6c0, shadowSun: [0.55, 0.8, 0.3], farGround: 0x4a5a32, water: 0x4f7a78, clouds: 18, cloudColor: 0xfff0dc,
+      mats: {},
+    },
+  },
+
 ];
+if (!MAPS[settings.map]) settings.map = 0;
 
 // ============================================================ GEOMETRY MERGE
 const FACES = [
@@ -1575,6 +1589,7 @@ class Nav {
             eTo.push(m); eC.push((diag ? 1.414 : 1) * cs + Math.abs(dh) * 0.4);
           } else if (dh < -0.6 && dh > -4.6 && !diag) { // drop down a ledge (one way)
             if (this.blocked(cx + DI[d] * cs * 0.9, h1 + 0.47, cz + DJ[d] * cs * 0.9, R, HT - 0.45)) continue;
+            if (this.blocked(cx + DI[d] * cs, h2 + 0.47, cz + DJ[d] * cs, R * 0.9, h1 - h2 + HT - 0.6)) continue; // a body must fit all the way down
             { let floor = false; for (let q = cellStart[nk]; q < cellStart[nk + 1]; q++) if (q !== m && this.nodeH[q] > h2 + 0.3 && this.nodeH[q] < h1 + 0.6) floor = true; if (floor) continue; } // something solid between the ledge and the landing
             eTo.push(m); eC.push(2.5);
           }
@@ -2149,6 +2164,32 @@ const PREF_RANGE = { shotgun: [3, 9], smg: [5, 14], pistol: [6, 15], revolver: [
 const isAlly = (a, b) => !!(BD.teams && game.mode === 'botdm' && a && b && a.team >= 0 && a.team === b.team);
 const PLAYER_T = { get team() { return BD.teams ? 0 : -1; }, isPlayer: true, get pos() { return player.pos; }, get vel() { return player.vel; }, get h() { return player.h + 0.07; }, get dead() { return !player.alive; }, s: 1, name: 'You' };
 // noise: wakes bots up and pulls them toward fights
+// ---- footsteps & hearing: everyone's steps are positional, louder when sprinting, near-silent when sneaking, muffled through walls/floors
+const SURF = { planks: 'wood', wood: 'wood', crate: 'wood', logwall: 'wood', staves: 'wood', bark: 'wood', metal: 'metal', carpaint: 'metal', gold: 'metal', rune: 'metal', pad: 'metal', container: 'metal', grate: 'metal', tire: 'metal',
+  castle: 'stone', stone: 'stone', stonewall: 'stone', flag: 'stone', sandstone: 'stone', brickW: 'stone', cliff: 'stone', rock: 'stone', tiles: 'stone', slate: 'stone', roof: 'stone', hutwall: 'stone',
+  concrete: 'concrete', pavement: 'concrete', metalwall: 'metal', hull: 'metal', crane: 'metal', fuel: 'metal', forklift: 'metal', canvas: 'dirt', plasterA: 'concrete', plasterB: 'concrete', floor: 'concrete', hesco: 'sand', sandbag: 'sand', hay: 'dirt', thatch: 'dirt', leaf: 'grass' };
+const GROUNDSURF = { grassMud: 'grass', cobble: 'stone', asphalt: 'concrete', sand: 'sand', swampMud: 'dirt', mud: 'dirt' };
+function surfaceAt(x, y, z) {
+  if (!world || !world.nav) return 'concrete'; let best = null, by = -1e9;
+  for (const b of world.nav.bucket(x, z)) if (x >= b.x0 - 0.05 && x <= b.x1 + 0.05 && z >= b.z0 - 0.05 && z <= b.z1 + 0.05 && b.y1 <= y + 0.3 && b.y1 > y - 0.45 && b.y1 > by) { by = b.y1; best = b; }
+  if (best && best.y1 > 0.05) return SURF[best.m] || 'concrete';
+  for (const w of world.L.water || []) if (x > w[0] && x < w[2] && z > w[1] && z < w[3] && y < w[4] + 0.2) return 'water';
+  if (best && best.m !== 'floor') return SURF[best.m] || 'concrete';
+  return GROUNDSURF[world.L.ground] || 'dirt';
+}
+const GAIT = { sneak: { radius: 7, vol: 0.18, bots: 0 }, walk: { radius: 24, vol: 0.62, bots: 9 }, sprint: { radius: 38, vol: 1, bots: 16 } };
+function gaitOf(speed, crouched) { return crouched || speed < 4.0 ? 'sneak' : speed > 6.9 ? 'sprint' : 'walk'; }
+// called every frame for a bot / remote player; plays their footstep where you can hear it
+function footTick(ent, dt, speed, crouched, onGround, foe) {
+  if (!onGround || speed < 1.2) { ent.stepAcc = Math.min(ent.stepAcc || 0, 1.4); return; }
+  const gait = gaitOf(speed, crouched); ent.stepAcc = (ent.stepAcc || 0) + speed * dt; if (ent.stepAcc < (gait === 'sprint' ? 2.6 : 1.95)) return; ent.stepAcc = 0;
+  const G = GAIT[gait];
+  if (G.bots && ent.bot) noise(ent.pos, G.bots * 0.8, ent);
+  const dx = ent.pos.x - camera.position.x, dy = ent.pos.y + 0.1 - camera.position.y, dz = ent.pos.z - camera.position.z, d = Math.hypot(dx, dy, dz); if (d > G.radius) return;
+  let muffle = 0; if (!los(camera.position.x, camera.position.y, camera.position.z, ent.pos.x, ent.pos.y + 0.4, ent.pos.z)) muffle = 0.55; if (Math.abs(ent.pos.y - player.pos.y) > 2.4) muffle = Math.max(muffle, 0.7);
+  const fall = Math.pow(1 - d / G.radius, 1.6), sp = spatial(ent.pos);
+  sfx.step(surfaceAt(ent.pos.x, ent.pos.y, ent.pos.z), { pan: sp.pan, vol: G.vol * fall * (foe ? 1.1 : 0.7) * (1 - muffle * 0.45), muffle, gait });
+}
 function noise(p, radius, src) {
   for (const e of enemies) {
     if (e.dead || e === src || isAlly(src, e)) continue; const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z); if (d > radius) continue;
@@ -2299,6 +2340,7 @@ class Enemy {
     this.vel.x = damp(this.vel.x, mx * spd, k, dt); this.vel.z = damp(this.vel.z, mz * spd, k, dt);
     this.stepSmooth = 0; moveBody(this, dt);
     if (this.pos.y < -10) { this.hp = 0; this.die(false, true); return true; }
+    footTick(this, dt, Math.hypot(this.vel.x, this.vel.z), false, this.onGround, !isAlly(PLAYER_T, this));
     this.stuckT += dt;
     if (this.stuckT > 1.0) { const moved = Math.hypot(this.pos.x - this.lastPos.x, this.pos.z - this.lastPos.z); if (ml > 0.3 && spd > 0 && moved < 0.25) { this.repathT = 0; this.path = null; this.forceRepath = true; this.vel.x += rand(-3, 3); this.vel.z += rand(-3, 3); this.strafe *= -1; if (this.onGround && Math.random() < 0.4) this.vel.y = 6; } this.lastPos.copy(this.pos); this.stuckT = 0; }
     // ---- aim (human-like: limited turn speed, settling error, recoil)
@@ -2881,6 +2923,9 @@ addEventListener('keydown', e => {
   const typing = e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
   if (!typing && (game.state === 'play' || game.state === 'dying') && (e.ctrlKey || e.metaKey || e.altKey)) e.preventDefault(); // Ctrl-crouch + D/S/A etc. must not bookmark, save or select the page
   if (e.code === 'KeyB' && game.state === 'armory' && !e.repeat) { resumeGame(); return; }
+  if ((e.code === 'ControlLeft' || e.code === 'ControlRight') && !kbLocked && game.state === 'play' && !hud.ctrlWarned) { hud.ctrlWarned = true; showHint('C = CROUCH · Ctrl+W CLOSES THE TAB OUTSIDE FULLSCREEN', '#ff9b6b'); }
+  if (e.code === 'AltLeft' || e.code === 'AltRight') e.preventDefault();
+  if (e.code === 'Escape' && game.state === 'play' && !e.repeat) { if (document.pointerLockElement) document.exitPointerLock(); pauseGame(); return; } // with keyboard lock, Esc reaches the page
   if (keys[e.code]) return; keys[e.code] = true;
   if (game.state !== 'play') return;
   if (e.code === 'KeyB') openArmory();
@@ -2888,15 +2933,15 @@ addEventListener('keydown', e => {
   if (e.code === 'Digit1') switchTo(carry[0]);
   if (e.code === 'Digit2') switchTo(carry[1]);
   if (e.code === 'Digit3') switchTo(carry[2]);
-  if (e.code === 'Digit4') throwGrenade();
   if (e.code === 'KeyV') quickMelee();
   if (e.code === 'KeyT') toggleView();
   if (e.code === 'KeyQ') switchTo(wst.cur === carry[0] ? carry[1] : carry[0]);
-  if (e.code === 'KeyG') throwGrenade();
+  if (e.code === 'KeyG' && game.state === 'play') nadeQuickStart();
+  if (e.code === 'Digit4' && game.state === 'play') { if (ng.on) switchTo(wst.cur); else nadeEquip(false); }
   if (e.code === 'KeyE' || e.code === 'KeyF') useAbility();
   if (e.code === 'Space') player.jumpBuf = 0.14;
 });
-addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'KeyG' && ng.quick) nadeRelease(); });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseL = mouseR = false; });
 renderer.domElement.addEventListener('mousedown', e => {
   if (game.state === 'play' && !locked) { requestLock(); return; }
@@ -2905,6 +2950,9 @@ renderer.domElement.addEventListener('mousedown', e => {
 });
 addEventListener('mouseup', e => { if (e.button === 0) mouseL = mL = false; if (e.button === 2) mouseR = mR = false; });
 addEventListener('contextmenu', e => e.preventDefault());
+// in fullscreen the Keyboard Lock API lets the game own Ctrl+W/T/N etc. (Chrome / Edge); elsewhere Ctrl is not used for crouch
+function lockKeys() { if (document.fullscreenElement && navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock().then(() => { kbLocked = true; }).catch(() => { kbLocked = false; }); }
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) { kbLocked = false; try { navigator.keyboard && navigator.keyboard.unlock(); } catch (e) {} } });
 addEventListener('beforeunload', e => { if (game.state === 'play' || game.state === 'paused' || game.state === 'dying' || MP.active) { e.preventDefault(); e.returnValue = ''; } }); // Ctrl+W can't be blocked: ask before closing mid-match
 addEventListener('wheel', e => { if (game.state !== 'play') return; const k = carry.indexOf(wst.cur); switchTo(carry[(k + (e.deltaY > 0 ? 1 : 2)) % 3]); }, { passive: true });
 addEventListener('mousemove', e => {
@@ -2915,7 +2963,11 @@ addEventListener('mousemove', e => {
   player.yaw -= dx * s; player.pitch = clamp(player.pitch - dy * s * (settings.invertY ? -1 : 1), -1.5, 1.5);
   mdx += dx; mdy += dy;
 });
+let kbLocked = false;
 function requestLock() {
+  if (settings.fullscreen !== false && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+    try { document.documentElement.requestFullscreen({ navigationUI: 'hide' }).then(lockKeys).catch(() => {}); } catch (e) {}
+  } else lockKeys();
   try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => { $('lockmsg').style.display = 'block'; }); } catch (e) { $('lockmsg').style.display = 'block'; }
 }
 document.addEventListener('pointerlockchange', () => {
@@ -2989,6 +3041,7 @@ function updateSunShadow() {
   sun.target.position.set(cx, 0, cz); sun.position.set(cx, 0, cz).addScaledVector(world.sunDir, 120); sun.target.updateMatrixWorld();
 }
 function resetRun() {
+  ng.on = false; ng.cook = -1; ng.throwT = 0;
   for (const e of enemies) { world.group.remove(e.group); if (e.laser) world.group.remove(e.laser); }
   enemies = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   for (const p of pickups) if (p.temp) world.group.remove(p.mesh);
@@ -3107,6 +3160,7 @@ function meleeHit(w) {
   else { const h = raycast(eye, _f, w.reach, false); if (h.box && h.t < w.reach) { sfx.play(w.id === 'pan' ? 'clang' : 'impact'); sparks.burst(eye.x + _f.x * h.t, eye.y + _f.y * h.t, eye.z + _f.z * h.t, 6, 3, 1, 0.8, 0.5, 0.25, 1); spring.v[1] -= 5; } }
 }
 function switchTo(i) {
+  if (ng.on && ng.cook < 0 && ng.throwT <= 0) { nadeExit(); if (i === wst.cur) { sfx.play('switch'); return; } } else if (ng.on) return;
   if (i === wst.cur || !carry.includes(i) || !player.alive) return;
   wst.last = wst.cur; wst.cur = i; wst.switchT = WEAPONS[i].swap; wst.reloading = false; wst.reloadT = 0; wst.consec = 0;
   vmModels.forEach((m, k) => { m.g.visible = k === i; m.flash.visible = false; });
@@ -3216,6 +3270,7 @@ function fire() {
 }
 function updateWeapon(dt) {
   const w = WEAPONS[wst.cur], s = inv[wst.cur];
+  if (ng.on) { if (wst.switchT > 0) wst.switchT -= dt; wst.ads = damp(wst.ads, 0, 14, dt); updateNade(dt); return; }
   wst.sinceShot += dt;
   if (wst.switchT > 0) wst.switchT -= dt;
   wst.fireCD = Math.max(wst.fireCD - dt, w.auto ? -dt : -1);
@@ -3244,15 +3299,61 @@ function updateWeapon(dt) {
   }
   if (!mouseL) wst.held = false;
 }
-function throwGrenade() {
-  if (player.grenades <= 0 || player.gcd > 0 || !player.alive) return;
-  player.grenades--; player.gcd = 0.9; aimBasis();
-  const pos = camera.position.clone().addScaledVector(_f, 0.5).addScaledVector(_r, 0.15);
-  const vel = _f.clone().multiplyScalar(16).add(new V3(0, 3.5, 0)).addScaledVector(player.vel, 0.6);
+// ---- CoD-style frag grenades: [4] equips (LMB throw / RMB underhand), [G] / RB = hold to cook, release to throw
+const NADE_FUSE = 3.5;
+const ng = { on: false, cook: -1, under: false, quick: false, throwT: 0, from: -1, prevL: false, prevR: false, raise: 0 };
+function throwGrenade(fuse = 2.0, under = false) {
+  if (player.grenades <= 0 || !player.alive) return;
+  player.grenades--; player.gcd = 0.5; aimBasis();
+  const pos = camera.position.clone().addScaledVector(_f, 0.5).addScaledVector(_r, 0.15).add(new V3(0, under ? -0.4 : 0, 0));
+  const vel = under ? _f.clone().multiplyScalar(8).add(new V3(0, 2.6, 0)).addScaledVector(player.vel, 0.5) : _f.clone().multiplyScalar(17).add(new V3(0, 3.5, 0)).addScaledVector(player.vel, 0.6);
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), MAT({ color: 0x3b4a2a, emissive: 0x220000 }));
-  mesh.position.copy(pos); fx.add(mesh); grenades.push({ pos, vel, mesh, t: 2.0, owner: MP.myId });
-  if (MP.active) netSend({ t: 'nade', p: v3a(pos), v: v3a(vel) });
-  sfx.play('throw'); vm.kick = 0.6;
+  mesh.position.copy(pos); fx.add(mesh); grenades.push({ pos, vel, mesh, t: fuse, owner: MP.myId });
+  if (MP.active) netSend({ t: 'nade', p: v3a(pos), v: v3a(vel), f: Math.round(fuse * 100) / 100 });
+  sfx.play('throw'); vm.kick = 0.6; noise(player.pos, 6, PLAYER_T);
+}
+function nadeEquip(quick) {
+  if (!player.alive || player.grenades <= 0 || ng.throwT > 0) { if (player.grenades <= 0) showHint('NO GRENADES', '#ff6b5a'); return false; }
+  if (!ng.on) { ng.on = true; ng.from = wst.cur; ng.raise = 0; wst.reloading = false; wst.ads = 0; sfx.play('switch'); }
+  ng.quick = !!quick; return true;
+}
+function nadeExit() { if (!ng.on) return; ng.on = false; ng.cook = -1; ng.quick = false; wst.switchT = WEAPONS[wst.cur].swap * 0.6; }
+function nadePull(under) { if (!ng.on || ng.cook >= 0 || ng.throwT > 0 || player.grenades <= 0) return; ng.cook = 0; ng.under = !!under; sfx.play('pin'); }
+function nadeRelease() {
+  if (!ng.on || ng.cook < 0) return; const fuse = Math.max(0.05, NADE_FUSE - ng.cook); ng.cook = -1;
+  throwGrenade(fuse, ng.under); ng.throwT = 0.45;
+}
+function nadeQuickStart() { if (nadeEquip(true)) nadePull(false); }
+function updateNade(dt) {
+  ng.raise = Math.min(1, ng.raise + dt * 5);
+  if (ng.throwT > 0) { ng.throwT -= dt; if (ng.throwT <= 0) { if (ng.quick || player.grenades <= 0) nadeExit(); } return; }
+  if (!player.alive) { nadeExit(); return; }
+  const L = mouseL, R = mouseR;
+  if (!ng.quick && ng.raise > 0.6) { if (L && !ng.prevL) nadePull(false); else if (R && !ng.prevR) nadePull(true); if (ng.cook >= 0 && ((!ng.under && !L) || (ng.under && !R))) nadeRelease(); }
+  ng.prevL = L; ng.prevR = R;
+  if (ng.cook >= 0) {
+    ng.cook += dt; const left = NADE_FUSE - ng.cook;
+    $('hint').textContent = 'COOKING · ' + Math.max(0, left).toFixed(1) + 's'; $('hint').style.color = left < 1.2 ? '#ff5a4a' : '#ffcf6b'; hud.hintT = 0.15;
+    if (Math.floor(ng.cook * 2) !== Math.floor((ng.cook - dt) * 2)) sfx.play('tick');
+    if (left <= 0) { ng.cook = -1; player.grenades--; explosion(player.pos.clone().add(new V3(0, 1, 0)), 6.5, 160, MP.active ? MP.myId : 'player'); damagePlayer(500, null, null); nadeExit(); }
+  }
+}
+// first-person grenade in hand
+const nadeVM = new THREE.Group(); { const body = new THREE.Mesh(new THREE.SphereGeometry(0.034, 14, 10), MAT({ color: 0x3e4a30, roughness: 0.6 })); body.scale.y = 1.15; nadeVM.add(body);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.022, 10), PHONG({ color: 0x6a6a60, specular: 0x666666, shininess: 50 })); top.position.y = 0.042; nadeVM.add(top);
+  const spoon = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.06, 0.014), PHONG({ color: 0x8a8a80, specular: 0x777777, shininess: 60 })); spoon.position.set(0.026, 0.02, 0); spoon.rotation.z = -0.25; nadeVM.add(spoon);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.012, 0.0022, 6, 14), PHONG({ color: 0xb0b0a8, specular: 0xffffff, shininess: 80 })); ring.position.set(-0.016, 0.05, 0); ring.rotation.y = Math.PI / 2; nadeVM.add(ring); nadeVM.userData.ring = ring;
+  const hand = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.06, 0.09), gloveMat); hand.position.set(0.012, -0.03, 0.02); nadeVM.add(hand);
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.042, 0.42, 10), sleeveMat); arm.position.set(0.05, -0.11, 0.2); arm.rotation.x = 1.15; nadeVM.add(arm);
+  nadeVM.visible = false; vmScene.add(nadeVM); }
+function updateNadeVM(dt) {
+  nadeVM.visible = ng.on && player.alive; vmRoot.visible = !ng.on; if (!ng.on) return;
+  const P = player, bob = Math.sin(P.bob || 0) * 0.01, t = ng.throwT > 0 ? 1 - ng.throwT / 0.45 : 0, cook = ng.cook >= 0 ? 1 : 0, low = 1 - ng.raise;
+  let x = 0.16, y = -0.15 - low * 0.25 + bob, z = -0.36, rx = 0, rz = 0;
+  if (cook) { if (ng.under) { y -= 0.08; z += 0.05; rx = 0.4; } else { y += 0.06; z += 0.12; x += 0.03; rx = -0.6; } }
+  if (t > 0) { const k = Math.sin(Math.min(1, t * 1.6) * Math.PI); z -= k * 0.25; y += ng.under ? -0.05 : k * 0.08; rx += k * 0.9; if (t > 0.3) y -= (t - 0.3) * 0.6; }
+  nadeVM.position.set(x, y, z); nadeVM.rotation.set(rx, 0.3, rz); nadeVM.userData.ring.visible = !cook && t <= 0;
+  nadeVM.children[0].visible = !(t > 0.35); nadeVM.children[1].visible = nadeVM.children[2].visible = !(t > 0.35);
 }
 function pointInBox(x, y, z, r) { for (const b of world.boxes) if (!b.dead && x + r > b.x0 && x - r < b.x1 && y + r > b.y0 && y - r < b.y1 && z + r > b.z0 && z - r < b.z1) return true; return false; }
 function updateGrenades(dt) {
@@ -3313,7 +3414,7 @@ function updatePlayer(dt) {
   if (gp.on && (gp.mx || gp.my)) { fwd = -gp.my; str = gp.mx; }
   const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
   let wx = -sy * fwd + cy * str, wz = -cy * fwd - sy * str; const wmag = Math.min(1, Math.hypot(wx, wz)); const wl = Math.hypot(wx, wz); if (wl > 0) { wx /= wl; wz /= wl; }
-  const crouchKey = !!(keys.KeyC || keys.ControlLeft);
+  const crouchKey = !!(keys.KeyC || (kbLocked && keys.ControlLeft));
   const speed = Math.hypot(P.vel.x, P.vel.z);
   const aimHeld = settings.adsToggle ? wst.adsOn : mouseR;
   P.sprinting = !!(keys.ShiftLeft || keys.ShiftRight) && fwd > 0 && !mouseL && !aimHeld && wst.ads < 0.3 && !crouchKey && !P.sliding;
@@ -3333,7 +3434,7 @@ function updatePlayer(dt) {
   P.h = lerp(1.75, 1.1, P.crouch);
   // move
   let max = (P.crouch > 0.5 ? 3.0 : P.sprinting ? 8.6 : 5.8) * (WEAPONS[wst.cur].speedMul || 1);
-  max *= lerp(1, 0.62, wst.ads) * cls().speed * (P.stimT > 0 ? 1.3 : 1);
+  max *= lerp(1, 0.62, wst.ads) * cls().speed * (P.stimT > 0 ? 1.3 : 1) * (keys.AltLeft && !P.sprinting ? 0.6 : 1); // Alt = slow, quiet walk
   if (P.onGround) {
     const f = P.sliding ? 0.8 : 7.5;
     if (speed > 0) { const drop = (P.sliding ? speed : Math.max(speed, 2.5)) * f * dt; const ns = Math.max(speed - drop, 0) / speed; P.vel.x *= ns; P.vel.z *= ns; }
@@ -3354,10 +3455,10 @@ function updatePlayer(dt) {
   }
   const vyBefore = P.vel.y, wasGround = P.onGround;
   moveBody(P, dt);
-  if (!wasGround && P.onGround && vyBefore < -5) { P.landKick = Math.min(-vyBefore * 0.008, 0.12); sfx.play('land', { vol: clamp(-vyBefore / 14, 0.3, 1) }); }
+  if (!wasGround && P.onGround && vyBefore < -5) { P.landKick = Math.min(-vyBefore * 0.008, 0.12); sfx.play('land', { vol: clamp(-vyBefore / 14, 0.3, 1) }); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: clamp(-vyBefore / 12, 0.3, 1), gait: 'sprint', near: true }); if (-vyBefore > 6) noise(P.pos, 12, PLAYER_T); }
   if (P.pos.y < -15) { const s = world.L.spawn; P.pos.set(s.x, s.y + 0.1, s.z); P.vel.set(0, 0, 0); }
   // footsteps
-  if (P.onGround && !P.sliding && speed > 2) { P.stepAcc += speed * dt; if (P.stepAcc > (P.sprinting ? 2.7 : 2.1)) { P.stepAcc = 0; if (P.crouch < 0.5) noise(P.pos, P.sprinting ? 14 : 7, PLAYER_T); sfx.play('step', { vol: P.crouch > 0.5 ? 0.3 : P.sprinting ? 0.9 : 0.6 }); } }
+  if (P.onGround && !P.sliding && speed > 1.2) { P.stepAcc += speed * dt; if (P.stepAcc > (P.sprinting ? 2.7 : 2.1)) { P.stepAcc = 0; const gait = gaitOf(speed, P.crouch > 0.5); P.gait = gait; if (GAIT[gait].bots) noise(P.pos, GAIT[gait].bots, PLAYER_T); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: gait === 'sneak' ? 0.22 : gait === 'sprint' ? 0.75 : 0.5, gait, near: true }); } } else if (speed < 1.2) P.gait = 'still';
 }
 
 // ============================================================ VIEWMODEL & CAMERA
@@ -3422,7 +3523,7 @@ function updateCamera(dt) {
   vm.flashT -= dt; if (vm.flashT <= 0) m.flash.visible = false;
   muzzleLight.intensity = Math.max(0, muzzleLight.intensity - dt * 600);
   m.g.visible = !(w.scope && a > 0.92);
-  vmCam.fov = 60;
+  vmCam.fov = 60; updateNadeVM(dt);
 }
 
 // ============================================================ HUD
@@ -3836,7 +3937,7 @@ function handleGame(d) {
     case 'nade': {
       const p = arrV3(d.p), v = arrV3(d.v); if (!p || !v) break;
       const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), MAT({ color: 0x3b4a2a, emissive: 0x220000 }));
-      mesh.position.copy(p); fx.add(mesh); grenades.push({ pos: p, vel: v, mesh, t: d.brew ? 1.3 : 2.0, owner: d.id, brew: !!d.brew });
+      mesh.position.copy(p); fx.add(mesh); grenades.push({ pos: p, vel: v, mesh, t: d.brew ? 1.3 : d.f !== undefined ? clamp(num(d.f), 0.05, NADE_FUSE) : 2.0, owner: d.id, brew: !!d.brew });
       break;
     }
   }
@@ -3913,6 +4014,7 @@ class Remote {
     this.group.visible = alive || this.deadT < 2.5;
     if (this.dead) { this.deadT += dt; this.group.rotation.x = -this.fallDir * Math.min(1, this.deadT / 0.5) * 1.45; }
     const sp = Math.hypot(this.pos.x - px, this.pos.z - pz) / Math.max(dt, 1e-3);
+    this.spS = lerp(this.spS || 0, Math.min(sp, 10), Math.min(1, dt * 8)); if (alive) footTick(this, dt, this.spS, b.h < 1.45, Math.abs(this.pos.y - (this.lastY === undefined ? this.pos.y : this.lastY)) < 0.08 || this.spS > 0, true); this.lastY = this.pos.y;
     if (b.w && b.w !== this.weaponId && widx(b.w) >= 0) setCharWeapon(this, b.w);
     animChar(this, dt, Math.min(sp, 9), b.pitch || 0);
     this.inner.scale.y = this.s * clamp(this.h / (1.82 * this.s), 0.55, 1); flapWings(this, game.time);
@@ -3941,7 +4043,7 @@ function mpSpawnPointOld() {
   }
   return best;
 }
-function mpRespawn() {
+function mpRespawn() { ng.on = false; ng.cook = -1; ng.throwT = 0;
   const C = cls(), [x, y, z] = mpSpawnPoint();
   Object.assign(player, { maxHp: C.hp, hp: C.hp, regenCap: C.hp, alive: true, grenades: C.nades, shield: 0, shieldT: 0, stimT: 0, crouch: 0, sliding: false, h: 1.75, onGround: false, stepSmooth: 0, pitch: 0, protT: game.time + 1.5, lastDmgT: 99 });
   player.pos.set(x, y, z); player.vel.set(0, 0, 0); player.yaw = Math.atan2(x, z); // face the map centre
@@ -4155,7 +4257,7 @@ function pollGamepad(dt) {
     if (gp.slideStand && gp.crouch && !player.sliding && gp.prevSliding) { gp.crouch = false; gp.slideStand = false; } gp.prevSliding = player.sliding;
     if (gp.crouch !== gp.crouchPrev) { keys.KeyC = gp.crouch; gp.crouchPrev = gp.crouch; }
     if (pr(2)) startReload(); if (pr(3)) switchTo(wst.cur === carry[0] ? carry[1] : carry[0]);
-    if (pr(5)) throwGrenade(); if (pr(4)) useAbility(); if (pr(11)) quickMelee();
+    if (pr(5)) nadeQuickStart(); if (rl(5) && ng.quick) nadeRelease(); if (pr(4)) useAbility(); if (pr(11)) quickMelee();
     if (pr(10)) { gp.sprint = !gp.sprint; gp.crouch = false; }
     if (gp.my > -0.35 || gp.ads || gp.fire) gp.sprint = false; // releasing the stick, aiming or firing ends a sprint
     if (gp.sprint) keys.ShiftLeft = true; else if (gp.wasSprint) keys.ShiftLeft = false; gp.wasSprint = gp.sprint;
@@ -4347,11 +4449,11 @@ resize(); loadMap(settings.map); world.shadows = QUALITY[settings.quality].shado
 initUI(); initMpUI(); initDmgNumbers(); initPreview(); applyMapThumbs();
 { let has = null; try { has = localStorage.getItem('bp_mthumb_' + MAPS[settings.map].name); } catch (e) {} if (!has) setTimeout(() => { mapThumbPending = true; }, 2500); }
 addEventListener('bp-assets', () => { makeThumbs(); PV.mode = 'char'; buildPreview(); });
-for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['aimAssist', 'aimAssist', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
+for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['aimAssist', 'aimAssist', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
   const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); };
 }
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();

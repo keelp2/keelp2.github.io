@@ -257,6 +257,7 @@ img.thumb.tall{height:110px;object-fit:cover}
           <label class="set"><div>Crosshair colour</div><select id="xcolor"><option value="#ffffff">White</option><option value="#5dff9a">Green</option><option value="#ffe14d">Yellow</option><option value="#ff4fd8">Pink</option><option value="#4fd8ff">Cyan</option></select></label>
           <label class="set"><div>Aim down sights</div><select id="adsToggle"><option value="0">Hold</option><option value="1">Toggle</option></select></label>
           <label class="set"><div>Invert look Y</div><select id="invertY"><option value="0">Off</option><option value="1">On</option></select></label>
+          <label class="set"><div>Fullscreen on deploy</div><select id="fullscreen"><option value="1">On — locks Ctrl+W etc. (recommended)</option><option value="0">Off</option></select></label>
           <label class="set"><div>Controller aim assist</div><select id="aimAssist"><option value="1">On</option><option value="0">Off</option></select></label>
           <label class="set"><div>Controller vibration</div><select id="rumble"><option value="1">On</option><option value="0">Off</option></select></label>
           <label class="set"><div>Bot match mode</div><select id="botMode"><option value="ffa">Free-for-all</option><option value="tdm">Team deathmatch (you + bots vs bots)</option></select></label>
@@ -270,8 +271,8 @@ img.thumb.tall{height:110px;object-fit:cover}
         <div class="btnrow2"><button class="big" id="botbtn">BOT MATCH</button><button class="big" id="mpbtn">MULTIPLAYER</button></div>
         <div id="best"></div>
         <div class="controls">
-          <b>Keyboard &amp; mouse</b><br><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>LMB</kbd> fire · <kbd>RMB</kbd> aim · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump · <kbd>C</kbd> crouch / slide · <kbd>R</kbd> reload · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> weapons · <kbd>V</kbd> quick melee · <kbd>G</kbd> grenade · <kbd>E</kbd> ability · <kbd>T</kbd> 1st/3rd person · hold <kbd>Tab</kbd> inventory/scores · <kbd>B</kbd> armory · <kbd>Esc</kbd> pause<br>
-          <b>Controller</b> (Xbox / PlayStation)<br>CoD-style layout · <kbd>RT</kbd> fire · <kbd>LT</kbd> aim (snaps to targets) · <kbd>L3</kbd> sprint · <kbd>R3</kbd> melee · <kbd>A</kbd> jump · <kbd>B</kbd> crouch (slide while sprinting) · <kbd>X</kbd> reload · <kbd>Y</kbd> swap · <kbd>RB</kbd> grenade · <kbd>LB</kbd> ability · D-pad <kbd>◀▶</kbd> weapons · <kbd>▲</kbd> 1st/3rd person · <kbd>▼</kbd> armory · hold <kbd>View</kbd> scores · <kbd>Menu</kbd> pause<br>Menus: D-pad/stick to move · <kbd>A</kbd> select · <kbd>B</kbd> back · <kbd>◀▶</kbd> change settings · <kbd>Menu</kbd> deploy
+          <b>Keyboard &amp; mouse</b><br><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>LMB</kbd> fire · <kbd>RMB</kbd> aim · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump · <kbd>C</kbd> crouch / slide · <kbd>R</kbd> reload · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> weapons · <kbd>V</kbd> quick melee · <kbd>4</kbd> grenade (LMB throw · RMB lob, hold to cook) · hold <kbd>G</kbd> cook &amp; throw · <kbd>Alt</kbd> quiet walk · <kbd>E</kbd> ability · <kbd>T</kbd> 1st/3rd person · hold <kbd>Tab</kbd> inventory/scores · <kbd>B</kbd> armory · <kbd>Esc</kbd> pause<br>
+          <b>Controller</b> (Xbox / PlayStation)<br>CoD-style layout · <kbd>RT</kbd> fire · <kbd>LT</kbd> aim (snaps to targets) · <kbd>L3</kbd> sprint · <kbd>R3</kbd> melee · <kbd>A</kbd> jump · <kbd>B</kbd> crouch (slide while sprinting) · <kbd>X</kbd> reload · <kbd>Y</kbd> swap · hold <kbd>RB</kbd> cook grenade, release to throw · <kbd>LB</kbd> ability · D-pad <kbd>◀▶</kbd> weapons · <kbd>▲</kbd> 1st/3rd person · <kbd>▼</kbd> armory · hold <kbd>View</kbd> scores · <kbd>Menu</kbd> pause<br>Menus: D-pad/stick to move · <kbd>A</kbd> select · <kbd>B</kbd> back · <kbd>◀▶</kbd> change settings · <kbd>Menu</kbd> deploy
         </div>
       </div>
     </div>
@@ -357,7 +358,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611182330"></script>
+<script src="game.js?v=202611190215"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
