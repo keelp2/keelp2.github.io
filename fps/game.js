@@ -1028,6 +1028,7 @@ function buildScenery(L, th, group) {
 const windU = { value: 0 };
 // ground, water, glows, fireflies, clouds
 function buildEnvironment(L, th, group, anim) {
+  buildBackdrop(L, th, group);
   const [x0, z0, x1, z1] = L.bounds;
   // detailed play-area ground with vertex-colour variation + soft darkening near walls
   const W = x1 - x0 + 8, D = z1 - z0 + 8, seg = TERR ? Math.min(220, Math.ceil(Math.max(x1 - x0, z1 - z0) / 0.8)) : L.big ? 128 : 64, gg = new THREE.PlaneGeometry(W, D, seg, seg); gg.rotateX(-Math.PI / 2); gg.translate((x0 + x1) / 2, 0, (z0 + z1) / 2);
@@ -1043,7 +1044,7 @@ function buildEnvironment(L, th, group, anim) {
   if (gm.map) { gm.map.anisotropy = Math.min(4, maxAniso); }
   const ground = new THREE.Mesh(gg, gm); ground.receiveShadow = true; group.add(ground);
   const far = new THREE.Mesh(new THREE.PlaneGeometry(900, 900).rotateX(-Math.PI / 2), MAT({ color: th.farGround || 0x4a5a3a }));
-  far.position.y = -0.05; group.add(far);
+  far.position.y = -0.05; if (!L.backdrop) group.add(far); // the layered backdrop brings its own floor
   // water
   if (L.water.length) {
     const wt = getTex('water').clone(); wt.needsUpdate = true; wt.wrapS = wt.wrapT = THREE.RepeatWrapping;
@@ -1106,9 +1107,44 @@ function updateEnvironment(dt) {
     else p.setXYZ(i, s[0] + Math.sin(t * s[4] + s[3]) * 1.2, s[1] + Math.sin(t * 1.3 * s[4] + s[3] * 2) * 0.4, s[2] + Math.cos(t * 0.8 * s[4] + s[3]) * 1.2); });
     p.needsUpdate = true; A.flies.geo.attributes.position.needsUpdate = true; }
 }
-function mountains(L, colors, snow) {
-  for (let i = 0; i < 26; i++) { const a = i / 26 * 6.28 + rand(-0.1, 0.1), r = rand(190, 260), h = rand(35, 85);
-    L.props.push({ k: 'mountain', x: Math.cos(a) * r, y: -2, z: Math.sin(a) * r, s: 1, ry: 0, r: rand(45, 80), h, c: pick(colors), snow: snow && h > 60 }); }
+function mountains(L, colors, snow) { L.backdrop = L.backdrop || (snow ? 'alpine' : 'desert'); } // replaced by layered ridgelines (buildBackdrop)
+// layered panoramic backdrop: near foothills in the map's own ground colour, mid ranges, far peaks dissolving into the sky haze
+const BACKDROPS = {
+  desert: [{ d0: 0, d1: 340, h: [0, 0], c: [0xb08a5a, 0xbf9a68], hz: 0.1, f: 1, floor: true }, { d0: 0, d1: 100, h: [3, 12], c: [0xb48d5c, 0xcca674], hz: 0.04, f: 7, near: true }, { d0: 80, d1: 200, h: [22, 56], c: [0x9a6c44, 0xb8885a], hz: 0.16, f: 5, mesa: 0.72 }, { d0: 220, d1: 320, h: [55, 110], c: [0x957a68, 0xb59e88], hz: 0.36, f: 4 }],
+  dusty: [{ d0: 0, d1: 340, h: [0, 0], c: [0xa88a64, 0xb89a74], hz: 0.1, f: 1, floor: true }, { d0: 0, d1: 100, h: [3, 11], c: [0xae9068, 0xc4a47e], hz: 0.08, f: 8, near: true }, { d0: 80, d1: 210, h: [18, 46], c: [0x96765a, 0xb09272], hz: 0.26, f: 6, mesa: 0.8 }, { d0: 230, d1: 320, h: [45, 95], c: [0x948472, 0xb0a08e], hz: 0.46, f: 4 }],
+  alpine: [{ d0: 0, d1: 340, h: [0, 0], c: [0x40602c, 0x50703a], hz: 0.1, f: 1, floor: true }, { d0: 0, d1: 110, h: [5, 18], c: [0x3a5a28, 0x587a3a], hz: 0.1, f: 8, near: true, forest: true }, { d0: 90, d1: 210, h: [28, 62], c: [0x46623e, 0x647c58], hz: 0.2, f: 6 }, { d0: 230, d1: 330, h: [80, 150], c: [0x546c8a, 0x7a90ae], hz: 0.3, f: 5, snow: 0.64 }],
+  urban: [{ d0: 0, d1: 340, h: [0, 0], c: [0x5c5e5a, 0x6a6c66], hz: 0.1, f: 1, floor: true }, { d0: 110, d1: 230, h: [16, 40], c: [0x62665c, 0x7a7e72], hz: 0.32, f: 6 }, { d0: 240, d1: 330, h: [40, 85], c: [0x6e7076, 0x8c8e94], hz: 0.5, f: 4 }],
+  coast: [{ d0: 0, d1: 340, h: [0, 0], c: [0x3e4a54, 0x4a5660], hz: 0.1, f: 1, floor: true }, { d0: 190, d1: 290, h: [20, 60], c: [0x56504e, 0x726860], hz: 0.4, f: 5 }, { d0: 270, d1: 335, h: [50, 110], c: [0x66646e, 0x86808a], hz: 0.56, f: 3 }],
+};
+function buildBackdrop(L, th, group) {
+  const preset = typeof L.backdrop === 'string' ? BACKDROPS[L.backdrop] : L.backdrop; if (!preset) return;
+  const [x0, z0, x1, z1] = L.bounds, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, hw = (x1 - x0) / 2 + 1, hd = (z1 - z0) / 2 + 1, haze = new THREE.Color(th.fog), R0 = seeded(hashStr(L.backdropSeed || String(hw * 7 + hd)));
+  const edge = a => Math.min(hw / Math.max(1e-3, Math.abs(Math.cos(a))), hd / Math.max(1e-3, Math.abs(Math.sin(a)))); // distance to the map's rectangular edge
+  const sun = new V3(...th.sunDir).normalize();
+  preset.forEach((Ly, li) => {
+    const sa = 360, sr = Ly.near ? 12 : 8, ph = [...Array(6)].map(() => R0() * 6.28), am = [1, 0.55, 0.3, 0.18, 0.1, 0.06];
+    const prof = a => { let n = 0, t = 0; for (let k = 0; k < 6; k++) { n += am[k] * Math.sin(a * Math.round(Ly.f * (k + 1) * (1 + k * 0.37)) + ph[k]); t += am[k]; } /* whole-number frequencies: no seam where the ring wraps */ n = 0.5 + 0.5 * n / t; return Math.pow(n, 1.6); };
+    const pos = [], base = [], hzv = [], idx = [], lo = new THREE.Color(Ly.c[0]), hi = new THREE.Color(Ly.c[1]), snow = new THREE.Color(0xf2f5fa);
+    for (let ia = 0; ia <= sa; ia++) { const a = ia / sa * Math.PI * 2, H = lerp(Ly.h[0], Ly.h[1], prof(a)), e0 = edge(a), dirx = Math.cos(a), dirz = Math.sin(a);
+      for (let ir = 0; ir <= sr; ir++) { const t = ir / sr, r = e0 + lerp(Ly.near ? -1 : Ly.d0, Ly.d1, t) + (Ly.near ? 0 : Math.sin(a * 23 + li) * 2);
+        let y = H * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.12)), 0.85) * (0.92 + 0.08 * Math.sin(a * 61 + t * 9 + li * 3));
+        if (Ly.mesa) y = Math.min(y, H * Ly.mesa) / Ly.mesa * (Ly.mesa + (1 - Ly.mesa) * 0.25); // flat-topped mesas
+        if (Ly.near) y = y * smooth(0.05, 0.4, t) + 0.3; // rises from the map's own ground right at the boundary
+        if (Ly.floor) y = 1.96; // ends up just under ground level
+        pos.push(cx + dirx * r, y - (Ly.near ? 0 : 2), cz + dirz * r);
+        const k = clamp(y / Ly.h[1], 0, 1), c = lo.clone().lerp(hi, k * 0.85 + 0.15 * Math.sin(a * 37 + ir) ** 2);
+        if (Ly.forest) c.multiplyScalar(0.84 + 0.22 * (0.5 + 0.5 * Math.sin(a * 140 + ir * 1.7)));
+        if (Ly.snow && y > Ly.h[1] * Ly.snow) c.lerp(snow, smooth(Ly.h[1] * Ly.snow, Ly.h[1] * (Ly.snow + 0.1), y));
+        if (Ly.mesa || L.backdrop === 'desert' || L.backdrop === 'dusty') c.multiplyScalar(0.93 + 0.07 * Math.sin(y * 0.9 + a * 3)); // rock strata
+        base.push(c); hzv.push(Ly.floor ? lerp(Ly.hz, 0.5, Math.pow(t, 1.3)) : clamp(Ly.hz + t * 0.1, 0, 0.92)); } }
+    for (let ia = 0; ia < sa; ia++) for (let ir = 0; ir < sr; ir++) { const a = ia * (sr + 1) + ir, b = a + sr + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); } // counter-clockwise from above: faces up/inward
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    const N = g.attributes.normal, col = new Float32Array(base.length * 3), nv = new V3();
+    for (let i = 0; i < base.length; i++) { nv.fromBufferAttribute(N, i); const sh = 0.56 + 0.62 * Math.max(0, nv.dot(sun)) + 0.1 * nv.y; // soft baked sun: no black backlit faces
+      const c = base[i].clone().multiplyScalar(sh).lerp(haze, hzv[i]); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false })); m.userData.noAO = true; m.frustumCulled = false; group.add(m); // colours are authored as final (ACES would wash them out)
+  });
 }
 
 // ---------------------------------------------------------------- MAP 1: BOGWATER SWAMP
@@ -1392,6 +1428,7 @@ function cityBlock(L, x0, z0, x1, z1, R) {
   if (alleyX && alleyZ) { crates(L, mx, mz + 0.6); L.prop('keg', mx + 0.8, 0, mz - 0.8); }
 }
 function buildCrossroads(L) {
+  L.backdrop = 'urban';
   L.hills = 2.6; L.hillScale = 28; L.hillRamp = 9;
   const R = seeded(1337);
   L.bounds = [-96, -80, 96, 80]; L.ground = 'asphalt'; L.groundScale = 6; L.groundTint = 0xd8d6d0; L.grass = 0; L.big = true; L.padStyle = 'rune'; L.smoke = L.smoke || []; L.noLamps = true;
@@ -1483,6 +1520,7 @@ function warehouse(L, x0, z0, w, d, o = {}) { // big shed: corrugated walls, rol
 }
 // ---------------------------------------------------------------- MAP: FREIGHT YARD (CoD-style container port, medium)
 function buildFreight(L) {
+  L.backdrop = 'coast';
   L.postcard = { sx: -1, sz: 1, hk: 0.14, dk: 0.85 };
   L.hills = 2.1; L.hillScale = 26; L.hillRamp = 9;
   const R = seeded(77);
@@ -1601,7 +1639,8 @@ function facade(L, R, x0, z0, x1, z1, h, side) {
   if (R() < 0.5) { const c = R() < 0.5 ? a0 + 0.15 : a1 - 0.15; B(c - 0.05, c + 0.05, 0, h, 0, 0.1, 'metal'); } // drainpipe
 }
 function buildBazaar(L) {
-  L.hills = 2.7; L.hillScale = 24; L.hillFlat = 1.0; L.hillRamp = 7.5;
+  L.backdrop = 'dusty';
+  L.hills = 4.6; L.hillScale = 22; L.hillFlat = 0.9; L.hillRamp = 6;
   const R = seeded(9001);
   L.bounds = [-70, -54, 70, 54]; L.ground = 'dirtroad'; L.groundScale = 4; L.groundTint = 0xf0e6d8; L.grass = 0; L.big = true; L.noLamps = true; L.smoke = [];
   L.box(-74, -1, -58, 74, 0, 58, 'floor').noRender = true;
@@ -1869,6 +1908,12 @@ function buildTerrain(L, name) {
     const f = vn(x / sc, z / sc) * 0.62 + vn(x / (sc * 0.45) + 17, z / (sc * 0.45) + 9) * 0.28 + vn(x / (sc * 0.18) + 41, z / (sc * 0.18) + 3) * 0.1;
     const edge = smooth(0, 4, Math.min(x - x0, x1 - x, z - z0, z1 - z)), v = amp * Math.pow(f, 1.5) * 1.6 * smooth(fl, rp, d[k]) * edge * (L.hillMask ? L.hillMask(x, z) : 1);
     h[k] = v; if (v > mx) mx = v; }
+  { const st = Math.tan((L.hillMaxSlope || 28) * Math.PI / 180) * cs, sd = st * Math.SQRT2; // slope limiter: nothing steeper than ~28 deg (walkable, readable hills)
+    for (let it = 0; it < 3; it++) {
+      for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i; let v = h[k]; if (i > 0) v = Math.min(v, h[k - 1] + st); if (j > 0) { v = Math.min(v, h[k - nx] + st); if (i > 0) v = Math.min(v, h[k - nx - 1] + sd); if (i < nx - 1) v = Math.min(v, h[k - nx + 1] + sd); } h[k] = v; }
+      for (let j = nz - 1; j >= 0; j--) for (let i = nx - 1; i >= 0; i--) { const k = j * nx + i; let v = h[k]; if (i < nx - 1) v = Math.min(v, h[k + 1] + st); if (j < nz - 1) { v = Math.min(v, h[k + nx] + st); if (i < nx - 1) v = Math.min(v, h[k + nx + 1] + sd); if (i > 0) v = Math.min(v, h[k + nx - 1] + sd); } h[k] = v; } }
+    const g = h.slice(); for (let j = 1; j < nz - 1; j++) for (let i = 1; i < nx - 1; i++) { const k = j * nx + i; if (h[k] > 0.01) g[k] = (h[k] * 4 + h[k - 1] + h[k + 1] + h[k - nx] + h[k + nx]) / 8; } h.set(g); // soften creases
+    mx = 0; for (let k = 0; k < N; k++) if (h[k] > mx) mx = h[k]; }
   TERR = { x0, z0, cs, nx, nz, h, max: mx, box: { x0: -1e9, y0: -1e9, z0: -1e9, x1: 1e9, y1: 0, z1: 1e9, m: L.ground || 'dirt', terrain: true } };
   // set everything that stands on the ground onto the slope
   const lift = b => { const y = TH((b.x0 + b.x1) / 2, (b.z0 + b.z1) / 2); if (y > 0.01) { b.y0 += y; b.y1 += y; } };
@@ -4224,8 +4269,8 @@ function updatePlayer(dt) {
   }
   const vyBefore = P.vel.y, wasGround = P.onGround;
   moveBody(P, dt);
-  if (!wasGround && P.onGround && vyBefore < -11.5 && !P.mantle && game.time > (P.protT || 0)) { // fall damage (≈3.2 m+; 7 m ≈ a third of your health, ~15 m deadly), loud and obvious
-    const dmg = Math.round(Math.pow(-vyBefore - 11.5, 1.3) * 3.4 * hpMul()); if (dmg > 0) { damagePlayer(dmg, null, null); sfx.play('fallhurt'); game.shake = Math.min(1.2, game.shake + 0.6); showHint('FALL DAMAGE −' + dmg, '#ff6b5a'); noise(P.pos, 14, PLAYER_T); } }
+  if (!wasGround && P.onGround && vyBefore < -11.5 && !P.mantle && game.time > (P.protT || 0)) { // fall damage (≈3.2 m+; 7 m ≈ half your health, ~11 m+ (a Bazaar rooftop) deadly), loud and obvious
+    const dmg = Math.round(Math.pow(-vyBefore - 11.5, 1.3) * 4.9 * hpMul()); if (dmg > 0) { damagePlayer(dmg, null, null); sfx.play('fallhurt'); game.shake = Math.min(1.2, game.shake + 0.6); showHint('FALL DAMAGE −' + dmg, '#ff6b5a'); noise(P.pos, 14, PLAYER_T); } }
   if (!wasGround && P.onGround && vyBefore < -5) { P.landKick = Math.min(-vyBefore * 0.008, 0.12); sfx.play('land', { vol: clamp(-vyBefore / 14, 0.3, 1) }); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: clamp(-vyBefore / 12, 0.3, 1), gait: 'sprint', near: true }); if (-vyBefore > 6) noise(P.pos, 12, PLAYER_T); }
   if (P.pos.y < -15) { const s = world.L.spawn; P.pos.set(s.x, s.y + 0.1, s.z); P.vel.set(0, 0, 0); }
   // footsteps
