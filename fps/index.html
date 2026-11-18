@@ -154,6 +154,35 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
 #ping{position:absolute;left:18px;top:192px;width:170px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.1em;text-shadow:0 1px 3px #000}
 .pg{font-variant-numeric:tabular-nums;font-size:12px}.pg.g{color:#5dff9a}.pg.y{color:#ffcf6b}.pg.r{color:#ff5a4a}
 .pl .png{margin-left:auto}
+img.thumb,div.thumb{display:block;width:100%;height:64px;object-fit:contain;border-radius:5px;background:linear-gradient(180deg,#2a313d,#161a21);margin-bottom:6px}
+.attrow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0 2px;padding:8px;border:1px dashed var(--line);border-radius:6px}
+.attrow small{font-size:10px;letter-spacing:.18em;color:var(--mut);width:100%}
+.seg.sm{gap:3px}.seg.sm button{padding:4px 8px;font-size:11px;flex:none}
+.lohead{font-size:12px;color:#ffb27a;margin:4px 0}
+.btnrow3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px}.btnrow3 .big{margin-top:18px}
+#botbtn{background:#2b3240;color:#fff;border:1px solid #6dc8ff}#mpbtn{background:#2b3240;color:#fff;border:1px solid var(--acc)}
+.panel.wide{max-width:1240px}
+.mgrid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px}
+.mright{position:sticky;top:0;align-self:start}
+.pvbox{position:relative;border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#3a4456,#141820);border:1px solid var(--line)}
+#preview{display:block;width:100%;height:400px}
+#pvlabel{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-weight:800;letter-spacing:.18em;font-size:13px;text-shadow:0 1px 4px #000}
+.mright .big{margin-top:12px}.btnrow2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btnrow2 .big{font-size:15px;letter-spacing:.18em}
+.mright .controls{font-size:11px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 18px}
+.card{background-size:cover;background-position:center;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end}
+.clsgrid{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
+.wcard.cls b{font-size:13px}.wcard.cls span{font-size:10.5px}
+img.thumb.tall{height:110px;object-fit:cover}
+.credit{font-size:10px;color:var(--mut);margin:14px 0 0;text-align:center}
+#xh.x-dot i:not(.c),#xh.x-circle i:not(.c){display:none}
+#xh.x-dot .c{width:5px;height:5px;left:-2.5px;top:-2.5px;border-radius:50%}
+#xh.x-circle:after{content:"";position:absolute;width:22px;height:22px;left:-12px;top:-12px;border:2px solid var(--xc,#fff);border-radius:50%;box-shadow:0 0 2px #000}
+#xh i{background:var(--xc,#fff)}
+#scope.acog{background:radial-gradient(circle at center,transparent 0,transparent 30vmin,rgba(0,0,0,.85) 31vmin,#000 60vmin)}
+#scope.acog:before,#scope.acog:after{display:none}
+#scope.acog b{width:0;height:0;margin:-2px 0 0 -8px;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:12px solid #ff3a1a;background:none;border-radius:0}
+@media (max-width:980px){.mgrid{grid-template-columns:1fr}.mright{position:static}.grid3{grid-template-columns:1fr 1fr}}
 @media (max-width:700px){.cards{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}h1{font-size:32px}#radar{display:none}}
 </style>
 </head>
@@ -198,39 +227,55 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
 <div id="lockmsg">CLICK TO CAPTURE MOUSE</div>
 
 <div id="menu" class="screen on">
-  <div class="panel">
-    <h1>BREACH<span>POINT</span></h1>
-    <div class="tag">Fairy-tale frontlines · survival &amp; multiplayer shooter</div>
-    <h3>Map</h3>
-    <div class="cards" id="maps"></div>
-    <h3>Class</h3>
-    <div class="wcards" id="classes"></div>
-    <h3>Loadout</h3>
-    <div id="loadout"></div>
-    <h3>Difficulty</h3>
-    <div class="seg" id="diff"><button data-v="easy">RECRUIT</button><button data-v="normal">VETERAN</button><button data-v="hard">ELITE</button></div>
-    <h3>Settings</h3>
-    <div class="grid2">
-      <label class="set"><div>Mouse sensitivity <b id="sensv"></b></div><input type="range" id="sens" min="0.2" max="3" step="0.05"></label>
-      <label class="set"><div>Field of view <b id="fovv"></b></div><input type="range" id="fov" min="70" max="105" step="1"></label>
-      <label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (weak CPUs)</option><option value="medium">Medium — balanced</option><option value="high">High — shadows</option></select></label>
-      <label class="set"><div>Volume <b id="volv"></b></div><input type="range" id="vol" min="0" max="1" step="0.05"></label>
+  <div class="panel wide">
+    <div class="mgrid">
+      <div class="mleft">
+        <h1>BREACH<span>POINT</span></h1>
+        <div class="tag">Fairy-tale frontlines · survival · bot matches · multiplayer</div>
+        <h3>Map</h3>
+        <div class="cards" id="maps"></div>
+        <h3>Class</h3>
+        <div class="wcards clsgrid" id="classes"></div>
+        <h3>Loadout &amp; attachments</h3>
+        <div id="loadout"></div>
+        <h3>Difficulty (survival)</h3>
+        <div class="seg" id="diff"><button data-v="easy">RECRUIT</button><button data-v="normal">VETERAN</button><button data-v="hard">ELITE</button></div>
+        <h3>Settings</h3>
+        <div class="grid3">
+          <label class="set"><div>Mouse sensitivity <b id="sensv"></b></div><input type="range" id="sens" min="0.2" max="3" step="0.05"></label>
+          <label class="set"><div>Field of view <b id="fovv"></b></div><input type="range" id="fov" min="70" max="105" step="1"></label>
+          <label class="set"><div>Graphics</div><select id="quality"><option value="low">Low — fastest (weak CPUs)</option><option value="medium">Medium — balanced</option><option value="high">High — shadows</option></select></label>
+          <label class="set"><div>Effects volume <b id="volv"></b></div><input type="range" id="vol" min="0" max="1" step="0.05"></label>
+          <label class="set"><div>Music volume <b id="musv"></b></div><input type="range" id="mus" min="0" max="1" step="0.05"></label>
+          <label class="set"><div>Battle ambience</div><select id="ambience"><option value="1">On</option><option value="0">Off</option></select></label>
+          <label class="set"><div>Camera</div><select id="view"><option value="first">First person</option><option value="third">Third person</option></select></label>
+          <label class="set"><div>Crosshair</div><select id="xhair"><option value="cross">Cross</option><option value="dot">Dot</option><option value="circle">Circle</option><option value="none">None</option></select></label>
+          <label class="set"><div>Crosshair colour</div><select id="xcolor"><option value="#ffffff">White</option><option value="#5dff9a">Green</option><option value="#ffe14d">Yellow</option><option value="#ff4fd8">Pink</option><option value="#4fd8ff">Cyan</option></select></label>
+          <label class="set"><div>Aim down sights</div><select id="adsToggle"><option value="0">Hold</option><option value="1">Toggle</option></select></label>
+          <label class="set"><div>Invert look Y</div><select id="invertY"><option value="0">Off</option><option value="1">On</option></select></label>
+          <label class="set"><div>Bot match: bots</div><select id="bots"><option value="3">3 bots</option><option value="5">5 bots</option><option value="7">7 bots</option><option value="9">9 bots</option><option value="11">11 bots</option></select></label>
+          <label class="set"><div>Bot skill</div><select id="botDiff"><option value="easy">Rookie</option><option value="normal">Regular</option><option value="hard">Elite</option></select></label>
+        </div>
+      </div>
+      <div class="mright">
+        <div class="pvbox"><canvas id="preview"></canvas><div id="pvlabel"></div></div>
+        <button class="big" id="play">SURVIVAL</button>
+        <div class="btnrow2"><button class="big" id="botbtn">BOT MATCH</button><button class="big" id="mpbtn">MULTIPLAYER</button></div>
+        <div id="best"></div>
+        <div class="controls">
+          <b>Keyboard &amp; mouse</b><br><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>LMB</kbd> fire · <kbd>RMB</kbd> aim · <kbd>Shift</kbd> sprint · <kbd>Space</kbd> jump · <kbd>C</kbd> crouch / slide · <kbd>R</kbd> reload · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> weapons · <kbd>V</kbd> quick melee · <kbd>G</kbd> grenade · <kbd>E</kbd> ability · <kbd>T</kbd> 1st/3rd person · hold <kbd>Tab</kbd> inventory/scores · <kbd>B</kbd> armory · <kbd>Esc</kbd> pause<br>
+          <b>Controller</b> (Xbox / PlayStation)<br>sticks move/aim · <kbd>RT</kbd> fire · <kbd>LT</kbd> aim · <kbd>A</kbd> jump · <kbd>B</kbd> crouch/slide · <kbd>X</kbd> reload · <kbd>Y</kbd> swap · <kbd>LB</kbd> grenade · <kbd>RB</kbd> ability · <kbd>L3</kbd> sprint · <kbd>R3</kbd> melee · <kbd>View</kbd> camera · <kbd>Menu</kbd> pause · <kbd>A</kbd> in menus deploys survival
+        </div>
+      </div>
     </div>
-    <div class="btnrow"><button class="big" id="play">SURVIVAL (SOLO)</button><button class="big" id="mpbtn">MULTIPLAYER</button></div>
-    <div id="best"></div>
-    <div class="controls">
-      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Mouse</kbd> aim · <kbd>LMB</kbd> fire · <kbd>RMB</kbd> aim down sights ·
-      <kbd>Shift</kbd> sprint (hold breath when scoped) · <kbd>Space</kbd> jump · <kbd>C</kbd> crouch — press while sprinting to <b>slide</b> ·
-      <kbd>R</kbd> reload · <kbd>1</kbd> primary · <kbd>2</kbd> secondary · <kbd>Q</kbd>/wheel swap · <kbd>G</kbd> grenade · <kbd>E</kbd> class ability · hold <kbd>Tab</kbd> inventory · <kbd>B</kbd> armory (survival, between waves) · hold <kbd>Tab</kbd> in multiplayer for the scoreboard · <kbd>Esc</kbd> pause<br>
-      Tips: headshots deal up to 2.4× damage (red hitmarker + ding) · health regenerates to the next 25-point block · shoot gunpowder kegs · giant mushrooms and glowing runes launch you to high ground · marksmen show a red laser before firing — break line of sight!
-    </div>
+    <p class="credit">Animated character base model: “Soldier” from the three.js examples (Mixamo). All other art, audio and music are generated in code.</p>
   </div>
 </div>
 
 <div id="armory" class="screen">
   <div class="panel">
     <h1 style="font-size:32px">ARMORY</h1>
-    <div class="tag">Swap weapons between waves · new weapons come fully loaded · press B to return</div>
+    <div class="tag">Swap weapons &amp; attachments between waves · new weapons come fully loaded · press B to return</div>
     <div id="armlist"></div>
     <button class="big" id="armback">BACK TO THE FIGHT</button>
   </div>
@@ -306,5 +351,6 @@ select{background:#1b1f27;color:var(--fg);border:1px solid var(--line);border-ra
 <script src="three.min.js"></script>
 <script src="peerjs.min.js"></script>
 <script src="game.js"></script>
+<script type="module" src="lib/assets.js"></script>
 </body>
 </html>
