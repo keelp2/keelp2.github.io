@@ -36,7 +36,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 #top .box{padding:6px 14px;text-align:center;min-width:92px}
 #top small{display:block;font-size:10px;letter-spacing:.18em;color:var(--mut)}
 #top b{font-size:20px;font-variant-numeric:tabular-nums}
-.gpfocus{outline:3px solid #ffcf6b!important;outline-offset:2px;box-shadow:0 0 18px rgba(255,207,107,.55)!important;position:relative;z-index:2}
+#navring{position:fixed;left:0;top:0;width:0;height:0;border:2px solid var(--acc);border-radius:9px;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 22px rgba(255,122,26,.35);pointer-events:none;z-index:60;opacity:0;transition:transform .14s cubic-bezier(.2,.8,.2,1),width .14s,height .14s,opacity .15s}
+.gpfocus{filter:brightness(1.12)}
 #feed{position:absolute;top:14px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;font-size:15px;font-weight:600;z-index:5}
 #feed div{background:rgba(10,12,18,.62);padding:5px 12px;border-radius:4px;border-right:3px solid rgba(255,255,255,.25);transition:opacity .4s;display:flex;align-items:center;gap:9px;text-shadow:0 1px 2px #000;animation:feedIn .18s ease-out}
 #feed div.me{background:rgba(120,70,10,.62);border-right-color:#ffcf6b;box-shadow:0 0 0 1px rgba(255,207,107,.45)}
@@ -265,6 +266,21 @@ img.thumb.tall{height:110px;object-fit:cover}
 @media (max-height:740px){.mode span{display:none}.mapinfo span{display:none}.mapsel .card{min-height:76px}.pvslot .pvbox{height:52vh}.wcard .bar{display:none}}
 #bloodov{position:absolute;inset:0;background-size:100% 100%;opacity:0;pointer-events:none;z-index:3}
 #hud.cine>*:not(#flashov){visibility:hidden}
+#outroov{position:fixed;inset:0;pointer-events:none;display:none;z-index:31;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(0,0,0,.55) 100%)}#outroov.on{display:block}
+#outroov .obanner{position:absolute;left:0;right:0;top:30%;text-align:center;animation:obIn .9s cubic-bezier(.2,.9,.2,1)}
+#outroov h2{margin:0;font-size:96px;font-weight:900;letter-spacing:.16em;text-shadow:0 8px 40px rgba(0,0,0,.8)}#outroov.win h2{color:#ffd27a}#outroov.loss h2{color:#ff6b5a}#outroov.draw h2{color:#e8eef5}
+#outroov p{margin:6px 0 0;font-size:16px;letter-spacing:.22em;color:#e8eef5;text-transform:uppercase;text-shadow:0 2px 10px #000}
+@keyframes obIn{from{opacity:0;transform:scale(1.35);letter-spacing:.5em}to{opacity:1;transform:none}}
+.panel.fadein{animation:pfIn .6s ease-out}@keyframes pfIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.xpres{display:flex;align-items:center;gap:10px;margin:0 0 8px}.xpres b{font-size:12px;letter-spacing:.16em;color:#fff}.xpres i{flex:1;height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}.xpres u{display:block;height:100%;background:var(--acc)}
+.spin{display:flex;align-items:center;justify-content:space-between;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font-size:13px;gap:8px;min-height:36px}
+.spin i{font-style:normal;color:var(--acc);font-size:12px;padding:0 4px}.spin span{flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spin.first i:first-child,.spin.last i:last-child{opacity:.25}
+.spin:hover{background:rgba(255,255,255,.1)}
+.lotabs{display:flex;gap:5px}.lotab{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:7px 0;font-weight:900}.lotab.on{background:var(--acc);color:#111;border-color:var(--acc)}
+.loname{text-align:left;background:none;border:0;padding:6px 2px}.loname b{display:block;font-size:15px;letter-spacing:.12em;color:#ffb27a}.loname small{color:var(--mut);font-size:10px}
+.lochoose b small{display:block;font-weight:400;color:var(--mut);font-size:10px;margin-top:3px}
+#pause .panel{max-width:760px}#psettings .sgroups{grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}#psettings .sgroup{padding:4px 12px 10px}
+.bdesc{display:block;margin-top:4px;font-size:11px;color:#ffb27a}
 /* ---------- loading screen ---------- */
 #loading{position:fixed;inset:0;z-index:50;display:none;background:#05070a}
 #loading.on{display:block}
@@ -332,7 +348,7 @@ img.thumb.tall{height:110px;object-fit:cover}
             <button class="mode" id="play"><b>SURVIVAL</b><span>Hold the line against escalating waves. Re-arm in the armory between waves.</span><em>SOLO · CO-OP vs AI</em></button>
             <div class="modeopts"><small>DIFFICULTY</small><div class="seg" id="diff"><button data-v="easy">RECRUIT</button><button data-v="normal">VETERAN</button><button data-v="hard">ELITE</button></div><div id="best"></div></div>
             <button class="mode" id="botbtn"><b>BOT MATCH</b><span>Free-for-all or team deathmatch against human-like bots.</span><em>OFFLINE</em></button>
-            <div class="modeopts g3"><label class="set"><div>Bot match mode</div><select id="botMode"><option value="ffa">Free-for-all</option><option value="tdm">Team deathmatch (you + bots vs bots)</option></select></label><label class="set"><div>Bot match: bots</div><select id="bots"><option value="3">3 bots</option><option value="5">5 bots</option><option value="7">7 bots</option><option value="9">9 bots</option><option value="11">11 bots</option></select></label><label class="set"><div>Bot skill</div><select id="botDiff"><option value="easy">Rookie</option><option value="normal">Regular</option><option value="hard">Elite</option></select></label></div>
+            <div class="modeopts g3"><label class="set"><div>Bot match mode</div><select id="botMode"><option value="ffa">Free-for-all</option><option value="tdm">Team deathmatch (you + bots vs bots)</option></select></label><label class="set"><div>Players</div><select id="bots"></select><small id="botDesc" class="bdesc"></small></label><label class="set"><div>Score limit</div><select id="botLimit"></select></label><label class="set"><div>Time limit</div><select id="botTime"><option value="300">5 min</option><option value="600">10 min</option><option value="900">15 min</option><option value="1200">20 min</option><option value="1800">30 min</option><option value="0">No limit</option></select></label><label class="set"><div>Bot skill</div><select id="botDiff"><option value="easy">Rookie</option><option value="normal">Regular</option><option value="hard">Elite</option></select></label><label class="set"><div>Health</div><select id="health"><option value="core">Core — 150 HP</option><option value="classic">Classic — 100 HP</option><option value="hardcore">Hardcore — 40 HP</option></select></label></div>
             <button class="mode" id="mpbtn"><b>MULTIPLAYER</b><span>Host a lobby or join friends with a code. Peer-to-peer, low latency.</span><em>ONLINE</em></button>
           </div>
           <div class="mapsel">
@@ -351,7 +367,7 @@ img.thumb.tall{height:110px;object-fit:cover}
         <div class="sgroup"><h3>Audio</h3><label class="set"><div>Effects volume <b id="volv"></b></div><input type="range" id="vol" min="0" max="1" step="0.05"></label><label class="set"><div>Music volume <b id="musv"></b></div><input type="range" id="mus" min="0" max="1" step="0.05"></label><label class="set"><div>Battle ambience</div><select id="ambience"><option value="1">On</option><option value="0">Off</option></select></label></div>
         <div class="sgroup"><h3>Controls</h3><label class="set"><div>Mouse sensitivity <b id="sensv"></b></div><input type="range" id="sens" min="0.2" max="3" step="0.05"></label><label class="set"><div>Aim down sights</div><select id="adsToggle"><option value="0">Hold</option><option value="1">Toggle</option></select></label><label class="set"><div>Invert look Y</div><select id="invertY"><option value="0">Off</option><option value="1">On</option></select></label><label class="set"><div>Blood &amp; gore</div><select id="blood"><option value="1">On</option><option value="0">Off</option></select></label>
           <label class="set"><div>Match intro &amp; countdown</div><select id="intro"><option value="1">On</option><option value="0">Off</option></select></label>
-          <label class="set"><div>Controller aim assist</div><select id="aimAssist"><option value="1">On</option><option value="0">Off</option></select></label><label class="set"><div>Controller vibration</div><select id="rumble"><option value="1">On</option><option value="0">Off</option></select></label></div>
+          <label class="set"><div>Controller aim assist (never on mouse)</div><select id="aimAssist"><option value="standard">Standard — slowdown + rotational + light ADS pull</option><option value="precision">Precision — slowdown only</option><option value="off">Off</option></select></label><label class="set"><div>Controller vibration</div><select id="rumble"><option value="1">On</option><option value="0">Off</option></select></label></div>
       </div></section>
       <section class="mtab" data-tab="controls"><div class="cgrid"><table class="ktab"><tr><th colspan="2">Keyboard &amp; mouse</th></tr>
 <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Move</td></tr><tr><td><kbd>LMB</kbd> / <kbd>RMB</kbd></td><td>Fire / aim down sights</td></tr>
@@ -370,6 +386,7 @@ img.thumb.tall{height:110px;object-fit:cover}
   </div>
 </div>
 
+<div id="outroov"><div class="obanner"><h2 id="outroTitle">VICTORY</h2><p id="outroWhy"></p></div></div>
 <div id="introov"><i class="lb t"></i><i class="lb b"></i><div class="icard"><small id="introMode"></small><h2 id="introMap"></h2><p id="introObj"></p></div><div id="introCount"></div></div>
 <div id="loading"><div class="ldbg" id="ldbg"></div><div class="ldshade"></div>
   <div class="ldtop"><span class="logo">BREACH<span>POINT</span></span></div>
@@ -404,8 +421,9 @@ img.thumb.tall{height:110px;object-fit:cover}
       <div id="mpPlayers"></div>
       <div id="mpHostCtl" style="display:none">
         <label class="set"><div>Map</div><select id="mpMap"></select></label>
-        <label class="set"><div>Kill limit</div><select id="mpLimit"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select></label>
-        <label class="set"><div>Time limit</div><select id="mpTime"><option value="300">5 min</option><option value="480" selected>8 min</option><option value="720">12 min</option></select></label>
+        <label class="set"><div>Kill limit</div><select id="mpLimit"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option><option value="75">75</option><option value="100">100</option></select></label>
+        <label class="set"><div>Time limit</div><select id="mpTime"><option value="300">5 min</option><option value="480" selected>8 min</option><option value="720">12 min</option><option value="900">15 min</option><option value="1200">20 min</option><option value="1800">30 min</option></select></label>
+        <label class="set"><div>Health</div><select id="mpHealth"><option value="core">Core — 150 HP</option><option value="classic">Classic — 100 HP</option><option value="hardcore">Hardcore — 40 HP</option></select></label>
       </div>
       <div id="mpInfo" style="margin-top:10px;font-size:12px;color:#ffb27a;text-align:center"></div>
       <button class="big" id="mpStart" disabled>WAITING FOR PLAYERS (1/2)</button>
@@ -431,9 +449,11 @@ img.thumb.tall{height:110px;object-fit:cover}
   <div class="panel small">
     <h1 style="font-size:34px" id="ptitle">PAUSED</h1><div class="pnote" id="ponline" style="display:none;color:#ff9b6b">Online matches keep running while this menu is open.</div>
     <button class="big" id="resume">RESUME</button>
-    <h3 style="margin-top:18px">Change class</h3><div class="wcards pclsgrid" id="pcls"></div><div class="pnote" id="pclsnote"></div>
+    <div id="pmain"><h3 style="margin-top:18px">Choose loadout</h3><div class="wcards pclsgrid" id="pcls"></div><div class="pnote" id="pclsnote"></div>
+    <button class="btn2" id="psetBtn">SETTINGS</button>
     <button class="btn2" id="restart">RESTART</button>
-    <button class="btn2" id="quit">QUIT TO MENU</button>
+    <button class="btn2" id="quit">QUIT TO MENU</button></div>
+    <div id="psettings" style="display:none"><button class="btn2" id="psetBack">◀ BACK</button></div>
   </div>
 </div>
 
@@ -457,7 +477,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611191900"></script>
+<script src="game.js?v=202611192230"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
