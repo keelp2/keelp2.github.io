@@ -5503,7 +5503,7 @@ function makeHeli() { const g = new THREE.Group(), body = ksMat(0x3c4434, 0.6, 0
   g.userData = { rotor, tr }; g.traverse(m => { if (m.isMesh) m.castShadow = true; }); return g; }
 function heliStart() {
   SURV.support.shift(); const [x0, z0, x1, z1] = world.L.bounds, c = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2);
-  const g = makeHeli(); scene.add(g); Object.assign(HELI, { on: true, g, c, r: Math.max(18, Math.min(x1 - x0, z1 - z0) * 0.32), ang: Math.atan2(player.pos.z - c.z, player.pos.x - c.x), t: 45, burst: 0, cd: 1.5, tgt: null, look: 0, send: 0, snd: 0, pos: new V3() });
+  const g = makeHeli(); scene.add(g); Object.assign(HELI, { on: true, g, c, r: Math.max(18, Math.min(x1 - x0, z1 - z0) * 0.32), ang: Math.atan2(player.pos.z - c.z, player.pos.x - c.x), t: 45, burst: 0, cd: 1.5, tgt: null, look: 0, send: 0, snd: 0, pos: new V3(), st: { shots: 0, hits: 0, seen: 0, blind: 0 } });
   showHint('ATTACK HELICOPTER INBOUND', '#ff6b5a'); sfx.play('wave');
 }
 function heliTick(dt) {
@@ -5518,15 +5518,17 @@ function heliTick(dt) {
   if (MP.active) { H.send -= dt; if (H.send <= 0) { H.send = 0.2; netSend({ t: 'heli', p: v3a(H.pos), y: Math.round(H.g.rotation.y * 100) / 100 }); } }
   H.look -= dt; if (H.look <= 0) { H.look = 0.3; let best = null, bd = 1e9; /* nearest enemy it can actually see */
     for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead || isAlly(PLAYER_T, e)) continue; const d = e.pos.distanceTo(H.pos); if (d > 75 || d > bd) continue; if (!los(H.pos.x, H.pos.y - 1.2, H.pos.z, e.pos.x, e.pos.y + 1.2, e.pos.z)) continue; best = e; bd = d; }
-    if (best !== H.tgt) { H.tgt = best; if (best) H.cd = Math.max(H.cd, 0.6); } }
+    const cur = H.tgt && !H.tgt.dead ? H.tgt : null; if (cur && cur.pos.distanceTo(H.pos) < 80 && los(H.pos.x, H.pos.y - 1.2, H.pos.z, cur.pos.x, cur.pos.y + 1.2, cur.pos.z)) H.lost = 0; else if (cur) H.lost = (H.lost || 0) + 0.3;
+    if (!cur || H.lost > 0.6) { if (best !== H.tgt) { H.tgt = best; H.lost = 0; if (best) H.cd = Math.max(H.cd, 0.5); } } } /* sticks with a target until it drops or slips out of sight: damage isn't wasted across several people who then heal */
+  if (tg) H.st.seen += dt; else H.st.blind += dt;
   H.cd -= dt; if (!tg || H.cd > 0) return;
   H.burst = (H.burst || 0) + dt; if (H.burst > 1.1) { H.burst = 0; H.cd = rand(0.9, 1.5); return; }
   H.fire = (H.fire || 0) - dt; if (H.fire > 0) return; H.fire = 0.075;
   const mz = H.g.localToWorld(new V3(0, -1.1, 3)), aim = new V3(tg.pos.x + rand(-0.9, 0.9), tg.pos.y + rand(0.3, 1.7), tg.pos.z + rand(-0.9, 0.9)), dirv = aim.clone().sub(mz), L = dirv.length(); dirv.divideScalar(L);
-  const h = raycast(mz, dirv, L + 1, false); const end = mz.clone().addScaledVector(dirv, Math.min(h.t, L + 1)); spawnTracer(mz, end, 0xffc070, 600, 0.03);
+  const h = raycast(mz, dirv, L + 1, false); const end = mz.clone().addScaledVector(dirv, Math.min(h.t, L + 1)); spawnTracer(mz, end, 0xffc070, 600, 0.03); H.st.shots++;
   if (MP.active) netSend({ t: 'shot', a: v3a(mz), b: v3a(end), w: 'heli' });
   { const sp = spatial(mz); sfx.gun('lmg', { dist: sp.dist, pan: sp.pan, pos: sp.pos, vol: 0.7 }); }
-  if (h.t >= L - 0.4 && Math.hypot(end.x - tg.pos.x, end.z - tg.pos.z) < 0.75) { game.ksKind = 'heli'; try { bloodHit(end.clone(), dirv.clone(), false); tg.damage(34, false, { x: dirv.x * 2, z: dirv.z * 2 }, 'player'); } finally { game.ksKind = null; } }
+  if (h.t >= L - 0.4 && Math.hypot(end.x - tg.pos.x, end.z - tg.pos.z) < 0.75) { H.st.hits++; game.ksKind = 'heli'; try { bloodHit(end.clone(), dirv.clone(), false); tg.damage(24, false, { x: dirv.x * 2, z: dirv.z * 2 }, 'player'); } finally { game.ksKind = null; } }
   else impactFx && impactFx(end, -dirv.x, -dirv.y, -dirv.z, h.box, false);
 }
 function heliGhost(id, d) { if (d.end) { const G = HELI.ghosts[id]; if (G) { scene.remove(G.g); delete HELI.ghosts[id]; } return; } const p = arrV3(d.p); if (!p) return;
