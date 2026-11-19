@@ -62,11 +62,16 @@ const KS_ICON = {
 const STREAKS = [['uav', 3, 'UAV', 'Enemies show on your radar for 25 s'], ['air', 5, 'PRECISION AIRSTRIKE', 'Aim the marker, call in 4 heavy bombs'], ['air3', 7, 'CARPET BOMBING', 'A long line of bombs along your aim']];
 const pvpOn = () => game.mode === 'botdm' || (MP.active && MP.mode !== 'surv');
 const supOn = () => survOn() || pvpOn();
+/* button prompts for whichever device you are using (CoD-style): a big key cap, or a drawn D-pad with the right arm lit */
+const DPAD_R = '<svg class="dpad" viewBox="0 0 30 30"><path d="M11 2h8v9h9v8h-9v9h-8v-9H2v-8h9z" fill="rgba(255,255,255,.32)" stroke="#fff" stroke-width="1.4"/><path d="M19 11h9v8h-9z" fill="#ffcf6b"/><path d="M22 12.5l4 2.5-4 2.5z" fill="#111"/></svg>';
+const supKey = () => gp.on ? DPAD_R : '<kbd class="big">Z</kbd>';
+const supFire = () => gp.on ? '<kbd class="big">RT</kbd>' : '<kbd class="big">CLICK</kbd>';
+const supBack = () => gp.on ? '<kbd>B</kbd>' : '<kbd>RIGHT-CLICK</kbd>';
 function ksKill() { if (!pvpOn()) return; game.ks = (game.ks || 0) + 1;
   for (const [id, n, name, desc] of STREAKS) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); } }
 function ksReset() { game.ks = 0; }
 function ksBanner(id, name, desc) { let b = $('ksbanner'); if (!b) { b = document.createElement('div'); b.id = 'ksbanner'; $('hud').appendChild(b); }
-  b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc} · <kbd>Z</kbd> / <kbd>D-pad →</kbd></em></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
+  b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc}</em></div><div class="kskey">${supKey()}<small>${gp.on ? 'D-PAD RIGHT' : 'PRESS'}</small></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
 function ksTrack() { /* the CoD stack: next streaks with progress pips */ let t = $('kstrack'); if (!t) { t = document.createElement('div'); t.id = 'kstrack'; $('hud').appendChild(t); }
   if (!pvpOn() || !player.alive && !MP.active) { t.style.display = 'none'; return; } t.style.display = 'flex'; const k = game.ks || 0;
   setHTML(t, STREAKS.map(([id, n, name]) => { const have = SURV.support.includes(id), got = k >= n; return `<div class="ks${have ? ' rdy' : got ? ' got' : ''}" title="${name}"><i>${KS_ICON[id]}</i><b>${n}</b>${have ? '' : `<u style="width:${Math.min(100, k / n * 100)}%"></u>`}</div>`; }).join('')); }
@@ -87,11 +92,11 @@ function supportTick(dt) {
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
   tile.style.display = supOn() && (n || T) ? 'block' : 'none';
   if (T && (!player.alive || game.state !== 'play')) { supportCancel(); return; }
-  if (!T) { if (n) setHTML(tile, `<kbd>Z</kbd><kbd>D-pad →</kbd><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${SURV.support[0] === 'uav' ? 'press to launch' : 'press to aim'}</small>`); return; }
+  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${SURV.support[0] === 'uav' ? 'press to launch' : 'press to aim'}</small>`); return; }
   aimBasis(); const h = raycast(camera.position, _f, 220, false), d = Math.min(h.t, 220); T.at.copy(camera.position).addScaledVector(_f, d); T.at.y = TH(T.at.x, T.at.z) + 0.05;
   const far = Math.hypot(T.at.x - player.pos.x, T.at.z - player.pos.z); T.ok = h.t < 220 && far > 6; T.arm -= dt;
   SURV.mk.position.copy(T.at); SURV.mk.children[0].scale.setScalar(T.id === 'air3' ? 1.6 : 1); SURV.mkMat.color.setHex(T.ok ? 0xff3b30 : 0x888888);
-  setHTML(tile, `<b>${nm(T.id)} · TARGETING</b><small>${T.ok ? `<kbd>CLICK</kbd><kbd>RT</kbd> call it in · <kbd>RIGHT-CLICK</kbd><kbd>B</kbd><kbd>Z</kbd> cancel · ${Math.round(far)} m` : far <= 6 ? 'TOO CLOSE — aim further away' : 'aim at the ground'}</small>`);
+  setHTML(tile, `<b>${nm(T.id)} · TARGETING</b><small>${T.ok ? `${supFire()} call it in · ${supBack()} cancel · ${Math.round(far)} m` : far <= 6 ? 'TOO CLOSE — aim further away' : 'aim at the ground'}</small>`);
   if (!mouseR) T.r0 = false; if (mouseR && !T.r0) { supportCancel(); mouseR = mR = false; wst.adsOn = false; return; }
   if (mouseL && T.arm <= 0) { mouseL = mL = false; if (!T.ok) { sfx.play('hit'); return; } SURV.support.shift(); SURV.tgt = null; callAirstrike(T.at.clone(), T.id === 'air3');
     SURV.mkMat.color.setHex(0xffb020); const t = 2200 + (T.id === 'air3' ? 9 * 240 : 4 * 330); setTimeout(() => { if (SURV.mk && !SURV.tgt) SURV.mk.visible = false; }, t); }

@@ -55,16 +55,16 @@ function spawnTracer(a, b, color, speed = 320, width = 0.025) {
   if (POTG.on && game.state === 'play') potgEvent('tr', { a: [a.x, a.y, a.z], b: [b.x, b.y, b.z] });
   const tr = tracers[tracerI]; tracerI = (tracerI + 1) % tracers.length;
   tr.a.copy(a); tr.b.copy(b); tr.dir.subVectors(b, a); tr.len = tr.dir.length(); if (tr.len < 0.5) return; tr.dir.divideScalar(tr.len);
-  tr.t = 0; tr.speed = speed; tr.live = true; tr.m.visible = true; tr.m.material.color.setHex(color); tr.w = width;
+  tr.t = 0; tr.speed = speed; tr.live = true; tr.m.visible = false; tr.m.material.color.setHex(color); tr.w = width; /* shown on its first update, never with a stale transform */
 }
 const _ta = new V3(), _tb = new V3();
 function updateTracers(dt) {
   for (const tr of tracers) {
     if (!tr.live) continue;
-    tr.t += dt; const head = Math.min(tr.len, tr.t * tr.speed), tail = Math.max(0, head - Math.min(6, tr.speed * 0.008));
-    if (tail >= tr.len - 0.01) { tr.live = false; tr.m.visible = false; continue; }
+    tr.t += dt; const run = tr.t * tr.speed, head = Math.min(tr.len, run), tail = Math.max(0, run - Math.min(6, tr.speed * 0.008)); /* the tail keeps flying after the head lands, so every tracer finishes */
+    if (tail >= tr.len - 0.01 || tr.t > 3) { tr.live = false; tr.m.visible = false; continue; }
     _ta.copy(tr.a).addScaledVector(tr.dir, tail); _tb.copy(tr.a).addScaledVector(tr.dir, head);
-    tr.m.position.addVectors(_ta, _tb).multiplyScalar(0.5); tr.m.lookAt(_tb);
+    if (head - tail < 0.01) continue; tr.m.visible = true; tr.m.position.addVectors(_ta, _tb).multiplyScalar(0.5); tr.m.lookAt(_tb);
     tr.m.scale.set(tr.w, tr.w, Math.max(0.01, head - tail)); tr.m.material.opacity = 1;
   }
 }

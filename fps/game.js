@@ -2563,16 +2563,16 @@ function spawnTracer(a, b, color, speed = 320, width = 0.025) {
   if (POTG.on && game.state === 'play') potgEvent('tr', { a: [a.x, a.y, a.z], b: [b.x, b.y, b.z] });
   const tr = tracers[tracerI]; tracerI = (tracerI + 1) % tracers.length;
   tr.a.copy(a); tr.b.copy(b); tr.dir.subVectors(b, a); tr.len = tr.dir.length(); if (tr.len < 0.5) return; tr.dir.divideScalar(tr.len);
-  tr.t = 0; tr.speed = speed; tr.live = true; tr.m.visible = true; tr.m.material.color.setHex(color); tr.w = width;
+  tr.t = 0; tr.speed = speed; tr.live = true; tr.m.visible = false; tr.m.material.color.setHex(color); tr.w = width; /* shown on its first update, never with a stale transform */
 }
 const _ta = new V3(), _tb = new V3();
 function updateTracers(dt) {
   for (const tr of tracers) {
     if (!tr.live) continue;
-    tr.t += dt; const head = Math.min(tr.len, tr.t * tr.speed), tail = Math.max(0, head - Math.min(6, tr.speed * 0.008));
-    if (tail >= tr.len - 0.01) { tr.live = false; tr.m.visible = false; continue; }
+    tr.t += dt; const run = tr.t * tr.speed, head = Math.min(tr.len, run), tail = Math.max(0, run - Math.min(6, tr.speed * 0.008)); /* the tail keeps flying after the head lands, so every tracer finishes */
+    if (tail >= tr.len - 0.01 || tr.t > 3) { tr.live = false; tr.m.visible = false; continue; }
     _ta.copy(tr.a).addScaledVector(tr.dir, tail); _tb.copy(tr.a).addScaledVector(tr.dir, head);
-    tr.m.position.addVectors(_ta, _tb).multiplyScalar(0.5); tr.m.lookAt(_tb);
+    if (head - tail < 0.01) continue; tr.m.visible = true; tr.m.position.addVectors(_ta, _tb).multiplyScalar(0.5); tr.m.lookAt(_tb);
     tr.m.scale.set(tr.w, tr.w, Math.max(0.01, head - tail)); tr.m.material.opacity = 1;
   }
 }
@@ -5233,11 +5233,16 @@ const KS_ICON = {
 const STREAKS = [['uav', 3, 'UAV', 'Enemies show on your radar for 25 s'], ['air', 5, 'PRECISION AIRSTRIKE', 'Aim the marker, call in 4 heavy bombs'], ['air3', 7, 'CARPET BOMBING', 'A long line of bombs along your aim']];
 const pvpOn = () => game.mode === 'botdm' || (MP.active && MP.mode !== 'surv');
 const supOn = () => survOn() || pvpOn();
+/* button prompts for whichever device you are using (CoD-style): a big key cap, or a drawn D-pad with the right arm lit */
+const DPAD_R = '<svg class="dpad" viewBox="0 0 30 30"><path d="M11 2h8v9h9v8h-9v9h-8v-9H2v-8h9z" fill="rgba(255,255,255,.32)" stroke="#fff" stroke-width="1.4"/><path d="M19 11h9v8h-9z" fill="#ffcf6b"/><path d="M22 12.5l4 2.5-4 2.5z" fill="#111"/></svg>';
+const supKey = () => gp.on ? DPAD_R : '<kbd class="big">Z</kbd>';
+const supFire = () => gp.on ? '<kbd class="big">RT</kbd>' : '<kbd class="big">CLICK</kbd>';
+const supBack = () => gp.on ? '<kbd>B</kbd>' : '<kbd>RIGHT-CLICK</kbd>';
 function ksKill() { if (!pvpOn()) return; game.ks = (game.ks || 0) + 1;
   for (const [id, n, name, desc] of STREAKS) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); } }
 function ksReset() { game.ks = 0; }
 function ksBanner(id, name, desc) { let b = $('ksbanner'); if (!b) { b = document.createElement('div'); b.id = 'ksbanner'; $('hud').appendChild(b); }
-  b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc} · <kbd>Z</kbd> / <kbd>D-pad →</kbd></em></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
+  b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc}</em></div><div class="kskey">${supKey()}<small>${gp.on ? 'D-PAD RIGHT' : 'PRESS'}</small></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
 function ksTrack() { /* the CoD stack: next streaks with progress pips */ let t = $('kstrack'); if (!t) { t = document.createElement('div'); t.id = 'kstrack'; $('hud').appendChild(t); }
   if (!pvpOn() || !player.alive && !MP.active) { t.style.display = 'none'; return; } t.style.display = 'flex'; const k = game.ks || 0;
   setHTML(t, STREAKS.map(([id, n, name]) => { const have = SURV.support.includes(id), got = k >= n; return `<div class="ks${have ? ' rdy' : got ? ' got' : ''}" title="${name}"><i>${KS_ICON[id]}</i><b>${n}</b>${have ? '' : `<u style="width:${Math.min(100, k / n * 100)}%"></u>`}</div>`; }).join('')); }
@@ -5258,11 +5263,11 @@ function supportTick(dt) {
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
   tile.style.display = supOn() && (n || T) ? 'block' : 'none';
   if (T && (!player.alive || game.state !== 'play')) { supportCancel(); return; }
-  if (!T) { if (n) setHTML(tile, `<kbd>Z</kbd><kbd>D-pad →</kbd><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${SURV.support[0] === 'uav' ? 'press to launch' : 'press to aim'}</small>`); return; }
+  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${SURV.support[0] === 'uav' ? 'press to launch' : 'press to aim'}</small>`); return; }
   aimBasis(); const h = raycast(camera.position, _f, 220, false), d = Math.min(h.t, 220); T.at.copy(camera.position).addScaledVector(_f, d); T.at.y = TH(T.at.x, T.at.z) + 0.05;
   const far = Math.hypot(T.at.x - player.pos.x, T.at.z - player.pos.z); T.ok = h.t < 220 && far > 6; T.arm -= dt;
   SURV.mk.position.copy(T.at); SURV.mk.children[0].scale.setScalar(T.id === 'air3' ? 1.6 : 1); SURV.mkMat.color.setHex(T.ok ? 0xff3b30 : 0x888888);
-  setHTML(tile, `<b>${nm(T.id)} · TARGETING</b><small>${T.ok ? `<kbd>CLICK</kbd><kbd>RT</kbd> call it in · <kbd>RIGHT-CLICK</kbd><kbd>B</kbd><kbd>Z</kbd> cancel · ${Math.round(far)} m` : far <= 6 ? 'TOO CLOSE — aim further away' : 'aim at the ground'}</small>`);
+  setHTML(tile, `<b>${nm(T.id)} · TARGETING</b><small>${T.ok ? `${supFire()} call it in · ${supBack()} cancel · ${Math.round(far)} m` : far <= 6 ? 'TOO CLOSE — aim further away' : 'aim at the ground'}</small>`);
   if (!mouseR) T.r0 = false; if (mouseR && !T.r0) { supportCancel(); mouseR = mR = false; wst.adsOn = false; return; }
   if (mouseL && T.arm <= 0) { mouseL = mL = false; if (!T.ok) { sfx.play('hit'); return; } SURV.support.shift(); SURV.tgt = null; callAirstrike(T.at.clone(), T.id === 'air3');
     SURV.mkMat.color.setHex(0xffb020); const t = 2200 + (T.id === 'air3' ? 9 * 240 : 4 * 330); setTimeout(() => { if (SURV.mk && !SURV.tgt) SURV.mk.visible = false; }, t); }
@@ -6716,5 +6721,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); setTimeout(() => { if (game.state === 'menu') music.play('title'); }, 100); /* no music once a match is on */ removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { cam: () => camera, survLab: () => ({ SURV, openBuy, buyItem, supportStart, supportTick, nearStation }), mouse: (l, r) => { mouseL = mL = !!l; mouseR = mR = !!r; }, gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR, SLIDE }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { cam: () => camera, gpRef: () => gp, tracerRef: () => tracers, survLab: () => ({ SURV, openBuy, buyItem, supportStart, supportTick, nearStation }), mouse: (l, r) => { mouseL = mL = !!l; mouseR = mR = !!r; }, gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR, SLIDE }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
