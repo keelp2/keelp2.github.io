@@ -1313,6 +1313,7 @@ function buildMillbrook(L) {
   house2(L, 6.5, -30, 9, 8, { doors: { e: [-26], n: [11] }, m: 'hutwall', roofM: 'thatch' });   // mill
   const wheel = L.prop('octo', 5.6, -0.6, -26, 1, { r: 2.6, h: 0.6, mat: 'planks' }); wheel.k = 'wheel';
   L.octo(50, -24, 3, 12, 'stonewall'); L.prop('coneroof', 50, 12, -24, 1, { r: 3.6, h: 3, mat: 'tiles' });   // silo
+  watchtower(L, 57, -32, 'nx'); // hunting tower on the farm side (counter: barn loft, mill, the bell tower across the river)
   for (let x = 16; x <= 52; x += 6) for (let z = 28; z <= 44; z += 6) { const tx = x + rand(-1, 1), tz = z + rand(-1, 1); L.B(tx, tz, 0.6, 0.6, 3, 0, 'bark').noRender = true; L.prop('oak', tx, 0, tz, rand(0.85, 1.05), { leaf: pick([0x4a7a35, 0x5a8a3a, 0x6a8a30]) }); } // orchard
   for (const [x, z, len, ry] of [[22, 24, 24, 0], [56, 6, 16, Math.PI / 2], [22, -34, 22, 0], [14, -14, 12, Math.PI / 2]]) { L.prop('fence', x, 0, z, 1, { len, ry }); if (ry) L.box(x - 0.1, 0, z - len / 2, x + 0.1, 1, z + len / 2, 'wood').noRender = true; else L.box(x - len / 2, 0, z - 0.1, x + len / 2, 1, z + 0.1, 'wood').noRender = true; }
   for (const [x, z] of [[46, -8], [52, 0], [18, -40], [30, -40], [58, -36], [12, 10], [16, 18]]) { L.B(x, z, 1.8, 1.2, 1, 0, 'hay'); if (Math.random() < 0.5) L.B(x, z, 1.8, 1.2, 1, 1, 'hay'); }
@@ -1322,13 +1323,14 @@ function buildMillbrook(L) {
   mountains(L, [0x6a8098, 0x7a90a6, 0x5d7489], true);
   L.pad(-8, -40, 0, 15, 0, 6); L.pad(18, 40, 0, 15, 0, -6);
   L.spawn = { x: -58, y: 0, z: 0, yaw: -Math.PI / 2 };
+  L.teamSpawns = [[[-58, -2], [-60, -30], [-60, 30], [-50, -40], [-50, 40], [-48, 0]], [[58, 0], [58, -18], [60, 24], [50, 40], [50, -42], [48, 0]]];
   L.enemySpawns = [[58, 0], [58, -20], [58, 20], [40, 42], [40, -42], [-10, 44], [-10, -44], [-58, -40], [-58, 40], [20, -44], [30, 20], [-40, -44]];
   L.pickups = [['health', -34.5, 0, 23.5], ['ammo', -25.2, 7.6, 13.5], ['health', 28, 4.45, -2.5], ['ammo', 32, 0, 5], ['health', -53.5, 3.65, -8], ['ammo', 48.5, 3.65, 20],
     ['health', 0, 0, 0], ['ammo', 0, 0, 30], ['health', 11, 3.65, -24], ['ammo', -22, 0, 4], ['health', 40, 0, 30], ['ammo', -40, 0, -24]];
   L.barrels = [[-14, -10], [14, 4], [-30, 12], [22, -16], [46, 28], [-46, -28], [6, 22], [-6, -24]];
 }
 
-// ---------------------------------------------------------------- MAP 5: OLD QUARTER (tactical two-site layout)
+// ---------------------------------------------------------------- MAP: OLD QUARTER (souk · tower square · rampart)
 function solid(L, x0, z0, x1, z1, h, m, o = {}) { // a building block that frames the lanes: walls, windows, parapet, awnings
   L.box(x0, 0, z0, x1, h, z1, m);
   L.box(x0 - 0.12, h, z0 - 0.12, x1 + 0.12, h + 0.35, z1 + 0.12, o.trim || 'sandstone', { col: false });
@@ -1351,60 +1353,62 @@ function buildOldQuarter(L) {
   L.bounds = [-52, -46, 52, 46]; L.ground = 'cobble'; L.groundScale = 3.2; L.groundTint = 0xf0dcbc; L.grass = 0.05; L.big = true; L.padStyle = 'rune';
   L.box(-56, -1, -50, 56, 0, 50, 'floor').noRender = true;
   L.box(-53, 0, -47, 53, 9, -46, 'plasterB'); L.box(-53, 0, 46, 53, 9, 47, 'plasterB'); L.box(-53, 0, -46, -52, 9, 46, 'plasterB'); L.box(52, 0, -46, 53, 9, 46, 'plasterB');
-  // ---- building blocks that define the lanes
-  solid(L, -52, -46, -30, -34, 7, 'plasterA'); solid(L, 46, -46, 52, -34, 7, 'plasterA');          // T street ends
-  // between mid and long: a two-storey house (mid ↔ courtyard ↔ long) — upper windows watch mid; countered from both doors
-  solid(L, 5, -34, 30, -30, 6, 'plasterA'); solid(L, 5, -18, 30, -8, 6, 'plasterA', { roof: true });
-  house2(L, 5, -30, 13.5, 12, { m: 'plasterA', roofM: 'tiles', doors: { w: [-24], e: [-21] } });
-  L.box(18.5, 0, -30, 30, 3.0, -29.6, 'plasterB'); L.box(18.5, 0, -18.4, 30, 3.0, -18, 'plasterB'); // courtyard walls; opens onto long
-  crates(L, 21, -27, 2); crates(L, 26.5, -21); L.prop('keg', 22.5, 0, -20.5); L.prop('cart', 25, -26.5, 0, 1, { ry: 1.2 }); L.B(25, -26.5, 2, 3, 1.4, 0, 'wood').noRender = true;
-  solid(L, 21, -8, 30, 12, 6.5, 'plasterB');                                                        // long A inner wall
-  solid(L, 44, -34, 52, 12, 7, 'plasterB'); solid(L, 46, 12, 52, 33, 7, 'plasterA');               // east edge
-  solid(L, 5, 6, 18, 34, 6, 'plasterA', { roof: true });                                           // between mid and A
-  L.box(18, 0, 32, 24, 5.5, 33, 'plasterB'); L.box(30, 0, 32, 46, 5.5, 33, 'plasterB');            // A site north wall (CT ramp gap 24..30)
-  solid(L, 30, 33, 52, 46, 8, 'plasterB'); solid(L, -52, 31, -34, 46, 8, 'plasterB');
-  // between B and mid: tunnel ↔ mid connector house with an upper floor over both lanes
-  solid(L, -20, -34, -5, -26, 6, 'plasterA'); solid(L, -20, -14, -5, 12, 6, 'plasterA', { roof: true });
-  house2(L, -20, -26, 15, 12, { m: 'plasterB', roofM: 'tiles', doors: { w: [-20], e: [-17] } });
-  solid(L, -20, 16, -5, 34, 6, 'plasterB');                                                         // between connector and CT
-  L.box(-48, 0, 30, -32, 5.5, 31, 'plasterB'); L.box(-27, 0, 30, -20, 5.5, 31, 'plasterB'); solid(L, -27, 31, -20, 34, 5.5, 'plasterB'); // B site north wall + B doors gap (-32..-27)
-  solid(L, -52, -34, -36, 2, 7, 'plasterB'); solid(L, -36, -34, -26, -8, 7, 'plasterA'); solid(L, -52, 2, -48, 31, 7, 'plasterA');
-  // mid walls & doors
-  doorway(L, -5, 5, 6.3, -1.3, 1.3, 5.5, 'plasterB');
-  L.box(5, 0, -8, 5.6, 5, -6.5, 'plasterB'); L.box(5, 0, -1.5, 5.6, 5, 6, 'plasterB');                // mid → catwalk room opening (z -6.5..-1.5)
-  crates(L, 2.5, -16, 2); crates(L, -3, -24); crates(L, 3, 18); crates(L, -3.2, 26, 2);
-  // ---- A side: long lane, long doors, site with platform, catwalk
-  doorway(L, 30, 44, -18, 35.2, 38.6, 6, 'plasterB');
-  crates(L, 41.5, -30, 2, true); crates(L, 32.5, -26); crates(L, 42, -6, 2); crates(L, 32, 2);
-  L.B(37, 25, 10, 10, 1.2, 0, 'sandstone'); L.stairs(37, 17, 'pz', 4, 0, 1.2, 3, 'sandstone'); L.stairs(29, 25, 'px', 4, 0, 1.2, 3, 'sandstone'); // A platform
-  crates(L, 34, 27, 2, true); crates(L, 40, 22); crates(L, 27, 15, 2); crates(L, 44, 30); crates(L, 24, 28);
-  L.box(5.6, 0, -8, 21, 0.01, 6, 'floor').noRender = true;                                          // catwalk room
-  L.stairs(19.5, 0, 'pz', 3, 0, 2.4, 6, 'sandstone'); L.B(19.5, 10, 3, 8, 2.4, 0, 'sandstone');      // catwalk up to the short-A ledge
-  L.box(18, 2.4, 6, 18.12, 3.3, 14, 'planks', { col: false }); L.box(20.88, 2.4, 6, 21, 3.3, 14, 'planks', { col: false });
-  crates(L, 8, -5); crates(L, 14, 4);
-  // ---- B side: tunnels, upper tunnel room, site
-  L.box(-26.4, 3.2, -34, -19.6, 3.6, -8, 'roof'); L.box(-36.4, 3.2, -8, -19.6, 3.6, 2, 'roof');      // tunnel roofs
-  L.box(-36, 0, 2, -32, 3.2, 2.5, 'plasterB'); L.box(-26, 0, 2, -20, 3.2, 2.5, 'plasterB');           // tunnel exit framing (gap -32..-26)
-  for (const [x, z] of [[-23, -30], [-23, -18], [-28, -4], [-23, -4]]) L.glow(x, 2.9, z, 0xffb060, 1.1);
-  crates(L, -24.5, -14); crates(L, -33.5, -5, 2);
-  L.B(-44, 26, 8, 8, 1.2, 0, 'sandstone'); L.stairs(-37.5, 26, 'nx', 3, 0, 1.2, 2.5, 'sandstone');  // B back platform
-  L.prop('cart', -33, 16, 0, 1, { ry: 0.5 }); L.B(-33, 16, 2, 3, 1.4, 0, 'wood').noRender = true;
-  crates(L, -26, 8, 2, true); crates(L, -42, 12); crates(L, -24, 24); crates(L, -38, 6, 2);
-  // ---- connector mid ↔ B
-  crates(L, -12, 14);
-  // decoration: arches, awnings, lanterns, palms, kegs
-  for (const [x0, x1, z] of [[-5, 5, 34], [24, 30, 33.5], [-32, -27, 31], [30, 44, -34], [-26, -20, -34]]) L.box(x0 - 0.3, 5, z - 0.4, x1 + 0.3, 5.8, z + 0.4, 'sandstone', { col: false });
-  const awn = [0xb33a3a, 0x2f6fae, 0x3f8f4a, 0xd98a2b, 0x8a4ab0];
-  for (const [x, z, w, d] of [[-10, -35, 4, 1.4], [12, -35, 4, 1.4], [-6, 33, 1.4, 4], [40, 11.8, 3, 1.2], [-40, 2.6, 3, 1.2], [6.2, 20, 1.4, 3]]) L.B(x, z, w, d, 0.1, 3.2, 'cloth', { col: false, tint: pick(awn) });
-  for (const [x, z] of [[-2, -38], [20, -38], [-24, -42], [36, -42], [-14, 40], [14, 40], [-30, 38], [26, 42], [38, 30], [-44, 18], [-1, 0], [34, -12]]) L.prop('lantern', x, 0, z, 1);
-  for (const [x, z] of [[8, 40], [-8, 42], [40, 18], [-46, 8], [-18, -42], [28, -42]]) { L.B(x, z, 0.5, 0.5, 4, 0, 'bark').noRender = true; L.prop('palm', x, 0, z, rand(0.9, 1.15)); }
-  for (const [x, z] of [[43, 26], [-47, 20], [10, -40], [-11, 30]]) { L.prop('keg', x, 0, z); }
+  // ---- OLD QUARTER (original layout). Mirror-symmetric north/south so both teams get the same map.
+  // WEST = covered souk (close quarters, arches, stalls) · CENTRE = clock-tower square (power position, countered by the
+  // upper windows of four houses around it) · EAST = street under a raised rampart walk (long sightline; drop off anywhere).
+  // Cross-alleys at z ±20 and passages at z 0 tie the lanes together; houses double as connectors.
+  const half = sg => {
+    const Z = (a, b) => sg > 0 ? [a, b] : [-b, -a], bx = (x0, y0, za, x1, y1, zb, m, o) => { const [z0, z1] = Z(za, zb); return L.box(x0, y0, z0, x1, y1, z1, m, o); };
+    const sol = (x0, za, x1, zb, h, m, o) => { const [z0, z1] = Z(za, zb); solid(L, x0, z0, x1, z1, h, m, o); };
+    const h2 = (x0, z0, w, d, o, dr) => { const md = {}; for (const k in dr) { const kk = sg > 0 ? k : k === 'n' ? 's' : k === 's' ? 'n' : k; md[kk] = k === 'e' || k === 'w' ? dr[k].map(v => v * sg) : dr[k]; } house2(L, x0, sg > 0 ? z0 : -(z0 + d), w, d, Object.assign({ roofM: 'tiles', doors: md }, o)); };
+    // west / centre blocks
+    sol(-52, 0, -46, 34, 7, 'plasterB');
+    h2(-36, 22, 14, 12, { m: 'plasterA' }, { w: [28], s: [-29] }); sol(-22, 22, -4, 34, 6, 'plasterB', { roof: true });
+    h2(-30, 2, 16, 12, { m: 'plasterB' }, { s: [-22], e: [8] }); sol(-36, 2, -30, 18, 6, 'plasterA'); sol(-30, 14, -14, 18, 6, 'plasterA');
+    // east blocks
+    h2(14, 2, 16, 12, { m: 'plasterA' }, { w: [8], s: [22] }); sol(30, 2, 32, 18, 6, 'plasterB'); sol(14, 14, 30, 18, 6, 'plasterB');
+    h2(18, 22, 14, 12, { m: 'plasterB' }, { e: [28], s: [25] }); sol(4, 22, 18, 34, 6, 'plasterA', { roof: true });
+    // chokepoints: arches across the souk and the mid street (alternate routes: the cross-alleys & houses)
+    { const z = 26 * sg; doorway(L, -46, -36, z, -42.6, -39.4, 6, 'plasterB'); doorway(L, -4, 4, z, -1.7, 1.7, 6, 'plasterA'); }
+    // east rampart: stairs at its end, parapet with gaps (one-way drops into the street)
+    L.stairs(49, 32 * sg, sg > 0 ? 'nz' : 'pz', 3, 0, 3.4, 6, 'sandstone');
+    for (let z = 2; z < 26; z += 6) bx(46, 3.4, z, 46.4, 4.4, z + 3.6, 'sandstone');
+    crates(L, 50, 14 * sg, 1); crates(L, 50.2, 20 * sg, 2);
+    // souk dressing: stalls, awnings, lanterns under the covered stretch
+    const st = (x, z, ry, c) => { L.B(x, z * sg, 1.5, 1.5, 0.9, 0, 'planks').noRender = true; L.prop('stall', x, 0, z * sg, 1, { ry, c }); };
+    st(-44, 8, 1.57, 0xb33a3a); st(-38, 16, -1.57, 0x2f6fae); st(-44.2, 30, 1.57, 0x3f8f4a);
+    for (const [x, z] of [[-41, 6], [-41, 14]]) L.glow(x, 3.0, z * sg, 0xffb060, 1.1);
+    L.B(-41, 21 * sg, 9.6, 2.6, 0.1, 3.3, 'cloth', { col: false, tint: sg > 0 ? 0xb33a3a : 0x2f6fae });
+    // square + mid street cover
+    L.B(-9, 9 * sg, 2.6, 1.2, 1.0, 0, 'stone'); L.B(9, 9 * sg, 1.2, 2.6, 1.0, 0, 'stone');
+    crates(L, -2.2, 18 * sg, 2); crates(L, 2.4, 30 * sg); L.prop('cart', 9, 0, 20 * sg, 1, { ry: 1.57 }); L.B(9, 20 * sg, 3, 2, 1.4, 0, 'wood').noRender = true;
+    // east street: carts & a low wall breaking the long sightline
+    L.prop('cart', 36, 0, 12 * sg, 1, { ry: 0.2 }); L.B(36, 12 * sg, 2, 3, 1.4, 0, 'wood').noRender = true; bx(39, 0, 24, 43, 1.1, 24.6, 'stone'); crates(L, 34, 29 * sg, 2);
+    // spawn plaza: fountains, palms, kegs; awnings on the house fronts
+    L.octo(-22, 40 * sg, 2.2, 0.85, 'stone'); L.water.push([-23.6, 40 * sg - 1.6, -20.4, 40 * sg + 1.6, 0.75]); L.octo(22, 40 * sg, 2.2, 0.85, 'stone'); L.water.push([20.4, 40 * sg - 1.6, 23.6, 40 * sg + 1.6, 0.75]);
+    for (const x of [-44, -8, 8, 44]) { L.B(x, 43.5 * sg, 0.5, 0.5, 4, 0, 'bark').noRender = true; L.prop('palm', x, 0, 43.5 * sg, 1.05); }
+    for (const [x, z] of [[-30, 36], [30, 36], [-2, 36], [44, 36], [-46, 36]]) L.prop('lantern', x, 0, z * sg, 1);
+    L.prop('keg', -14, 0, 36 * sg); L.prop('keg', 15, 0, 35.5 * sg);
+    const awn = [0xb33a3a, 0x2f6fae, 0x3f8f4a, 0xd98a2b, 0x8a4ab0];
+    for (const [x, w] of [[-13, 6], [11, 6]]) L.B(x, 35 * sg, w, 1.6, 0.1, 3.2, 'cloth', { col: false, tint: pick(awn) });
+  };
+  half(1); half(-1);
+  // souk roof over the middle stretch + passage arches
+  L.box(-46, 3.4, -12, -36, 3.7, 12, 'roof'); for (const z of [-8, 0, 8]) L.glow(-41, 3.0, z, 0xffb060, 1.1);
+  { const st = (x, z, ry, c) => { L.B(x, z, 1.5, 1.5, 0.9, 0, 'planks').noRender = true; L.prop('stall', x, 0, z, 1, { ry, c }); }; st(-44, -3.5, 1.57, 0xd98a2b); st(-38, 3.5, -1.57, 0x8a4ab0); }
+  for (const [x0, x1] of [[-36, -30], [30, 32]]) L.box(x0, 3.4, -2.3, x1, 4.2, 2.3, 'sandstone'); // lintels over the passage mouths
+  // the clock tower in the square (three levels; belfry sees both mid streets)
+  stairTower(L, -3, -3, 6, 'castle');
+  // east rampart walk (solid below) + its middle stair from the passage
+  L.box(46, 0, -26, 52, 3.4, 26, 'sandstone'); L.box(45.9, 3.4, -26, 52, 3.5, 26, 'stone', { col: false });
+  L.stairs(40, 0, 'px', 3, 0, 3.4, 6, 'sandstone');
+  for (const [x, z] of [[-2, 16.5], [2, -16.5], [-24, 20], [24, -20]]) L.prop('lantern', x, 0, z, 1);
   mountains(L, [0xc2a882, 0xb39a76, 0xcab28c], false);
   L.spawn = { x: 0, y: 0, z: 40, yaw: 0 };
-  L.teamSpawns = [[[-20, 40], [-10, 40], [0, 40], [10, 40], [20, 40], [-28, 38], [26, 38]], [[-24, -40], [-12, -40], [0, -40], [12, -40], [24, -40], [36, -40], [-28, -38]]];
-  L.enemySpawns = L.teamSpawns[1].concat([[37, -28], [-23, -28], [-40, 20], [43, 16], [0, -30], [24, 40], [-24, 40]]);
-  L.pickups = [['health', 0, 0, -10], ['ammo', 37, 1.2, 25], ['health', -34, 0, 24], ['ammo', 19.5, 2.4, 11], ['health', -28, 0, -2], ['ammo', 37, 0, -26], ['ammo', 0, 0, 38], ['health', 13, 0, -2]];
-  L.barrels = [[40, -10], [-30, 10], [12, -6], [-10, 14], [30, 20]];
+  L.teamSpawns = [[[-40, 40], [-30, 41], [-12, 41], [0, 41], [12, 41], [30, 41], [40, 40]], [[-40, -40], [-30, -41], [-12, -41], [0, -41], [12, -41], [30, -41], [40, -40]]];
+  L.enemySpawns = L.teamSpawns[1].concat([[-41, -20], [-41, 20], [39, -16], [39, 16], [-20, 20], [20, -20], [-9, -12], [9, 12]]);
+  L.pickups = [['health', -10, 0, -11], ['ammo', 10, 0, 11], ['health', -41, 0, 0], ['ammo', 38, 0, -8], ['ammo', 49, 3.4, 8], ['health', 49, 3.4, -8], ['ammo', -24, 0, 0], ['health', 24, 0, 0]];
+  L.barrels = [[-12, 20], [12, -20], [38, 22], [-40, -24], [-30, 0], [30, 0]];
 }
 
 // ---------------------------------------------------------------- MAP 6: CROSSROADS (large war-torn city)
@@ -1585,6 +1589,8 @@ function buildFreight(L) {
   // metal stairs up onto four single containers (high ground over the lanes)
   L.stairs(-22, -27.35, 'nz', 2.2, 0, 2.6, 3.4, 'grate'); L.stairs(18, -10.65, 'pz', 2.2, 0, 2.6, 3.4, 'grate');
   L.stairs(-18, 11.65, 'nz', 2.2, 0, 2.6, 3.4, 'grate'); L.stairs(22, 27.35, 'pz', 2.2, 0, 2.6, 3.4, 'grate');
+  L.stairs(-3, -2.4, 'nz', 2.2, 0, 2.6, 3.4, 'grate'); L.stairs(3, 2.4, 'pz', 2.2, 0, 2.6, 3.4, 'grate');      // centre pair: hold mid, countered from the stacks
+  L.stairs(-28, -4.9, 'nz', 2.2, 0, 5.2, 7, 'grate'); L.stairs(28, 4.9, 'pz', 2.2, 0, 5.2, 7, 'grate');         // up onto the double stacks (power positions)
   // gantry crane straddling the yard
   for (const [x, z] of [[-31, -38], [31, -38], [-31, 38], [31, 38]]) { L.B(x, z, 1.1, 1.1, 22, 0, 'crane'); L.prop('cranewheel', x, 0, z, 1); }
   L.box(-32, 20, -38.6, 32, 22, -37.4, 'crane', { col: false }); L.box(-32, 20, 37.4, 32, 22, 38.6, 'crane', { col: false });
@@ -1691,6 +1697,7 @@ function buildOasis(L) {
   house2(L, 36, -30, 9, 10, { m: 'plasterA', roofM: 'tiles', doors: { w: [-25], s: [40.5] } });
   bunker(L, -8, -50, 14, 8, { n: [-1] }, 'plasterB'); bunker(L, 40, -50, 12, 8, { n: [46], w: [-46] }, 'plasterA');
   bunker(L, -58, -20, 10, 12, { e: [-14], n: [-53] }, 'sandstone'); bunker(L, 50, 6, 12, 10, { w: [11], s: [56] }, 'plasterB');
+  L.stairs(-52, -24.7, 'pz', 1.8, 0, 3.5, 4.7, 'sandstone'); L.stairs(45.3, 14, 'px', 1.8, 0, 3.5, 4.7, 'plasterB'); // flat roofs you can climb
   const awn = [0xc04a2a, 0x2f6fae, 0x3f8f4a, 0xd98a2b, 0x8a4ab0];
   [[-6, -24, 1], [2, -26, 1], [10, -23, 0], [-12, -30, 0], [6, -33, 1]].forEach(([cx, cz, r], i) => { const w = r ? 3.4 : 1, d = r ? 1 : 3.4, aw = r ? 4 : 2.6, ad = r ? 2.6 : 4;
     L.B(cx, cz, w, d, 1.1, 0, 'planks'); L.B(cx, cz, aw, ad, 0.1, 2.7, 'cloth', { col: false, tint: awn[i] }); for (const sx of [-1, 1]) for (const sz of [-1, 1]) L.B(cx + sx * (aw / 2 - 0.1), cz + sz * (ad / 2 - 0.1), 0.12, 0.12, 2.7, 0, 'planks', { col: false }); });
@@ -1710,7 +1717,7 @@ function buildOasis(L) {
   L.barrels = [[-12, -18], [12, 20], [-36, 18], [36, -12], [-20, 30], [20, -32]];
 }
 function buildFirebase(L) {
-  L.coverKit = 'mil';
+  L.coverKit = 'mil'; L.coverGap = 9;
   L.edge = 'berm'; L.edgeBerm = 6; L.edgeW = 16; L.rockC = 0xc8ac88;
   L.hills = 5.5; L.hillScale = 38; L.hillRamp = 11;
   const R = seeded(4242);
@@ -1727,6 +1734,7 @@ function buildFirebase(L) {
   // command post (two storeys), barracks, motor pool
   house2(L, -30, -24, 16, 12, { m: 'concrete', roofM: 'tiles', doors: { n: [-26, -18], e: [-18], s: [-22] } });
   bunker(L, 10, -26, 18, 9, { n: [14, 24], w: [-21.5] }); bunker(L, 10, 17, 18, 9, { s: [14, 24], e: [21.5] }); bunker(L, -28, 14, 12, 9, { s: [-22], e: [18.5] });
+  L.stairs(32.7, -18.5, 'nx', 1.8, 0, 3.5, 4.7, 'concrete'); L.stairs(32.7, 18.5, 'nx', 1.8, 0, 3.5, 4.7, 'concrete'); L.stairs(-32.7, 21, 'px', 1.8, 0, 3.5, 4.7, 'concrete'); // bunker roofs = mid-height positions
   // helipad + downed helicopter
   L.box(-7, 0, -7, 7, 0.06, 7, 'concrete', { col: false }); L.box(-0.3, 0.06, -4, 0.3, 0.07, 4, 'white', { col: false }); L.box(-3, 0.06, -0.3, 3, 0.07, 0.3, 'white', { col: false });
   L.B(2, 1, 3, 9, 2.6, 0, 'carpaint', { tint: 0x5a5f48 }).noRender = true; L.prop('heli', 2, 0, 1, 1, { ry: 0.35 }); L.glow(1.5, 2.2, 3, 0xff8030, 2, true); L.smoke.push([1.5, 2.6, 3]);
@@ -1918,7 +1926,7 @@ function buildBazaar(L) {
 
 const MAPS = [
   {
-    name: 'OLD QUARTER', desc: 'Tactical two-site town in the desert sun: long A, mid doors, B tunnels and a catwalk. Built for Team Deathmatch.', tag: 'Competitive · lanes & angles', build: buildOldQuarter,
+    name: 'OLD QUARTER', desc: 'Sun-baked old town: a covered souk, a clock-tower square and a rampart walk over the east street, stitched together by alleys and houses.', tag: 'Three lanes · tower square', build: buildOldQuarter,
     theme: {
       skyTop: 0x3f86d6, skyBottom: 0xf4e2c0, sunColor: 0xfff0d0, sunDir: [0.4, 0.7, -0.35], fog: 0xe8dcc4, fogNear: 70, fogFar: 240,
       hemiSky: 0xe8f0ff, hemiGround: 0xa08a64, hemi: 1.3, sun: 2.8, sunLight: 0xfff0d8, shadowSun: [0.4, 1, -0.35], farGround: 0xc8b08a, clouds: 6, cloudColor: 0xffffff,
@@ -2089,8 +2097,14 @@ function coverPass(L, name) {
   // 2) fill open ground, worst spot first
   const gap = L.coverGap || 7.5; let placed = 0;
   for (let it = 0; it < 90; it++) { dist(); let bk = -1, bv = gap; for (let k = 0; k < N; k++) if (!keep[k] && d[k] > bv + (R() - 0.5) * 0.6) { bv = d[k]; bk = k; } if (bk < 0) break;
-    const x = bx0 + (bk % nx) * cs, z = bz0 + Math.floor(bk / nx) * cs, axis = R() < 0.5 ? 'x' : 'z'; piece(x, z, axis, false); placed++;
-    if (R() < 0.6) { const a = R() * 6.283, x2 = Math.round(x + Math.cos(a) * 3.2), z2 = Math.round(z + Math.sin(a) * 3.2); if (free(x2, z2, 1)) piece(x2, z2, axis === 'x' ? 'z' : 'x', R() < 0.4); } }
+    const x = bx0 + (bk % nx) * cs, z = bz0 + Math.floor(bk / nx) * cs, ax = R() < 0.5 ? 'x' : 'z', o = ax === 'x' ? 'z' : 'x', sg = R() < 0.5 ? 1 : -1, P = (u, v) => ax === 'x' ? [x + u, z + v * sg] : [x + v * sg, z + u];
+    if (kit === 'mil' && free(x, z, 3)) { // sandbag fighting position: a U open to the rear, sometimes with an ammo crate inside
+      sandbags(L, ...P(0, 1.5), 3, ax); sandbags(L, ...P(-1.95, -0.1), 2.4, o); sandbags(L, ...P(1.95, -0.1), 2.4, o); if (R() < 0.5) crates(L, ...P(0.9, -0.6), 1); mark(x - 3.5, z - 3.5, x + 3.5, z + 3.5, occ); }
+    else if (kit === 'urban' && free(x, z, 3)) { barrier(L, ...P(-1.7, 0), ax); barrier(L, ...P(1.7, 0.5), ax); if (R() < 0.6) crates(L, ...P(0, -1.6), R() < 0.5 ? 2 : 1); mark(x - 3.5, z - 3.5, x + 3.5, z + 3.5, occ); }
+    else if (kit === 'yard' && free(x, z, 3)) { crates(L, ...P(-0.9, 0), 2, true); crates(L, ...P(0.9, 0.1), 1, true); crates(L, ...P(0.2, -1.5), 1); mark(x - 3.5, z - 3.5, x + 3.5, z + 3.5, occ); }
+    else if (kit === 'town' && free(x, z, 3)) { const [cx, cz] = P(0, 0.6); L.prop('cart', cx, 0, cz, 1, { ry: ax === 'x' ? Math.PI / 2 : 0 }); L.B(cx, cz, ax === 'x' ? 3 : 2, ax === 'x' ? 2 : 3, 1.4, 0, 'wood').noRender = true; crates(L, ...P(2.2, -0.6), R() < 0.5 ? 2 : 1); L.prop('keg', ...((q) => [q[0], 0, q[1]])(P(-2, -0.8))); mark(x - 3.5, z - 3.5, x + 3.5, z + 3.5, occ); }
+    else piece(x, z, ax, false);
+    placed++; }
   L.coverPlaced = placed;
 }
 function dressEdges(L, name) {
@@ -5747,7 +5761,7 @@ function captureMapThumb() {
   try { const c = document.createElement('canvas'); const src = renderer.domElement, W = Math.min(1280, src.width), H = Math.round(W * src.height / src.width); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, W, H); const url = c.toDataURL('image/jpeg', 0.8); // big enough to fill the loading screen sharply
     const key = 'bp_mthumb2_' + world.def.name; try { for (const m of MAPS) localStorage.removeItem('bp_mthumb_' + m.name); localStorage.setItem(key, url); } catch (e) {} applyMapThumbs(); } catch (e) {}
 }
-const MAPIMG = i => `thumbs/${i}.jpg?v=6`; // baked aerial postcards (see postcard())
+const MAPIMG = i => `thumbs/${i}.jpg?v=7`; // baked aerial postcards (see postcard())
 function applyMapThumbs() { MAPS.forEach((m, i) => { const u = MAPIMG(i); const card = $('maps').children[i]; if (card && u) { card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,0) 25%,rgba(12,14,19,.55) 60%,rgba(12,14,19,.9)),url(${u})`; card.style.backgroundSize = 'cover'; card.style.backgroundPosition = 'center 68%'; } }); }
 
 // ============================================================ GAMEPAD (Xbox / PlayStation via the Gamepad API)
