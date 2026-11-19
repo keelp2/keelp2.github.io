@@ -1284,7 +1284,7 @@ function wallZ2(L, z0, z1, x, th, y0, h, ops, m) {
   }
   if (cur < z1) L.box(x - th / 2, y0, cur, x + th / 2, y0 + h, z1, m);
 }
-const D2 = c => ({ c, w: 1.8, y0: 0, y1: 2.5 }), W2 = c => ({ c, w: 1.5, y0: 0.8, y1: 2.75 }); // windows: 1.95 m tall, sill at hip height: vault straight through standing
+const D2 = c => ({ c, w: 1.8, y0: 0, y1: 2.5 }), W2 = c => ({ c, w: 1.8, y0: 0.75, y1: 2.8 }); // windows: 1.95 m tall, sill at hip height: vault straight through standing
 // a real window in a wall opening: wooden frame + a fill chosen from the position (same on every client)
 function winOpening(L, ax, a, b, c, th, y0, y1, o) {
   if (o.open || y1 - y0 < 0.5) return;
@@ -3103,12 +3103,12 @@ function animChar(o, dt, speed, pitch = 0) {
   if (o.mixer) {
     let st = speed < 0.4 ? 'Idle' : speed < 3.4 ? 'Walk' : 'Run'; const dir = !!o.act.StrafeL; // mocap troops: pick the clip from where you move vs where you face
     if (dir) { const gp = o.group.position; if (o._lp && dt > 0) { o._vx = damp(o._vx || 0, (gp.x - o._lp.x) / dt, 10, dt); o._vz = damp(o._vz || 0, (gp.z - o._lp.z) / dt, 10, dt); } o._lp = (o._lp || new V3()).copy(gp);
-      const yaw = o.group.rotation.y, fw = Math.sin(yaw) * (o._vx || 0) + Math.cos(yaw) * (o._vz || 0), rt = -Math.cos(yaw) * (o._vx || 0) + Math.sin(yaw) * (o._vz || 0), crouch = (o.crouchK || 0) > 0.45;
+      const yaw = o.group.rotation.y, fw = Math.sin(yaw) * (o._vx || 0) + Math.cos(yaw) * (o._vz || 0), rt = (o.rsign || 1) * (Math.cos(yaw) * (o._vx || 0) - Math.sin(yaw) * (o._vz || 0)), crouch = (o.crouchK || 0) > 0.45;
       st = speed < 0.4 ? (crouch ? 'CrouchIdle' : 'Idle') : crouch ? 'CrouchWalk' : Math.abs(rt) > Math.abs(fw) * 1.25 ? (rt > 0 ? 'StrafeR' : 'StrafeL') : fw < -0.25 ? 'Back' : speed < 3.4 ? 'Walk' : speed < 5.7 || !o.act.Sprint ? 'Run' : 'Sprint'; }
     if (st !== o.animState && o.act[st]) { const from = o.act[o.animState], to = o.act[st]; to.reset(); to.play(); if (from) from.crossFadeTo(to, 0.22, false); o.animState = st; }
     for (const [k, base, lo, hi] of [['Walk', 1.6, 0.6, 1.7], ['Back', 1.4, 0.6, 1.6], ['StrafeL', 1.5, 0.6, 1.7], ['StrafeR', 1.5, 0.6, 1.7], ['CrouchWalk', 1.3, 0.6, 1.6], ['Run', 5, 0.7, 1.4], ['Sprint', 6.5, 0.8, 1.3]]) if (o.act[k]) o.act[k].timeScale = clamp(speed / base, lo, hi);
     o.mixer.update(dt);
-    if (dir && o.act.CrouchIdle) { o.inner.position.y = 0; } else { const c = o.crouchK || 0, B = o.bones; o.inner.position.y = -0.5 * c; // crouch: bend hips/knees/ankles and lower the body (hands stay on the gun via IK below)
+    if (dir && o.act.CrouchIdle) { o.inner.position.y = 0; o._ck = damp(o._ck || 0, (o.crouchK || 0) > 0.45 ? 1 : 0, 9, dt); if (o.gunHolder) { o.gunHolder.position.y = 1.24 - 0.5 * o._ck; o.gunHolder.position.z = 0.24 + 0.06 * o._ck; } } else { /* the crouch clip lowers the body, so the gun comes down with it */ const c = o.crouchK || 0, B = o.bones; o.inner.position.y = -0.5 * c;
       if (c > 0.01) { for (const sd of ['Left', 'Right']) { if (B[sd + 'UpLeg']) B[sd + 'UpLeg'].rotation.x += CROUCH.u * c; if (B[sd + 'Leg']) B[sd + 'Leg'].rotation.x += CROUCH.l * c; if (B[sd + 'Foot']) B[sd + 'Foot'].rotation.x += CROUCH.f * c; } if (B.Spine) B.Spine.rotation.x += CROUCH.s * c; } }
     o.group.updateMatrixWorld(true);
     // inverse kinematics: hands onto the weapon
@@ -3582,7 +3582,7 @@ function botPlayerDie() {
   if (k && k.stat) k.stat.kills++; if (BD.teams && k) BD.teamKills[k.team]++;
   { const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null); killFeed(k ? k.name : null, k ? tc(k.team) : null, k && k.W ? k.W.short : '', !!BD.lastHead, BD.stats[0].name, tc(0), true); }
   player.alive = false; sfx.voice('death', { self: true, pitch: settings.vpitch || 120, vol: 0.8 }); MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
-  showMsg('ELIMINATED', k ? 'by ' + k.name : '', 3); checkBotEnd();
+  showMsg('ELIMINATED', k ? 'by ' + k.name : '', 3); checkBotEnd(); if (k && k._pid) potgKillcam(k._pid);
 }
 function checkBotEnd() { if (BD.teams) { for (const t of [0, 1]) if (BD.teamKills[t] >= BD.limit) endBotMatch((t ? 'The Republican Guard' : 'The Coalition') + ' reached ' + BD.limit + ' kills'); return; } const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); if (top.kills >= BD.limit) endBotMatch(top.name + ' reached the kill limit'); }
 function updateBotMatch(dt) {
@@ -4920,13 +4920,20 @@ function updatePlayer(dt) {
   } else if (wl > 0) accelerate(wx, wz, max, 10, 1.0, dt);
   // jump
   P.jumpBuf -= dt; P.coyote = P.onGround ? 0.1 : P.coyote - dt;
-  if (P.mantle) { const M = P.mantle; M.t += dt; const k = Math.min(1, M.t / M.dur), e = k * k * (3 - 2 * k); P.pos.set(lerp(M.a.x, M.b.x, smooth(0.35, 1, k)), lerp(M.a.y, M.b.y, Math.min(1, e * 1.5)), lerp(M.a.z, M.b.z, smooth(0.35, 1, k))); P.vel.set(0, 0, 0); if (M.crouch) P.crouch = 1;
+  if (P.mantle) { const M = P.mantle; M.t += dt; const k = Math.min(1, M.t / M.dur), e = k * k * (3 - 2 * k);
+    if (M.peak !== undefined) { const h = k < 0.45 ? lerp(M.a.y, M.peak, smooth(0, 0.45, k)) : lerp(M.peak, M.b.y, smooth(0.45, 1, k)); P.pos.set(lerp(M.a.x, M.b.x, e), h, lerp(M.a.z, M.b.z, e)); } // vault through: one arc over the sill
+    else P.pos.set(lerp(M.a.x, M.b.x, smooth(0.35, 1, k)), lerp(M.a.y, M.b.y, Math.min(1, e * 1.5)), lerp(M.a.z, M.b.z, smooth(0.35, 1, k))); P.vel.set(0, 0, 0); if (M.crouch) P.crouch = 1;
     if (k >= 1) { P.mantle = null; P.onGround = true; } return; }
   if ((P.jumpBuf > 0 || (keys.Space && !P.onGround)) && fwd > 0.3 && !P.sliding) { // look for a ledge just ahead
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), px = P.pos.x + fx * 0.6, pz = P.pos.z + fz * 0.6; let top = null;
     for (const b of world.nav.bucket(px, pz)) if (!b.dead && px > b.x0 && px < b.x1 && pz > b.z0 && pz < b.z1 && b.y1 > P.pos.y + 0.45 && b.y1 < P.pos.y + 1.85 && (top === null || b.y1 > top)) top = b.y1;
     if (top !== null) for (const b of world.boxes) if (b.glass && !b.dead && overlapBox(b, px, top + 0.03, pz, P.r * 0.9, 1.1)) { breakPane(b.glass, true); game.shake = Math.min(1, game.shake + 0.2); }
-    if (top !== null && !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.1)) { const stand = !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.75);
+    if (top !== null && !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.1)) { // thin sill with room beyond (a window, a low wall): vault straight through and land on the far side
+      let far = 0; for (let d = 0.65; d <= 1.6; d += 0.1) { const qx = P.pos.x + fx * d, qz = P.pos.z + fz * d; if (!world.nav.bucket(qx, qz).some(b => !b.dead && qx > b.x0 && qx < b.x1 && qz > b.z0 && qz < b.z1 && b.y1 > top - 0.05 && b.y0 < top + 1.2)) { far = d; break; } }
+      if (far && far < 1.45) for (const off of [0.45, 0.65, 0.9, 1.15]) { const lx = P.pos.x + fx * (far + off), lz = P.pos.z + fz * (far + off), hit = raycast(new V3(lx, top + 0.4, lz), new V3(0, -1, 0), 4, false), gy = top + 0.4 - hit.t;
+        if (hit.t < 4 && gy > top - 3.2 && gy < top + 0.1 && !anyOverlap(lx, gy + 0.03, lz, P.r * 0.9, 1.7) && !anyOverlap(lx, top + 0.15, lz, P.r * 0.9, 1.0)) {
+          P.mantle = { t: 0, dur: 0.42 + Math.max(0, top - P.pos.y) * 0.08 + off * 0.12, a: P.pos.clone(), b: new V3(lx, gy + 0.02, lz), peak: top + 0.12, crouch: false }; P.jumpBuf = 0; sfx.play('land', { vol: 0.35 }); vm.kick = 0.35; noise(P.pos, 6, PLAYER_T); return; } }
+      const stand = !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.75);
       P.mantle = { t: 0, dur: 0.3 + (top - P.pos.y) * 0.12, a: P.pos.clone(), b: new V3(P.pos.x + fx * 0.85, top + 0.02, P.pos.z + fz * 0.85), crouch: !stand }; P.jumpBuf = 0; sfx.play('land', { vol: 0.4 }); vm.kick = 0.4; noise(P.pos, 6, PLAYER_T); return; } }
   if (P.jumpBuf > 0 && P.coyote > 0) {
     P.vel.y = 7.4 * cls().jump; P.jumpBuf = 0; P.coyote = 0; P.onGround = false;
@@ -5763,7 +5770,7 @@ function mpSpawnPointOld() {
   }
   return best;
 }
-function mpRespawn() { ng.on = false; ng.cook = -1; ng.throwT = 0; applyPendingClass();
+function mpRespawn() { if (game.potg && game.potg.killcam) endPotg(); game.killcamQ = null; ng.on = false; ng.cook = -1; ng.throwT = 0; applyPendingClass();
   const C = cls(), [x, y, z] = mpSpawnPoint();
   const HP0 = Math.round(C.hp * hpMul()); Object.assign(player, { maxHp: HP0, hp: HP0, regenCap: HP0, alive: true, grenades: C.nades, tacticals: 2, shield: 0, shieldT: 0, stimT: 0, crouch: 0, sliding: false, h: 1.75, onGround: false, stepSmooth: 0, pitch: 0, protT: game.time + 2.5, lastDmgT: 99 });
   player.pos.set(x, y, z); player.vel.set(0, 0, 0); player.yaw = Math.atan2(x, z); // face the map centre
@@ -5852,7 +5859,7 @@ function mpDie() {
   const by = MP.lastAttacker && game.time - MP.lastAttackT < 8 ? MP.lastAttacker : MP.myId;
   if (MP.players[by] && MP.players[by].bot) MP.botDeaths = (MP.botDeaths || 0) + 1;
   netSend({ t: 'die', by, head: MP.lastHead, w: by === MP.myId ? '' : MP.lastWeapon || '' });
-  showMsg('ELIMINATED', by === MP.myId ? 'Respawning…' : 'by ' + pname(by), 3);
+  showMsg('ELIMINATED', by === MP.myId ? 'Respawning…' : 'by ' + pname(by), 3); if (by !== MP.myId) { const ke = enemies.find(e => e.netId === by); potgKillcam(ke ? ke._pid : 'r' + by); }
 }
 // ---- lobby UI
 function openMpScreen() {
@@ -6010,31 +6017,44 @@ function potgRecord(dt) {
     a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, 'rifle']); }
   POTG.frames.push({ t: POTG.t, a });
 }
-const potgEvent = (type, o) => { if (POTG.on && !game.outro && game.state === 'play') POTG.ev.push(Object.assign({ t: POTG.t, type }, o)); };
-function potgPick() { // best 8 s window: kills, headshots, multi-kills; online, real players beat bots
-  const byHero = {}; for (const e of POTG.ev) if (e.type === 'kill' && e.k) { const id = POTG.names[e.k]; if (!id || POTG.names[e.v] === id) continue; (byHero[id] || (byHero[id] = [])).push(e); }
-  let best = null; const anyHuman = Object.keys(byHero).some(id => POTG.actors[id] && POTG.actors[id].human);
+const potgEvent = (type, o) => { if (POTG.on && !game.outro && game.state === 'play' && !game.potg) POTG.ev.push(Object.assign({ t: POTG.t, type }, o)); };
+function potgPick() { // CoD-style scoring: kills, headshots, kill chains, long shots, the match winner; online, real players beat bots
+  const posAt = (id, t) => { let best = null, bd = 1e9; for (let i = Math.max(0, Math.floor(POTG.frames.length * t / Math.max(POTG.t, 1)) - 40); i < POTG.frames.length; i++) { const f = POTG.frames[i], d = Math.abs(f.t - t); if (d < bd) { bd = d; best = f; } else if (f.t > t) break; } const a = best && best.a.find(x => x[0] === id); return a ? new V3(a[1], a[2], a[3]) : null; };
+  const kills = POTG.ev.filter(e => e.type === 'kill' && e.k && POTG.names[e.k] && POTG.names[e.k] !== POTG.names[e.v]), last = kills[kills.length - 1];
+  const byHero = {}; for (const e of kills) (byHero[POTG.names[e.k]] || (byHero[POTG.names[e.k]] = [])).push(e);
+  const anyHuman = Object.keys(byHero).some(id => POTG.actors[id] && POTG.actors[id].human); let best = null;
   for (const id in byHero) { if (MP.active && anyHuman && !POTG.actors[id].human) continue; const ks = byHero[id];
-    for (let i = 0; i < ks.length; i++) { const end = ks[i].t, win = ks.filter(k => k.t <= end && k.t >= end - 7), n = win.length, sc = n * 100 + win.filter(k => k.h).length * 50 + (n > 1 ? 90 * Math.pow(n - 1, 1.5) : 0) + (id === 'me' ? 1 : 0);
-      if (!best || sc > best.sc) best = { id, sc, n, t0: Math.max(win[0].t - 2.6, 0), t1: end + 1.6, kills: win }; } }
+    for (let i = 0; i < ks.length; i++) { let j = i; while (j + 1 < ks.length && ks[j + 1].t - ks[j].t < 4.5 && ks[j + 1].t - ks[i].t < 9) j++; // a chain of kills, each within 4.5 s of the last
+      const win = ks.slice(i, j + 1), n = win.length; let sc = 0;
+      for (const k of win) { sc += 100 + (k.h ? 60 : 0); const a = posAt(id, k.t), v = posAt(POTG.names[k.v], k.t - 0.1); if (a && v && a.distanceTo(v) > 30) sc += 40; if (k === last) sc += 80; }
+      sc += n > 1 ? 150 * (n - 1) * (1 + 0.25 * (n - 2)) : 0; if (id === 'me' && !MP.active) sc += 30;
+      if (!best || sc > best.sc) best = { id, sc, n, t0: Math.max(win[0].t - 3.0, POTG.frames[0] ? POTG.frames[0].t : 0), t1: Math.min(win[n - 1].t + 1.8, win[0].t - 3 + 12), kills: win }; } }
   return best && POTG.frames.length > 10 ? best : null;
 }
-function startPotg(done) {
-  const B = potgPick(); POTG.on = false; if (!B) return done();
+// Killcam: when you die, replay the last few seconds through your killer's eyes while you wait to respawn
+function potgKillcam(id) { if (!POTG.on || !id || !POTG.actors[id]) return; game.killcamQ = { id, t: POTG.t, at: game.time + 1.0 }; MP.respawnT = Math.max(MP.respawnT, 5.2); }
+function killcamTick(dt) {
+  const Q = game.killcamQ; if (Q && !game.potg && !player.alive && game.time >= Q.at) { game.killcamQ = null; const t1 = Math.min(Q.t + 0.9, POTG.t), ev = POTG.ev.filter(e => e.type === 'kill' && e.t >= Q.t - 0.5 && e.t <= Q.t + 0.5);
+    startPotg(() => {}, { id: Q.id, sc: 0, n: 1, t0: Math.max(0, t1 - 5.2), t1, kills: ev }, true); }
+  if (game.potg && game.potg.killcam) { if (player.alive) endPotg(); else updatePotg(dt); }
+}
+function startPotg(done, Bk, killcam) {
+  const B = Bk || potgPick(); if (!killcam) POTG.on = false; if (!B) return done();
   const A = POTG.actors[B.id], fr = POTG.frames.filter(f => f.t >= B.t0 - 0.2 && f.t <= B.t1 + 0.2); if (fr.length < 4) return done();
   const ghosts = {}, hidden = [];
   for (const o of [...enemies, ...remoteList]) if (o.group && o.group.visible) { o.group.visible = false; hidden.push(o); } if (avatar) { avatar.group.visible = false; hidden.push(avatar); }
   const ids = new Set(); for (const f of fr) for (const a of f.a) ids.add(a[0]);
   for (const id of ids) { const I = POTG.actors[id]; if (!I) continue; const ch = makeCharacter(I.kind || 'knight', { weapon: (fr[0].a.find(a => a[0] === id) || [])[7] || 'rifle', faction: I.faction, seed: I.seed, byClass: I.human, troop: I.troop }); ch.group.visible = false; world.group.add(ch.group); ghosts[id] = ch; }
   const ov = $('potgov') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'potgov' }));
-  ov.innerHTML = `<div class="ptitle"><small>PLAY OF THE GAME</small><b>${esc(A.name.toUpperCase())}</b><i>${B.n > 1 ? ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, B.n)] : 'CLUTCH ELIMINATION'}</i></div><div class="pcall" id="potgCall"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>`;
+  ov.innerHTML = killcam ? `<div class="ptitle"><small>KILLCAM</small><b>${esc(A.name.toUpperCase())}</b><i>HOW YOU WENT DOWN</i></div><div class="pcall" id="potgCall"></div>` : `<div class="ptitle"><small>PLAY OF THE GAME</small><b>${esc(A.name.toUpperCase())}</b><i>${B.n > 1 ? ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, B.n)] : 'CLUTCH ELIMINATION'}</i></div><div class="pcall" id="potgCall"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>`;
   ov.className = 'on'; $('hud').classList.add('cine'); $('hud').classList.add('potgmode');
-  game.potg = { t: B.t0, B, fr, ghosts, hidden, done, ei: POTG.ev.findIndex(e => e.t >= B.t0), cam: null, kc: 0, skip: false, real: 0 };
-  game.state = 'potg'; sfx.play('levelup');
+  game.potg = { t: B.t0, B, fr, ghosts, hidden, done, ei: POTG.ev.findIndex(e => e.t >= B.t0), cam: null, kc: 0, skip: false, real: 0, killcam: !!killcam };
+  if (!killcam) { game.state = 'potg'; sfx.play('levelup'); }
   const sk = e => { if (game.potg && (e.type !== 'keydown' || e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape')) game.potg.skip = true; }; addEventListener('keydown', sk); addEventListener('mousedown', sk); game.potg.unbind = () => { removeEventListener('keydown', sk); removeEventListener('mousedown', sk); };
 }
 function updatePotg(dt) {
   const G = game.potg; if (!G) return; G.real += dt; if (gp.on && gp.pressed && gp.pressed('a')) G.skip = true;
+  if (G.killcam) for (const o of [...enemies, ...remoteList]) if (o.group && o.group.visible) { o.group.visible = false; G.hidden.includes(o) || G.hidden.push(o); }
   const slow = G.B.kills.some(k => Math.abs(k.t - G.t) < 0.45) ? 0.35 : 1; G.t += dt * slow;
   if (G.t >= G.B.t1 || G.skip || G.real > 16) return endPotg();
   let i = 0; while (i < G.fr.length - 2 && G.fr[i + 1].t < G.t) i++; const f0 = G.fr[i], f1 = G.fr[i + 1] || f0, k = clamp((G.t - f0.t) / Math.max(1e-3, f1.t - f0.t), 0, 1);
@@ -6042,23 +6062,29 @@ function updatePotg(dt) {
     if (!a0 || !a0[6]) { ch.group.visible = false; continue; } ch.group.visible = id !== G.B.id || true;
     const x = lerp(a0[1], a1[1], k), y = lerp(a0[2], a1[2], k), z = lerp(a0[3], a1[3], k), yaw = a0[4] + angDiff(a0[4], a1[4]) * k, sp = Math.hypot(a1[1] - a0[1], a1[3] - a0[3]) / Math.max(1e-3, f1.t - f0.t);
     ch.group.position.set(x, y, z); ch.group.rotation.y = yaw; if (ch.weaponId !== a0[7] && a0[7]) { try { setCharWeapon(ch, a0[7]); ch.weaponId = a0[7]; } catch (e) {} } animChar(ch, dt * slow, sp, a0[5]);
-    if (id === G.B.id) G.hero = { x, y, z, yaw, pitch: lerp(a0[5], a1[5], k) }; }
+    if (id === G.B.id) { G.hero = { x, y, z, yaw, pitch: lerp(a0[5], a1[5], k) }; G.spd = sp; if (G.vmId !== a0[7] && a0[7]) potgViewmodel(G, a0[7]); } }
   for (; G.ei >= 0 && G.ei < POTG.ev.length && POTG.ev[G.ei].t <= G.t; G.ei++) { const e = POTG.ev[G.ei]; if (e.t < G.B.t0) continue; const cp = camera.position;
-    if (e.type === 'tr') { spawnTracer(new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
+    if (e.type === 'tr') { const mine = G.hero && Math.hypot(e.a[0] - G.hero.x, e.a[2] - G.hero.z) < 1.6; if (mine) { G.kick = 1; if (G.vm && G.vm.userData.flash) { G.vm.userData.flash.visible = true; setTimeout(() => { if (G.vm) G.vm.userData.flash.visible = false; }, 50); } }
+      spawnTracer(mine && G.vm ? G.vm.localToWorld(new V3(0, 0.03, -0.75)) : new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
     else if (e.type === 'boom') { sfx.boom(Math.hypot(e.p[0] - cp.x, e.p[2] - cp.z), 0, 1, { x: e.p[0], y: e.p[1], z: e.p[2] }); debris.burst(e.p[0], e.p[1] + 0.3, e.p[2], 24, 9, 1, 0.75, 0.4, 0.9, 1); }
     else if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } sfx.play(e.h ? 'hmhead' : 'hmkill'); } }
-  const H = G.hero; if (!H) return; const fx = Math.sin(H.yaw), fz = Math.cos(H.yaw), rx = -Math.cos(H.yaw), rz = Math.sin(H.yaw);
-  const piv = new V3(H.x, H.y + 1.6, H.z), want = new V3(H.x - fx * 2.4 + rx * 0.65, H.y + 1.95, H.z - fz * 2.4 + rz * 0.65), dv = want.clone().sub(piv), dl = dv.length(); dv.divideScalar(dl);
-  const h = raycast(piv, dv, dl + 0.3, false), allow = h.t < dl + 0.3 ? Math.max(0.5, h.t - 0.3) : dl; G.boom = G.boom === undefined ? allow : Math.min(allow, damp(G.boom, allow, 5, dt));
-  const target = piv.clone().addScaledVector(dv, G.boom); if (!G.cam) G.cam = target.clone(); else G.cam.lerp(target, 1 - Math.exp(-10 * dt));
-  camera.position.copy(G.cam); const cp2 = Math.cos(H.pitch); camera.lookAt(H.x + fx * 30 * cp2, H.y + 1.5 + Math.sin(H.pitch) * 30, H.z + fz * 30 * cp2); camera.fov = 62; camera.updateProjectionMatrix(); sky.position.copy(camera.position);
-  updateTracers && 0;
+  const H = G.hero; if (!H) return; // through the hero's eyes, with their gun in hand
+  const eye = new V3(H.x, H.y + 1.62, H.z), fx = Math.sin(H.yaw), fz = Math.cos(H.yaw), cp = Math.cos(H.pitch);
+  if (!G.eye) G.eye = eye.clone(); else G.eye.lerp(eye, 1 - Math.exp(-18 * dt)); G.lp = G.lp === undefined ? H.pitch : damp(G.lp, H.pitch, 14, dt); G.ly = G.ly === undefined ? H.yaw : G.ly + angDiff(G.ly, H.yaw) * (1 - Math.exp(-14 * dt));
+  camera.position.copy(G.eye); camera.lookAt(G.eye.x + Math.sin(G.ly) * 20 * Math.cos(G.lp), G.eye.y + Math.sin(G.lp) * 20, G.eye.z + Math.cos(G.ly) * 20 * Math.cos(G.lp)); camera.fov = settings.fov; camera.updateProjectionMatrix(); sky.position.copy(camera.position);
+  const hg = G.ghosts[G.B.id]; if (hg) hg.group.visible = false;
+  if (G.vm) { G.kick = Math.max(0, (G.kick || 0) - dt * 9); const bob = Math.sin(G.real * 9) * 0.004 * Math.min(1, (G.spd || 0) / 3);
+    G.vm.position.copy(camera.position); G.vm.quaternion.copy(camera.quaternion); G.vm.translateX(0.12); G.vm.translateY(-0.13 + bob - G.kick * 0.01); G.vm.translateZ(-0.36 + G.kick * 0.05); G.vm.rotateX(G.kick * 0.08); }
+}
+function potgViewmodel(G, id) { // the hero's weapon, held in first person for the replay
+  if (G.vm) { scene.remove(G.vm); G.vm = null; } G.vmId = id; const i = widx(id); if (i < 0) return;
+  try { const gm = buildGun(id, {}, true), g = new THREE.Group(); gm.g.traverse(m => { if (m.isMesh) { m.frustumCulled = false; m.renderOrder = 10; } }); g.add(gm.g); g.userData.flash = gm.flash; if (gm.flash) gm.flash.visible = false; scene.add(g); G.vm = g; } catch (e) { G.vm = null; }
 }
 function endPotg() {
-  const G = game.potg; if (!G) return; game.potg = null; G.unbind && G.unbind();
+  const G = game.potg; if (!G) return; game.potg = null; G.unbind && G.unbind(); if (G.vm) scene.remove(G.vm);
   for (const id in G.ghosts) { const g = G.ghosts[id].group; if (g.parent) g.parent.remove(g); } for (const o of G.hidden) o.group.visible = true;
   const ov = $('potgov'); if (ov) ov.className = ''; $('hud').classList.remove('cine'); $('hud').classList.remove('potgmode');
-  game.state = 'play'; camera.fov = settings.fov; camera.updateProjectionMatrix(); G.done();
+  if (!G.killcam) game.state = 'play'; camera.fov = settings.fov; camera.updateProjectionMatrix(); G.done();
 }
 function startOutro(res, why, done) {
   if (game.state === 'paused') { game.state = 'play'; showScreen(null); }
@@ -6423,7 +6449,7 @@ function frame(now) {
     barrels.forEach(b => b.update(dt));
     pickups = pickups.filter(p => p.update(dt, game.time));
     updateGrenades(dt); updateRockets(dt); updateClouds(dt);
-    updateCamera(dt); const third = updateAvatar(dt);
+    updateCamera(dt); const third = updateAvatar(dt); killcamTick(dt);
     if (game.state === 'dying') {
       game.dieT -= dt;
       if (game.dieT <= 0) finishDeath();
@@ -6448,7 +6474,7 @@ function frame(now) {
   if (composer && !menuFrame) { composer.render(dt); renderer.setRenderTarget(null); }
   else { renderer.setRenderTarget(null); renderer.clear(); renderer.render(scene, camera); } // no post-processing behind the menu
   prof.js += tB - tA; prof.n++;
-  if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third' && !(game.intro && (game.intro.showAvatar || game.intro.t < 3.95)) && !(game.outro && game.outro.t > 1.4)) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
+  if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third' && !(game.intro && (game.intro.showAvatar || game.intro.t < 3.95)) && !(game.outro && game.outro.t > 1.4) && !game.potg) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
 
   prof.render += performance.now() - tB;
 }
@@ -6537,5 +6563,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
