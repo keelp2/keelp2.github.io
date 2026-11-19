@@ -80,7 +80,7 @@ function setupPost() {
   } catch (e) { console.warn('post-processing unavailable', e); postFailed = true; composer = null; }
 }
 addEventListener('bp-post', () => setupPost());
-let menuRes = false;
+let menuRes = false, dynUp = 0;
 function resize() {
   renderer.setPixelRatio(QUALITY[settings.quality].pr() * dynScale * (menuRes ? 0.6 : 1)); // the menu's backdrop sits behind dimmed panels: render it lighter
   renderer.setSize(innerWidth, innerHeight);
@@ -4653,7 +4653,7 @@ function fire() {
 
   for (const v of dmgAcc.values()) dmgNumber(v.p, v.d, v.head);
   if (s.mag > 0 && s.mag <= Math.ceil(w.mag * 0.25)) sfx.play('low');
-  if (MP.active && firstEnd) netSend({ t: 'shot', a: v3a(muzzleW), b: v3a(firstEnd), w: w.id });
+  if (MP.active && firstEnd) netSend({ t: 'shot', a: v3a(muzzleW), b: v3a(firstEnd), w: w.id, s: w.supp ? 1 : 0 });
   // recoil
   const climb = 1 + Math.min(wst.consec, 10) * 0.05;
   const kk = w.kick * climb * lerp(1, 0.75, wst.ads) * (player.crouch > 0.5 ? 0.8 : 1);
@@ -5126,6 +5126,7 @@ function addFeed(html, hs, mine) {
 }
 // killer [WEAPON] (◎ = headshot) victim
 const wShort = id => { const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
+function hitCap(w, head) { const W = typeof w === 'string' && WEAPONS.find(x => x.id === w); if (!W || W.melee || W.launcher) return 250; return Math.ceil(W.dmg * (W.pellets || 1) * (head ? (W.head || 2) * 1.2 : 1) * 1.1) + 1; }
 function killFeed(killer, kc, weapon, head, victim, vc, mine) {
   potgEvent('kill', { k: killer, v: String(victim || '').replace(/\s+\+\d+$/, ''), h: !!head, w: weapon, kc, vc, vn: victim });
   feedLine(killer, kc, weapon, head, victim, vc, mine);
@@ -5149,12 +5150,12 @@ function drawRadar() {
   for (const p of pickups) { if (!p.active) continue; g.fillStyle = p.type === 'health' ? '#5dff9a' : '#ffc933'; g.fillRect((p.pos.x - player.pos.x) * R - 2, (p.pos.z - player.pos.z) * R - 2, 4, 4); }
   for (const r of remoteList) {
     if (r.dead) continue; const dx = r.pos.x - player.pos.x, dz = r.pos.z - player.pos.z;
-    if (game.time - r.lastFired < 1.5 || Math.hypot(dx, dz) < (settings.cls === 'wolf' ? 20 : 8) || player.pulseT > 0) { g.fillStyle = '#ff5a4a'; g.beginPath(); g.arc(dx * R, dz * R, 3.5, 0, 7); g.fill(); }
+    if (game.time - r.lastFired < 2 || (settings.cls === 'wolf' && Math.hypot(dx, dz) < 20) || player.pulseT > 0) { g.fillStyle = '#ff5a4a'; g.beginPath(); g.arc(dx * R, dz * R, 3.5, 0, 7); g.fill(); }
   }
   for (const e of enemies) {
     if (e.dead) continue; const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z, d = Math.hypot(dx, dz);
     if (isAlly(PLAYER_T, e)) { g.fillStyle = '#4fb4ff'; g.beginPath(); g.arc(dx * R, dz * R, 3.2, 0, 7); g.fill(); continue; }
-    if (game.time - e.lastFired < 2 || d < (settings.cls === 'wolf' ? 20 : 12) || e.aimT > 0 || player.pulseT > 0) { g.fillStyle = e.T.sniper ? '#ff3030' : '#ff5a4a'; g.beginPath(); g.arc(dx * R, dz * R, e.T.scale > 1.1 ? 4.5 : 3.2, 0, 7); g.fill(); }
+    if (game.time - e.lastFired < 2 || (settings.cls === 'wolf' && d < 20) || player.pulseT > 0) /* CoD rules: unsuppressed fire, heartbeat, or UAV (no free proximity / 'he is aiming at you' pings) */ { g.fillStyle = e.T.sniper ? '#ff3030' : '#ff5a4a'; g.beginPath(); g.arc(dx * R, dz * R, e.T.scale > 1.1 ? 4.5 : 3.2, 0, 7); g.fill(); }
   }
   g.restore();
   g.fillStyle = '#fff'; g.beginPath(); g.moveTo(S / 2, S / 2 - 7); g.lineTo(S / 2 + 5, S / 2 + 5); g.lineTo(S / 2, S / 2 + 2); g.lineTo(S / 2 - 5, S / 2 + 5); g.closePath(); g.fill();
@@ -5641,10 +5642,10 @@ function handleGame(d) {
       const a = arrV3(d.a), b = arrV3(d.b); if (!a || !b) break;
       spawnTracer(a, b, 0xffd27a, 750, 0.014); if (r) r.mflash = 0.06; nearMiss(a, b); { const dv = b.clone().sub(a), L = dv.length(); if (L > 0.1) { RAY_SEND = false; try { raycast(a, dv.divideScalar(L), L + 0.15, false, null, true); } finally { RAY_SEND = true; } } }
       const w = WEAPONS.find(x => x.id === d.w); const sp = spatial(a); sfx.gun(w ? w.snd : 'rifle', { dist: sp.dist, pan: sp.pan, pos: sp.pos, supp: !!d.s, occl: !los(camera.position.x, camera.position.y, camera.position.z, a.x, a.y, a.z) });
-      if (r) r.lastFired = game.time;
+      if (r && !d.s) r.lastFired = game.time; /* suppressed fire stays off the radar */
       break;
     }
-    case 'hit':
+    case 'hit': d.dmg = Math.min(clamp(num(d.dmg), 0, 250), hitCap(d.w, !!d.head)); /* no gun can do more than its own max per hit */
       if (d.to === MP.myId && player.alive) { if (typeof d.w === 'string') MP.lastWeapon = d.w.slice(0, 12); } const atk = typeof d.by === 'string' && MP.players[d.by] && MP.players[d.by].bot ? d.by : d.id;
       if (d.to === MP.myId && player.alive) { MP.viaHit = true; try { damagePlayer(clamp(num(d.dmg), 0, 250), (remotes.get(atk) || r || {}).pos || null, atk, !!d.head); } finally { MP.viaHit = false; } }
       if (MP.isHost && typeof d.to === 'string' && (d.to.startsWith('bot-') || d.to.startsWith('z-'))) { const e = enemies.find(x => x.netId === d.to && !x.dead); if (e) { e.mpAttacker = d.id; const rr = remotes.get(d.id); if (rr && !e.visible) { e.target = rr; e.attacker = rr; e.lastKnown.copy(rr.pos); } e.damage(clamp(num(d.dmg), 0, 250), !!d.head, null, null); } }
@@ -6294,7 +6295,7 @@ function makeThumbs() { // built in small slices while the browser is idle, so t
   for (const w of WEAPONS) jobs.push(() => { const g = buildGun(w.id, {}, false).g, box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); g.rotation.y = Math.PI / 2; const len = box.getSize(new V3()).length(); THUMBS[w.id] = snap(g, new V3(0, 0.03, len * 1.25 + 0.05), new V3(0, 0, 0)); });
   for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0], faction: 0, seed: 'class-' + k, byClass: true }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.05, 4.4), new V3(0, 0.98, 0), 160, 160);  });
   let i = 0; const later = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 16);
-  const step = () => { const t = performance.now(); while (i < jobs.length && performance.now() - t < 10) { try { jobs[i](); } catch (e) {} i++; }
+  const step = () => { if (game.state === 'play' || game.state === 'potg' || game.state === 'dying') { setTimeout(step, 1500); return; } /* never render thumbnails mid-match: each one is an off-screen render + encode */ const t = performance.now(); while (i < jobs.length && performance.now() - t < 10) { try { jobs[i](); } catch (e) {} i++; }
     if (i < jobs.length) { if (i % 12 < 3 && document.querySelector('.mtab.on[data-tab="loadout"]')) renderLoadout($('loadout')); later(step); }
     else { renderLoadout($('loadout')); if (window.renderClassesUI) window.renderClassesUI(); } };
   later(step);
@@ -6508,8 +6509,10 @@ function updateAvatar(dt) {
 
 // ============================================================ MAIN LOOP
 let last = performance.now(), menuT = 0;
-function frame(now) {
-  requestAnimationFrame(frame);
+/* one bad frame (a rare edge case in a bot, a malformed packet) must never freeze the game: log it once, still draw, carry on */
+const FRAME_ERR = new Set();
+function frame(now) { requestAnimationFrame(frame); try { frameStep(now); } catch (e) { const k = String(e && e.message); if (FRAME_ERR.size < 20 && !FRAME_ERR.has(k)) { FRAME_ERR.add(k); console.error('frame error', e); } last = now; try { renderer.setRenderTarget(null); renderer.render(scene, camera); } catch (e2) {} } }
+function frameStep(now) {
   const rawDt = (now - last) / 1000; let dt = Math.min(rawDt, 0.05); last = now;
   if (game.outro) { updateOutro(dt); if (game.outro && game.outro.t < 1.8) dt *= 0.3; } // end-of-match slow motion
   fpsAcc += rawDt; fpsN++; if (fpsAcc > 0.5) { setText('fps', Math.round(fpsN / fpsAcc) + ' FPS' + (dynScale < 0.99 ? ' · ' + Math.round(dynScale * 100) + '% res' : '')); fpsAcc = 0; fpsN = 0; }
@@ -6519,7 +6522,8 @@ function frame(now) {
     if (dynAcc > 1.0) {
       const fps = dynN / dynAcc, prev = dynScale;
       if (fps < 42) dynScale = Math.max(0.4, dynScale * (fps < 25 ? 0.75 : 0.88));
-      else if (fps > 57) dynScale = Math.min(1, dynScale * 1.06);
+      else if (fps > 57 && dynScale < 1 && ++dynUp >= 3) { dynScale = Math.min(1, dynScale * 1.06); dynUp = 0; } /* scale back up only after 3 steady seconds: no resize ping-pong */
+      if (fps <= 57) dynUp = 0;
       if (Math.abs(prev - dynScale) > 0.01) resize();
       dynAcc = 0; dynN = 0;
     }
