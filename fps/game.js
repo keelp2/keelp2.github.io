@@ -1139,6 +1139,7 @@ const BACKDROPS = {
   dusty: [{ d0: 0, d1: 340, h: [0, 0], c: [0xa88a64, 0xb89a74], hz: 0.1, f: 1, floor: true }, { d0: 0, d1: 100, h: [3, 11], c: [0xae9068, 0xc4a47e], hz: 0.08, f: 8, near: true }, { d0: 80, d1: 210, h: [18, 46], c: [0x96765a, 0xb09272], hz: 0.26, f: 6, mesa: 0.8 }, { d0: 230, d1: 320, h: [45, 95], c: [0x948472, 0xb0a08e], hz: 0.46, f: 4 }],
   alpine: [{ d0: 0, d1: 340, h: [0, 0], c: [0x40602c, 0x50703a], hz: 0.1, f: 1, floor: true }, { d0: 0, d1: 110, h: [5, 18], c: [0x3a5a28, 0x587a3a], hz: 0.1, f: 8, near: true, forest: true }, { d0: 90, d1: 210, h: [28, 62], c: [0x46623e, 0x647c58], hz: 0.2, f: 6 }, { d0: 230, d1: 330, h: [80, 150], c: [0x546c8a, 0x7a90ae], hz: 0.3, f: 5, snow: 0.64 }],
   urban: [{ d0: 0, d1: 340, h: [0, 0], c: [0x5c5e5a, 0x6a6c66], hz: 0.1, f: 1, floor: true }, { d0: 110, d1: 230, h: [16, 40], c: [0x62665c, 0x7a7e72], hz: 0.32, f: 6 }, { d0: 240, d1: 330, h: [40, 85], c: [0x6e7076, 0x8c8e94], hz: 0.5, f: 4 }],
+  medi: [{ d0: 0, d1: 340, h: [0, 0], c: [0x6a6448, 0x787052], hz: 0.1, f: 1, floor: true }, { d0: 0, d1: 110, h: [6, 20], c: [0x56603a, 0x77804c], hz: 0.06, f: 8, near: true, forest: true }, { d0: 100, d1: 230, h: [30, 70], c: [0x8a7a5e, 0xb09c78], hz: 0.22, f: 6, mesa: 0.85 }, { d0: 240, d1: 335, h: [70, 130], c: [0x6a7c96, 0x93a4ba], hz: 0.4, f: 4 }],
   coast: [{ d0: 0, d1: 340, h: [0, 0], c: [0x3e4a54, 0x4a5660], hz: 0.1, f: 1, floor: true }, { d0: 190, d1: 290, h: [20, 60], c: [0x56504e, 0x726860], hz: 0.4, f: 5 }, { d0: 270, d1: 335, h: [50, 110], c: [0x66646e, 0x86808a], hz: 0.56, f: 3 }],
 };
 function buildBackdrop(L, th, group) {
@@ -1154,8 +1155,8 @@ function buildBackdrop(L, th, group) {
       for (let ir = 0; ir <= sr; ir++) { const t = ir / sr, r = e0 + lerp(Ly.near ? -1 : Ly.d0, Ly.d1, t) + (Ly.near ? 0 : Math.sin(a * 23 + li) * 2);
         let y = H * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.12)), 0.85) * (0.92 + 0.08 * Math.sin(a * 61 + t * 9 + li * 3));
         if (Ly.mesa) y = Math.min(y, H * Ly.mesa) / Ly.mesa * (Ly.mesa + (1 - Ly.mesa) * 0.25); // flat-topped mesas
-        if (Ly.near) y = y * smooth(0.05, 0.4, t) + 0.3; // rises from the map's own ground right at the boundary
-        if (Ly.floor) y = 1.96; // ends up just under ground level
+        if (Ly.near) y = y * smooth(0.05, 0.4, t) + 0.3 + (L.edgeBerm || 0) * (1 - smooth(0, 0.3, t) * 0.4); // rises from the map's own ground (or berm) right at the boundary
+        if (Ly.floor) y = 1.96 + (L.edgeBerm || 0) * 0.6; // ends up just under ground level
         pos.push(cx + dirx * r, y - (Ly.near ? 0 : 2), cz + dirz * r);
         const k = clamp(y / Ly.h[1], 0, 1), c = lo.clone().lerp(hi, k * 0.85 + 0.15 * Math.sin(a * 37 + ir) ** 2);
         if (Ly.forest) c.multiplyScalar(0.84 + 0.22 * (0.5 + 0.5 * Math.sin(a * 140 + ir * 1.7)));
@@ -1252,6 +1253,7 @@ function stairTower(L, x0, z0, s, m) {
 
 // ---------------------------------------------------------------- MAP 4: MILLBROOK VILLAGE (large, three lanes, river)
 function buildMillbrook(L) {
+  L.edge = 'berm'; L.edgeBerm = 4.5; L.edgeW = 12; L.rockC = 0x8a8a80;
   L.hills = 4.4; L.hillScale = 34; L.hillRamp = 10; L.hillMask = (x, z) => smooth(6, 12, Math.abs(x));
   L.bounds = [-64, -48, 64, 48]; L.ground = 'grassMud'; L.groundScale = 7; L.grass = 0.9; L.flowers = 2; L.padStyle = 'mushroom'; L.big = true;
   L.groundY = (x, z) => { const a = Math.abs(x); return a < 2.8 ? -0.9 : a < 4.2 ? lerp(-0.9, 0, (a - 2.8) / 1.4) : 0; };
@@ -1341,6 +1343,7 @@ function doorway(L, x0, x1, z, gap0, gap1, h = 5.5, m = 'plasterB', th = 0.7) { 
 }
 function crates(L, x, z, n = 1, big = false) { const s = big ? 1.6 : 1.2; L.B(x, z, s, s, s, 0, 'crate'); if (n > 1) L.B(x + 0.05, z - 0.05, s, s, s, s, 'crate'); }
 function buildOldQuarter(L) {
+  L.edge = 'town';
   L.postcard = { hk: 0.36, dk: 1.15 };
   L.hills = 1.8; L.hillScale = 22; L.hillFlat = 1.0; L.hillRamp = 7.5;
   L.bounds = [-52, -46, 52, 46]; L.ground = 'cobble'; L.groundScale = 3.2; L.groundTint = 0xf0dcbc; L.grass = 0.05; L.big = true; L.padStyle = 'rune';
@@ -1453,6 +1456,7 @@ function cityBlock(L, x0, z0, x1, z1, R) {
   if (alleyX && alleyZ) { crates(L, mx, mz + 0.6); L.prop('keg', mx + 0.8, 0, mz - 0.8); }
 }
 function buildCrossroads(L) {
+  L.edge = 'town';
   L.backdrop = 'urban';
   L.hills = 2.6; L.hillScale = 28; L.hillRamp = 9;
   const R = seeded(1337);
@@ -1589,8 +1593,62 @@ function buildFreight(L) {
   L.barrels = [[-34, -8], [34, 8], [-10, -12], [10, 12], [-4, 40], [4, -40]];
 }
 // ---------------------------------------------------------------- MAP: FIREBASE (Battlefield-style desert outpost, huge)
+// ---------------------------------------------------------------- MAP: MERIDIAN (purpose-built competitive 3-lane, mirror-symmetric)
+// Lanes: NORTH = raised terrace, long sightline (snipers/DMRs) with a clock-house power position at its heart;
+// MIDDLE = walled street through chokepoint gates (with vault windows as the alternate) into a fountain plaza (centre of action);
+// SOUTH = chain of market halls (close quarters). Two cross-alleys per side link the lanes for flanks; terrace edges are one-way drops.
+function buildMeridian(L) {
+  L.hills = 0; L.backdrop = 'medi'; L.postcard = { hk: 0.34, dk: 1.05 };
+  L.bounds = [-50, -34, 50, 34]; L.ground = 'cobble'; L.groundScale = 3; L.groundTint = 0xf2e6d4; L.grass = 0.08; L.noLamps = true; L.smoke = [];
+  L.box(-56, -1, -40, 56, 0, 40, 'floor').noRender = true;
+  const R = seeded(31337), mats = ['plasterA', 'plasterB', 'sandstone', 'wallP2', 'wallP3'];
+  for (const z0 of [34, -38]) for (let x = -54; x < 54; x += 12) solid(L, x, z0, x + 12, z0 + 4, 7 + Math.round(R() * 4), mats[Math.floor(R() * mats.length)], { roof: R() < 0.5 }); // the edges are a real town
+  for (const sx of [-1, 1]) solid(L, sx > 0 ? 50 : -54, -34, sx > 0 ? 54 : -50, 34, 10, 'sandstone');
+  for (const sx of [-1, 1]) { // ---- one side; the other is its mirror
+    const X = (a, b) => sx > 0 ? [a, b] : [-b, -a], mx = v => v * sx, dW = d => sx > 0 ? d : { n: (d.n || []).map(mx), s: (d.s || []).map(mx), e: d.w, w: d.e };
+    const H2 = (x0, z0, w, d, o) => { const [a] = X(x0, x0 + w); house2(L, a, z0, w, d, Object.assign({}, o, { doors: dW(o.doors || {}) })); };
+    const BK = (x0, z0, w, d, doors, m) => { const [a] = X(x0, x0 + w); bunker(L, a, z0, w, d, dW(doors), m); };
+    const SO = (x0, z0, x1, z1, h, m, o) => { const [a, b] = X(x0, x1); solid(L, a, z0, b, z1, h, m, o); };
+    // spawn courtyard: a house and a hall shield it from the lanes
+    H2(38, 18, 10, 10, { m: 'plasterA', roofM: 'tiles', doors: { s: [43], w: [23] } });
+    BK(38, -28, 10, 9, { n: [43], w: [-23.5] }, 'plasterB');
+    crates(L, mx(42), 6, 2); crates(L, mx(43), -7, 1); L.prop('palm', mx(46), 0, 13, 1.1); L.B(mx(46), 13, 0.5, 0.5, 4, 0, 'bark').noRender = true; L.prop('palm', mx(46), 0, -14, 1); L.B(mx(46), -14, 0.5, 0.5, 4, 0, 'bark').noRender = true;
+    // blocks between the lanes, split by a cross-alley (x 26..29) for flanks
+    SO(18, 9, 26, 16, 7, 'plasterB', {}); SO(29, 9, 37, 16, 8, 'plasterA', { roof: true }); SO(18, -16, 26, -9, 8, 'sandstone', { roof: true }); SO(29, -16, 37, -9, 7, 'plasterB', {});
+    // MIDDLE: the gate wall is the chokepoint — main arch plus two vault windows as the riskier alternate
+    { const x = mx(18); wallZ2(L, -9, 9, x, 0.6, 0, 4.6, [{ c: 0, w: 3.6, y0: 0, y1: 3.4, open: true }, Object.assign(W2(-5.6), { glass: 'broken' }), Object.assign(W2(5.6), { glass: 'broken' })], 'sandstone');
+      L.box(Math.min(x, x + sx * 0.01) - 0.4, 4.6, -9.2, Math.max(x, x + sx * 0.01) + 0.4, 4.9, 9.2, 'stone', { col: false }); }
+    car(L, mx(27), -3.5, 1, R() < 0.5); sandbags(L, mx(22), 4.5, 3, 'x'); crates(L, mx(33), 3, 1); sandbags(L, mx(34), -4, 3, 'z');
+    // NORTH: raised terrace (1.5 m), planters as cover, ramps from the cross-alley, the plaza end and the spawn end
+    { const [a, b] = X(10, 37); L.box(a, 0, 19, b, 1.5, 32, 'stone'); L.box(a, 1.5, 32, b, 2.4, 32.6, 'stonewall'); }
+    L.stairs(mx(27.5), 16.1, 'pz', 2.4, 0, 1.5, 2.8, 'stone'); L.stairs(mx(6.05), 31, sx > 0 ? 'px' : 'nx', 1.8, 0, 1.5, 3.9, 'stone'); L.stairs(mx(41.5), 30.5, sx > 0 ? 'nx' : 'px', 2.2, 0, 1.5, 4.3, 'stone');
+    for (const [x, z] of [[15, 23.5], [21, 28], [26.5, 23], [32.5, 27.5]]) L.B(mx(x), z, 2.6, 1, 0.95, 1.5, 'stonewall');
+    for (const x of [14, 24, 34]) { L.prop('palm', mx(x), 1.5, 30.8, 0.9); L.B(mx(x), 30.8, 0.5, 0.5, 4, 1.5, 'bark').noRender = true; }
+    // SOUTH: market halls in a chain (doors line up), close quarters inside, a corridor street outside
+    BK(10, -31, 12, 12, { n: [16], e: [-25], w: [-25] }, 'plasterA'); BK(24, -31, 12, 12, { n: [30], e: [-25], w: [-25] }, 'sandstone');
+    for (const [x, z] of [[14, -27], [18, -22], [28, -28], [32, -23]]) crates(L, mx(x), z, 1);
+    L.B(mx(16), -24.5, 3.2, 1, 1.0, 0, 'planks'); L.B(mx(30), -26, 1, 3.2, 1.0, 0, 'planks'); // counters to fight around
+    sandbags(L, mx(23), -17.5, 3, 'x');
+  }
+  // shared centre: plaza (centre of action) + clock house (power position) + centre hall
+  L.octo(0, 0, 2.8, 0.85, 'stone'); L.B(0, 0, 0.9, 0.9, 3.4, 0.85, 'stone'); L.water.push([-2.2, -2.2, 2.2, 2.2, 0.75]);
+  for (const [x, z] of [[-9, -5], [9, 5], [-9, 5.5], [9, -5.5]]) L.B(x, z, 2.6, 1, 1.0, 0, 'stonewall');
+  const stall = (x, z, ry, c) => { L.B(x, z, 1.5, 1.5, 0.9, 0, 'planks').noRender = true; L.prop('stall', x, 0, z, 1, { ry, c }); };
+  stall(-4.5, 7.2, 0, 0xb33a3a); stall(4.5, -7.2, Math.PI, 0x2f6fae); stall(13, 7, 1.57, 0x3f8f4a); stall(-13, -7, -1.57, 0xd98a2b);
+  car(L, 12, -4, 0, true); car(L, -12, 4, 0, true);
+  house2(L, -6, 19, 12, 11, { m: 'sandstone', roofM: 'tiles', doors: { s: [-2.5, 2.5], e: [24.5], w: [24.5] } });
+  L.prop('chimney', 4, 8.2, 26, 1, { h: 3 }); L.glow(0, 5.2, 18.7, 0xfff0c0, 1.1);
+  bunker(L, -6, -31, 12, 12, { n: [0], e: [-25], w: [-25] }, 'plasterB');
+  for (const [x, z] of [[-16, 10], [16, -10], [-16, -10], [16, 10]]) L.prop('lantern', x, 0, z, 1);
+  L.spawn = { x: -44, y: 0, z: 0, yaw: -Math.PI / 2 };
+  L.teamSpawns = [[[-44, 0], [-44, -8], [-44, 8], [-42, 12], [-42, -12], [-46, 4]], [[44, 0], [44, 8], [44, -8], [42, -12], [42, 12], [46, -4]]];
+  L.enemySpawns = L.teamSpawns[1].concat(L.teamSpawns[0], [[0, -14], [0, 14], [-28, 0], [28, 0]]);
+  L.pickups = [['health', 0, 0, -11.5], ['ammo', 0, 0, 11.5], ['ammo', 22, 1.5, 26], ['ammo', -22, 1.5, 26], ['health', 16, 0, -25], ['health', -16, 0, -25], ['health', 0, 3.65, 26]];
+  L.barrels = [[24, 6], [-24, -6], [14, -19], [-14, 19]];
+}
 // ---------------------------------------------------------------- MAP: OASIS (golden-hour desert oasis: pond, caravanserai fort, mud-brick village, dunes)
 function buildOasis(L) {
+  L.edge = 'berm'; L.edgeBerm = 5; L.edgeW = 13; L.rockC = 0xc8a882;
   L.hills = 4.2; L.hillScale = 30; L.hillRamp = 10; L.backdrop = 'desert'; L.postcard = { hk: 0.26 };
   const R = seeded(7777);
   L.bounds = [-72, -56, 72, 56]; L.ground = 'sand'; L.groundScale = 5; L.groundTint = 0xf6dcb8; L.grass = 0; L.big = true; L.noLamps = true; L.smoke = [];
@@ -1639,6 +1697,7 @@ function buildOasis(L) {
   L.barrels = [[-12, -18], [12, 20], [-36, 18], [36, -12], [-20, 30], [20, -32]];
 }
 function buildFirebase(L) {
+  L.edge = 'berm'; L.edgeBerm = 6; L.edgeW = 16; L.rockC = 0xc8ac88;
   L.hills = 5.5; L.hillScale = 38; L.hillRamp = 11;
   const R = seeded(4242);
   L.bounds = [-100, -90, 100, 90]; L.ground = 'sand'; L.groundScale = 5; L.groundTint = 0xf2e2c4; L.grass = 0; L.big = true; L.noLamps = true; L.smoke = [];
@@ -1713,6 +1772,7 @@ function facade(L, R, x0, z0, x1, z1, h, side) {
   if (R() < 0.5) { const c = R() < 0.5 ? a0 + 0.15 : a1 - 0.15; B(c - 0.05, c + 0.05, 0, h, 0, 0.1, 'metal'); } // drainpipe
 }
 function buildBazaar(L) {
+  L.edge = 'town';
   L.backdrop = 'dusty';
   L.hills = 4.6; L.hillScale = 22; L.hillFlat = 0.9; L.hillRamp = 6;
   const R = seeded(9001);
@@ -1882,6 +1942,14 @@ const MAPS = [
     },
   },
   {
+    name: 'MERIDIAN', desc: 'Competitive Mediterranean town built for 6v6: a sniper terrace with a clock-house power position, a gated street into a fountain plaza, and market halls for close quarters — mirrored, with flank alleys between every lane.', tag: 'Medium · competitive · 3 lanes', build: buildMeridian,
+    theme: {
+      skyTop: 0x3a7ccc, skyBottom: 0xf4e6cc, sunColor: 0xfff0d4, sunDir: [-0.45, 0.6, 0.35], fog: 0xe6dfd0, fogNear: 55, fogFar: 230,
+      hemiSky: 0xeaf2ff, hemiGround: 0x9a8a6a, hemi: 1.2, sun: 2.8, sunLight: 0xfff0d8, shadowSun: [-0.45, 1, 0.35], farGround: 0x8a8264, clouds: 7, cloudColor: 0xffffff,
+      mats: {},
+    },
+  },
+  {
     name: 'OASIS', desc: 'Golden-hour desert oasis: a palm-ringed pond, a walled caravanserai with climbable towers and a rampart, a mud-brick village market and rolling dunes.', tag: 'Large · all ranges · elevation', build: buildOasis,
     theme: {
       skyTop: 0x2f5f9e, skyBottom: 0xffc28a, sunColor: 0xffd09a, sunDir: [0.62, 0.26, -0.42], fog: 0xe9c79e, fogNear: 60, fogFar: 270,
@@ -1971,12 +2039,29 @@ function terrRay(ox, oy, oz, dx, dy, dz, maxT) { // first t where the ray dips u
     if (y < TH(x, z) - 0.01) { let a = pt, b = tt; for (let q = 0; q < 6; q++) { const m = (a + b) / 2; if (oy + dy * m < TH(ox + dx * m, oz + dz * m)) b = m; else a = m; } return b; }
     pt = tt; if (tt >= t1) break; }
   return -1; }
+// ---- edges: no more giant flat boundary walls. Rural/desert maps rise into a natural berm (the wall turns invisible at the ridge);
+// town maps get real building facades on the inside of their boundary.
+function dressEdges(L, name) {
+  const [x0, z0, x1, z1] = L.bounds, R = seeded(hashStr(name + 'edges'));
+  for (const b of L.boxes) { if (b.y1 - b.y0 < 3.5 || Math.max(b.x1 - b.x0, b.z1 - b.z0) < 30) continue;
+    const side = b.z0 >= z1 - 1.5 ? 's' : b.z1 <= z0 + 1.5 ? 'n' : b.x0 >= x1 - 1.5 ? 'w' : b.x1 <= x0 + 1.5 ? 'e' : null; if (!side) continue; b.boundary = true;
+    if (L.edge === 'berm') b.noRender = true;
+    else if (L.edge === 'town') { const fx0 = side === 'e' ? b.x1 - 0.01 : b.x0, fx1 = side === 'w' ? b.x0 + 0.01 : b.x1, fz0 = side === 'n' ? b.z1 - 0.01 : b.z0, fz1 = side === 's' ? b.z0 + 0.01 : b.z1;
+      const along = side === 'n' || side === 's', a0 = along ? Math.max(b.x0, x0) : Math.max(b.z0, z0), a1 = along ? Math.min(b.x1, x1) : Math.min(b.z1, z1), seg = 9 + R() * 5;
+      for (let a = a0; a < a1 - 2; a += seg) { const e = Math.min(a1, a + seg), h = b.y1 - b.y0; // facade in segments so the frontage reads as separate buildings
+        if (along) facade(L, R, a, side === 's' ? b.z0 : b.z1 - 0.01, e, side === 's' ? b.z0 + 0.01 : b.z1, h, side === 's' ? 's' : 'n');
+        else facade(L, R, side === 'w' ? b.x0 : b.x1 - 0.01, a, side === 'w' ? b.x0 + 0.01 : b.x1, e, h, side === 'w' ? 'w' : 'e');
+        if (R() < 0.6) { const c = (a + e) / 2, w = e - a; if (along) L.box(a + 0.2, h, side === 's' ? b.z0 - 0.35 : b.z1, e - 0.2, h + 0.35, side === 's' ? b.z0 : b.z1 + 0.35, 'stone', { col: false }); else L.box(side === 'w' ? b.x0 - 0.35 : b.x1, h, a + 0.2, side === 'w' ? b.x0 : b.x1 + 0.35, h + 0.35, e - 0.2, 'stone', { col: false }); } } } }
+  if (L.edge === 'berm') for (const p of L.props) { const out = p.x < x0 || p.x > x1 || p.z < z0 || p.z > z1; if (out && p.y >= 4) p.y = (L.edgeBerm || 0) * 0.85; } // trees that stood on the old cliff wall now stand on the ridge
+  if (L.edge === 'berm') for (let i = 0; i < 70; i++) { const t = R(), sd = Math.floor(R() * 4), u = sd < 2 ? lerp(x0, x1, t) : lerp(z0, z1, t), inset = 1.5 + R() * (L.edgeW || 12) * 0.7; // outcrops along the ridge
+    const x = sd === 2 ? x0 + inset : sd === 3 ? x1 - inset : u, z = sd === 0 ? z0 + inset : sd === 1 ? z1 - inset : u; L.prop('rock', x, 0, z, 1.2 + R() * 2.4, { sy: 0.5 + R() * 0.6, c: L.rockC || 0xc8a882 }); }
+}
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; }
 function buildTerrain(L, name) {
-  TERR = null; const amp = L.hills || 0; if (!amp) return;
+  TERR = null; const amp = L.hills || 0; if (!amp && !L.edgeBerm) return;
   const [x0, z0, x1, z1] = L.bounds, cs = 1, nx = Math.ceil((x1 - x0) / cs) + 2, nz = Math.ceil((z1 - z0) / cs) + 2, N = nx * nz, occ = new Uint8Array(N);
   const isStruct = b => b.stair || (b.y1 - b.y0) > 2.6 || Math.max(b.x1 - b.x0, b.z1 - b.z0) > 3 || (b.x1 - b.x0) * (b.z1 - b.z0) > 5;
-  for (const b of L.boxes) { if (b.y1 <= 0.4 || b.y0 > 0.4 || !isStruct(b)) continue; b.struct = true;
+  for (const b of L.boxes) { if (b.y1 <= 0.4 || b.y0 > 0.4 || !isStruct(b) || (b.boundary && L.edge === 'berm')) continue; b.struct = true;
     const i0 = Math.max(0, Math.floor((b.x0 - 0.5 - x0) / cs)), i1 = Math.min(nx - 1, Math.ceil((b.x1 + 0.5 - x0) / cs)), j0 = Math.max(0, Math.floor((b.z0 - 0.5 - z0) / cs)), j1 = Math.min(nz - 1, Math.ceil((b.z1 + 0.5 - z0) / cs));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) occ[j * nx + i] = 1; }
   for (const [ax, az, bx, bz] of L.water || []) for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = x0 + i * cs, z = z0 + j * cs; if (x > ax - 4 && x < bx + 4 && z > az - 4 && z < bz + 4) occ[j * nx + i] = 1; }
@@ -1990,7 +2075,8 @@ function buildTerrain(L, name) {
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, x = x0 + i * cs, z = z0 + j * cs;
     const f = vn(x / sc, z / sc) * 0.62 + vn(x / (sc * 0.45) + 17, z / (sc * 0.45) + 9) * 0.28 + vn(x / (sc * 0.18) + 41, z / (sc * 0.18) + 3) * 0.1;
     const edge = smooth(0, 4, Math.min(x - x0, x1 - x, z - z0, z1 - z)), v = amp * Math.pow(f, 1.5) * 1.6 * smooth(fl, rp, d[k]) * edge * (L.hillMask ? L.hillMask(x, z) : 1);
-    h[k] = v; if (v > mx) mx = v; }
+    const be = L.edgeBerm ? L.edgeBerm * Math.pow(smooth(L.edgeW || 12, 0, Math.min(x - x0, x1 - x, z - z0, z1 - z)), 1.3) * smooth(2, 7, d[k]) : 0; // rising ground at the map edge
+    h[k] = v + be; if (h[k] > mx) mx = h[k]; }
   { const st = Math.tan((L.hillMaxSlope || 28) * Math.PI / 180) * cs, sd = st * Math.SQRT2; // slope limiter: nothing steeper than ~28 deg (walkable, readable hills)
     for (let it = 0; it < 3; it++) {
       for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i; let v = h[k]; if (i > 0) v = Math.min(v, h[k - 1] + st); if (j > 0) { v = Math.min(v, h[k - nx] + st); if (i > 0) v = Math.min(v, h[k - nx - 1] + sd); if (i < nx - 1) v = Math.min(v, h[k - nx + 1] + sd); } h[k] = v; }
@@ -3787,6 +3873,7 @@ function loadMap(i) {
   for (let i = L.decor.length - 1; i >= 0; i--) { const b = L.decor[i], h = b.y1 - b.y0, a = (b.x1 - b.x0) * (b.z1 - b.z0);
     if (h >= 0.04 && h <= 0.35 && a >= 0.8 && b.y1 > 0.6 && !['lampglow', 'glass', 'skylight', 'carglass', 'white', 'pavement'].includes(b.m) && Math.min(b.x1 - b.x0, b.z1 - b.z0) >= 0.5) { L.decor.splice(i, 1); L.boxes.push(b); } }
   for (const pr of L.props) if (pr.k === 'cloth' || pr.k === 'stall') {} // stalls already have a solid table
+  dressEdges(L, def.name);
   buildTerrain(L, def.name);
   buildWindows(L); // before the nav grid: bots must know intact glass and boards block a window
   world.nav = new Nav(L.boxes, L.bounds, L.links);
@@ -5589,7 +5676,7 @@ function captureMapThumb() {
   try { const c = document.createElement('canvas'); const src = renderer.domElement, W = Math.min(1280, src.width), H = Math.round(W * src.height / src.width); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, W, H); const url = c.toDataURL('image/jpeg', 0.8); // big enough to fill the loading screen sharply
     const key = 'bp_mthumb2_' + world.def.name; try { for (const m of MAPS) localStorage.removeItem('bp_mthumb_' + m.name); localStorage.setItem(key, url); } catch (e) {} applyMapThumbs(); } catch (e) {}
 }
-const MAPIMG = i => `thumbs/${i}.jpg?v=5`; // baked aerial postcards (see postcard())
+const MAPIMG = i => `thumbs/${i}.jpg?v=6`; // baked aerial postcards (see postcard())
 function applyMapThumbs() { MAPS.forEach((m, i) => { const u = MAPIMG(i); const card = $('maps').children[i]; if (card && u) { card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,0) 25%,rgba(12,14,19,.55) 60%,rgba(12,14,19,.9)),url(${u})`; card.style.backgroundSize = 'cover'; card.style.backgroundPosition = 'center 68%'; } }); }
 
 // ============================================================ GAMEPAD (Xbox / PlayStation via the Gamepad API)
