@@ -5,6 +5,7 @@ function initDmgNumbers() {
   for (let i = 0; i < 18; i++) { const el = document.createElement('div'); el.className = 'dn'; host.appendChild(el); dnPool.push({ el, t: 0, p: new V3() }); }
 }
 function dmgNumber(p, d, head) {
+  if (!settings.dmgNums) return; /* off by default, like CoD multiplayer: the hit marker is the feedback */
   const n = dnPool[dnI]; dnI = (dnI + 1) % dnPool.length;
   n.p.copy(p); n.t = 0.8; n.el.textContent = Math.round(d); n.el.className = 'dn' + (head ? ' head' : '');
 }
