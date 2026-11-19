@@ -49,7 +49,8 @@ addEventListener('wheel', e => { if (game.state !== 'play') return; if (SURV.tgt
 addEventListener('mousemove', e => {
   if (!locked || game.state !== 'play' || !player.alive) return;
   const dx = clamp(e.movementX, -300, 300), dy = clamp(e.movementY, -300, 300);
-  if (SURV.tgt) { const k = tabletScale() / 520 * settings.sens; tabletMove(dx * k, dy * k); return; } /* holding the tablet: the mouse moves the marker, not your view */
+  if (SURV.tgt) { const k = tabletScale() / 520 * settings.sens; tabletMove(dx * k, dy * k); return; }
+  if (PRED.on) { const k = 0.0016 * settings.sens; predSteer(dx * k, dy * k * (settings.invertY ? -1 : 1)); return; } /* holding the tablet: the mouse moves the marker, not your view */
   const zoom = lerp(1, WEAPONS[wst.cur].zoom, wst.ads);
   const s = 0.0022 * settings.sens / zoom;
   player.yaw -= dx * s; player.pitch = clamp(player.pitch - dy * s * (settings.invertY ? -1 : 1), -1.5, 1.5);

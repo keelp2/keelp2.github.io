@@ -102,7 +102,7 @@ function currentSpread(w) {
   return s;
 }
 function fire() {
-  if (SURV.tgt) return; /* holding the designator */
+  if (SURV.tgt || PRED.on) return; /* holding the tablet / flying the missile */
   const w = WEAPONS[wst.cur], s = inv[wst.cur]; if (w.launcher) return fireRocket(w, s); rumble(w.vkick > 1.5 ? 0.5 : 0.25, w.vkick > 1.5 ? 0.9 : 0.35, w.vkick > 1.5 ? 140 : 70);
   s.mag--; wst.consec++; wst.sinceShot = 0; game.shots++; if (player.protT > game.time) player.protT = 0; // firing ends spawn protection wstat(w.id).shots++;
   aimBasis();

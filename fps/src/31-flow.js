@@ -59,12 +59,13 @@ let LO_SLOT = 'primary', LO_CAT = 'ALL';
 function refreshMenuChar() { if (window.renderClassesUI) window.renderClassesUI(); if (typeof sendInfo === 'function' && MP.peer) sendInfo(); PV.mode = 'char'; PV.weapon = null; buildPreview(); const mc = $('mclass'); if (mc) mc.textContent = cls().name + ' · ' + WEAPONS[widx(getLO().primary)].short; }
 function renderLoadout(el, onChange) {
   el.innerHTML = ''; el.classList.add('lopick'); const lo = getLO(), mk = (t, c) => { const e = document.createElement(t); if (c) e.className = c; return e; };
-  const SLOTS = [['primary', 'PRIMARY', '1'], ['secondary', 'SECONDARY', '2'], ['melee', 'MELEE', '3 / V'], ['lethal', 'LETHAL', 'G'], ['tactical', 'TACTICAL', 'Q']], isW = k => k === 'primary' || k === 'secondary' || k === 'melee';
+  const SLOTS = [['primary', 'PRIMARY', '1'], ['secondary', 'SECONDARY', '2'], ['melee', 'MELEE', '3 / V'], ['lethal', 'LETHAL', 'G'], ['tactical', 'TACTICAL', 'Q'], ['streaks', 'KILLSTREAKS', 'Z']], isW = k => k === 'primary' || k === 'secondary' || k === 'melee';
   const left = mk('div', 'loslots'), tabs = mk('div', 'lotabs');
   customs().forEach((L, i) => { const b = mk('button', 'lotab' + (settings.activeLO === i ? ' on' : '')); b.textContent = i + 1; b.title = L.name; b.onclick = () => { applyCustom(i); LO_SLOT = 'primary'; renderLoadout(el, onChange); onChange && onChange(); refreshMenuChar(); }; tabs.appendChild(b); });
   left.appendChild(tabs); const nm = mk('button', 'loname'); nm.innerHTML = `<b>${esc(customs()[settings.activeLO].name)}</b><small>✎ rename</small>`; nm.onclick = () => { const v = prompt('Loadout name', customs()[settings.activeLO].name); if (v) { customs()[settings.activeLO].name = v.slice(0, 18).toUpperCase(); saveSettings(); renderLoadout(el, onChange); } }; left.appendChild(nm);
   { const C = cls(), b = mk('button', 'loslot' + (LO_SLOT === 'operator' ? ' on' : '')); b.innerHTML = `<small>OPERATOR</small><b>${C.name}</b>` + (THUMBS['cls_' + settings.cls] ? `<img src="${THUMBS['cls_' + settings.cls]}" alt="">` : ''); b.onclick = () => { LO_SLOT = 'operator'; renderLoadout(el, onChange); }; left.appendChild(b); }
-  for (const [k, label, key] of SLOTS) { const it = isW(k) ? WEAPONS[widx(lo[k])] : EQUIP[lo[k]], b = mk('button', 'loslot' + (LO_SLOT === k ? ' on' : ''));
+  for (const [k, label, key] of SLOTS) { if (k === 'streaks') { const b = mk('button', 'loslot ksslot' + (LO_SLOT === k ? ' on' : '')); b.innerHTML = `<small>${label} <kbd>${key}</kbd></small><b>${ksPicked(lo).map(id => `<i title="${KS_DEFS[id].name}">${KS_ICON[id]}<u>${KS_DEFS[id].n}</u></i>`).join('')}</b>`; b.onclick = () => { LO_SLOT = k; renderLoadout(el, onChange); }; left.appendChild(b); continue; }
+    const it = isW(k) ? WEAPONS[widx(lo[k])] : EQUIP[lo[k]], b = mk('button', 'loslot' + (LO_SLOT === k ? ' on' : ''));
     b.innerHTML = `<small>${label} <kbd>${key}</kbd></small><b>${it.name}</b>` + (isW(k) && THUMBS[it.id] ? `<img src="${THUMBS[it.id]}" alt="">` : '');
     b.onclick = () => { LO_SLOT = k; LO_CAT = 'ALL'; renderLoadout(el, onChange); if (isW(k)) previewSelect(lo[k]); }; b.onmouseenter = b.onfocus = () => { if (isW(k)) previewSelect(lo[k]); }; left.appendChild(b); }
   const right = mk('div', 'lochoices');
@@ -87,6 +88,7 @@ function renderLoadout(el, onChange) {
       for (const [kind, opts] of kinds) { const cur = (settings.att[sel.id] || {})[kind] || opts[0], grp = mk('div', 'seg sm');
         for (const o of opts) { const bt = mk('button', o === cur ? 'on' : ''); bt.textContent = ATT_NAMES[o]; bt.onclick = () => { settings.att[sel.id] = Object.assign({}, settings.att[sel.id], { [kind]: o }); saveSettings(); applyAttachments(sel); renderLoadout(el, onChange); onChange && onChange(); previewSelect(sel.id, true); }; grp.appendChild(bt); }
         ab.appendChild(grp); } right.appendChild(ab); }
+  } else if (LO_SLOT === 'streaks') { ksLoadoutPanel(right, lo, () => { renderLoadout(el, onChange); onChange && onChange(); });
   } else { const grid = mk('div', 'wcards');
     for (const id in EQUIP) { const E = EQUIP[id]; if (E.slot !== LO_SLOT) continue; const lk = !isUnlocked(id), b = mk('button', 'wcard' + (lo[LO_SLOT] === id ? ' on' : '') + (lk ? ' locked' : '')); b.innerHTML = `<b>${E.name}</b><span>${E.desc}</span>` + (lk ? `<i class="lock">🔒 LEVEL ${unlockLvl(id)}</i>` : ''); b.onclick = () => { if (lk) { sfx.play('hit'); showMenuToast(`${E.name} unlocks at level ${unlockLvl(id)}`); return; } setLO(LO_SLOT, id); renderLoadout(el, onChange); onChange && onChange(); }; grid.appendChild(b); }
     right.appendChild(grid); }

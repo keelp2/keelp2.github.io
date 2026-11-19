@@ -72,6 +72,7 @@ function getLO(c = settings.cls) { // per-class loadout, validated
   const d = DEFAULT_LO[c] || DEFAULT_LO.assault, lo = Object.assign({ primary: d[0], secondary: d[1], melee: d[2] }, settings.loadouts[c] || {});
   for (const slot of ['primary', 'secondary', 'melee']) { const k = widx(lo[slot]); if (k < 0 || WEAPONS[k].slot !== slot || !isUnlocked(lo[slot])) lo[slot] = d[['primary', 'secondary', 'melee'].indexOf(slot)]; }
   const de = DEFAULT_EQ[c] || DEFAULT_EQ.assault; if (!EQUIP[lo.lethal] || EQUIP[lo.lethal].slot !== 'lethal' || !isUnlocked(lo.lethal)) lo.lethal = isUnlocked(de[0]) ? de[0] : 'frag'; if (!EQUIP[lo.tactical] || EQUIP[lo.tactical].slot !== 'tactical' || !isUnlocked(lo.tactical)) lo.tactical = isUnlocked(de[1]) ? de[1] : 'flash';
+  if (KS_DEFS) lo.streaks = ksPicked(lo);
   return lo;
 }
 function setLO(slot, id) { const lo = getLO(); lo[slot] = id; settings.loadouts[settings.cls] = lo; const C = customs()[settings.activeLO]; if (C) C[slot] = id; saveSettings(); }
@@ -81,7 +82,7 @@ function customs() {
     settings.activeLO = Math.max(0, order.indexOf(settings.cls)); }
   return settings.custom;
 }
-function applyCustom(i) { const L = customs()[i]; if (!L) return; settings.activeLO = i; if (CLASSES[L.cls]) settings.cls = L.cls; settings.loadouts[settings.cls] = { primary: L.primary, secondary: L.secondary, melee: L.melee, lethal: L.lethal, tactical: L.tactical }; const v = getLO(); Object.assign(L, v); saveSettings(); }
+function applyCustom(i) { const L = customs()[i]; if (!L) return; settings.activeLO = i; if (CLASSES[L.cls]) settings.cls = L.cls; settings.loadouts[settings.cls] = { primary: L.primary, secondary: L.secondary, melee: L.melee, lethal: L.lethal, tactical: L.tactical, streaks: L.streaks }; const v = getLO(); Object.assign(L, v); saveSettings(); }
 function loName(i) { const L = customs()[i]; return `${esc(L.name)}<small>${CLASSES[L.cls] ? CLASSES[L.cls].name : ''} · ${WEAPONS[widx(L.primary)] ? WEAPONS[widx(L.primary)].short : ''} + ${WEAPONS[widx(L.secondary)] ? WEAPONS[widx(L.secondary)].short : ''}</small>`; }
 const loadoutIdx = () => { const lo = getLO(); return [widx(lo.primary), widx(lo.secondary), widx(lo.melee)]; };
 const wst = { swingT: 0, swingHit: true, quick: false, quickFrom: -1, boltT: 0, cur: 2, last: 0, fireCD: 0, reloadT: 0, reloading: false, switchT: 0, ads: 0, bloom: 0, held: false, consec: 0, sinceShot: 9, pumpT: 0 };

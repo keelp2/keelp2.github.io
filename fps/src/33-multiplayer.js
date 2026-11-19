@@ -153,7 +153,7 @@ function hostRecv(from, d) {
   if (d.t === 'po') { const rtt = performance.now() - num(d.c, 0); if (rtt >= 0 && rtt < 5000) { const p = MP.players[from]; p.ping = p.ping ? lerp(p.ping, rtt, 0.3) : rtt; } return; }
   if (d.t === 'pickreq') return hostPick(from, d.k);
   if (d.t === 'down' && MP.players[from]) { coopStat(from, 'downs'); } if (d.t === 'revive' && MP.players[from]) { coopStat(from, 'revives'); }
-  if (!['st', 'shot', 'hit', 'hm', 'pane', 'die', 'nade', 'rocket', 'down', 'revive', 'rvp', 'air'].includes(d.t)) return;
+  if (!['st', 'shot', 'hit', 'hm', 'pane', 'die', 'nade', 'rocket', 'down', 'revive', 'rvp', 'air', 'heli'].includes(d.t)) return;
   bcast(d, from, d.t === 'st');
   if (d.t === 'die') hostDeath(d);
   handleGame(d);
@@ -216,7 +216,8 @@ function handleGame(d) {
       break;
     }
     case 'rocket': { const p = arrV3(d.p), v = arrV3(d.v); if (p && v && v.length() < 80) { spawnRocket(p, v, d.id); const sp = spatial(p); sfx.boom(sp.dist + 4, sp.pan, 0.3); } break; }
-    case 'air': { const pts = Array.isArray(d.pts) ? d.pts.slice(0, 9).map(arrV3).filter(Boolean) : []; if (pts.length) { callAirstrike(pts[0], !!d.c, d.id, pts); showHint((d.c ? 'ENEMY CARPET BOMBING' : 'ENEMY AIRSTRIKE') + ' INBOUND', '#ff6b5a'); } break; }
+    case 'air': { const pts = Array.isArray(d.pts) ? d.pts.slice(0, 9).map(arrV3).filter(Boolean) : []; if (pts.length) { const k = KS_DEFS[d.k] && d.k !== 'uav' && d.k !== 'heli' ? d.k : d.c ? 'air3' : 'air', hd = Array.isArray(d.h) ? new V3(num(d.h[0]), 0, num(d.h[1])) : null; callAirstrike(pts[0], k, d.id, pts, hd && hd.length() > 0.1 ? hd : null); } break; }
+    case 'heli': heliGhost(d.id, d); break;
     case 'nade': {
       const p = arrV3(d.p), v = arrV3(d.v); if (!p || !v) break;
       const kind = EQUIP[d.k] ? d.k : 'frag', nm = nadeMesh(kind); nm.g.position.copy(p); fx.add(nm.g);
@@ -385,7 +386,7 @@ class Remote {
   damage(d, head, impulse, attacker) {
     if (this.dead) return false;
     if (attacker && attacker.netId) { netSend({ t: 'hit', to: this.id, dmg: Math.round(d), head: !!head, w: attacker.W ? attacker.W.id : 'rifle', by: attacker.netId }); return false; }
-    netSend({ t: 'hit', to: this.id, dmg: Math.round(d), head: !!head, w: game.nadeDmg ? 'nade' : WEAPONS[wst.cur].id }); this.flashT = 0.12;
+    netSend({ t: 'hit', to: this.id, dmg: Math.round(d), head: !!head, w: game.ksKind ? game.ksKind : game.nadeDmg ? 'nade' : WEAPONS[wst.cur].id }); this.flashT = 0.12;
     if (!this.vT || game.time - this.vT > 0.45) { this.vT = game.time; const sp = spatial(this.pos); sfx.voice('pain', { pos: sp.pos, vol: sp.vol * 1.6, pitch: 95 + (hashStr(String(this.id)) % 60) }); } return false;
   }
 }

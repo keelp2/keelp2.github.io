@@ -29,6 +29,7 @@
 28-viewmodel-camera.js
 29-hud.js
 30-survival-economy.js
+30a-killstreaks.js
 31-flow.js
 32-damage-numbers.js
 33-multiplayer.js
