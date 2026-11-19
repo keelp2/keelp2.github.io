@@ -1210,6 +1210,7 @@ function winOpening(L, ax, a, b, c, th, y0, y1, o) {
 }
 // two-storey house: doors {n,s,e,w: [centers]}, interior stair along the north wall, upper-floor windows on every side, pitched roof
 function house2(L, x0, z0, w, d, o = {}) {
+  (L.flatZones || (L.flatZones = [])).push([x0, z0, x0 + w, z0 + d]);
   const fh = 3.4, th = 0.4, x1 = x0 + w, z1 = z0 + d, m = o.m || 'tudor', run = clamp(w - 3.4, 3.8, 5.6), sw = 1.8;
   const dr = o.doors || {}, wn = (a, b) => { const r = []; for (let c = a + 1.6; c < b - 1.2; c += 2.6) r.push(W2(c)); return r; };
   const stx0 = x0 + th + 1.1 - 0.9, stx1 = x0 + th + 1.1 + run + 0.9; // no ground-floor window on the north wall where the stair runs behind it
@@ -1233,6 +1234,7 @@ function house2(L, x0, z0, w, d, o = {}) {
 }
 // stair tower with belfry (three levels)
 function stairTower(L, x0, z0, s, m) {
+  (L.flatZones || (L.flatZones = [])).push([x0, z0, x0 + s, z0 + s]);
   const th = 0.5, x1 = x0 + s, z1 = z0 + s, ix0 = x0 + th, iz0 = z0 + th, ix1 = x1 - th, iz1 = z1 - th, half = (ix0 + ix1) / 2, f1 = 3.8, f2 = 7.6, H = 11.5;
   const lo = f2 + 0.5, bel = [{ c: 0, w: 1.6, y0: 0.4, y1: 2.1 }], cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, b = c => [{ c, w: 1.6, y0: 0.4, y1: 2.1 }];
   wallX2(L, x0, x1, z0 + th / 2, th, 0, lo, [D2(cx)], m); wallX2(L, x0, x1, z0 + th / 2, th, lo, H - lo, b(cx), m);
@@ -1535,6 +1537,7 @@ function watchtower(L, cx, cz, dir, y = 4.5) { // stilted tower with sandbag par
   else L.stairs(cx - s - run, cz, 'px', sw, 0, y, run, 'wood');
 }
 function bunker(L, x0, z0, w, d, doors, m = 'concrete') { // single-storey building with interior; doors {n,s,e,w:[centres]}, flat roof
+  (L.flatZones || (L.flatZones = [])).push([x0, z0, x0 + w, z0 + d]);
   const h = 3.2, th = 0.4, x1 = x0 + w, z1 = z0 + d, ops = side => (doors[side] || []).map(D2).concat([]);
   const wins = (a, b, side) => { const r = []; for (let c = a + 2.2; c < b - 1.6; c += 3.6) if (!(doors[side] || []).some(dc => Math.abs(dc - c) < 2.3)) r.push({ c, w: 1.5, y0: 0.85, y1: 2.85 }); return r; };
   wallX2(L, x0, x1, z1 - th / 2, th, 0, h, ops('n').concat(wins(x0, x1, 'n')), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, h, ops('s').concat(wins(x0, x1, 's')), m);
@@ -1543,6 +1546,7 @@ function bunker(L, x0, z0, w, d, doors, m = 'concrete') { // single-storey build
   L.box(x0 - 0.25, h + 0.3, z0 - 0.25, x1 + 0.25, h + 0.6, z0 + 0.05, m, { col: false }); L.box(x0 - 0.25, h + 0.3, z1 - 0.05, x1 + 0.25, h + 0.6, z1 + 0.25, m, { col: false });
 }
 function warehouse(L, x0, z0, w, d, o = {}) { // big shed: corrugated walls, roll-up doors, catwalk mezzanine with stairs
+  (L.flatZones || (L.flatZones = [])).push([x0, z0, x0 + w, z0 + d]);
   const h = 9, th = 0.35, x1 = x0 + w, z1 = z0 + d, m = 'metalwall', big = c => ({ c, w: 5.5, y0: 0, y1: 4.8 });
   wallX2(L, x0, x1, z1 - th / 2, th, 0, h, (o.n || []).map(big), m); wallX2(L, x0, x1, z0 + th / 2, th, 0, h, (o.s || []).map(big), m);
   wallZ2(L, z0 + th, z1 - th, x1 - th / 2, th, 0, h, (o.e || []).map(big), m); wallZ2(L, z0 + th, z1 - th, x0 + th / 2, th, 0, h, (o.w || []).map(big), m);
@@ -2130,6 +2134,7 @@ function buildTerrain(L, name) {
   for (const b of L.boxes) { if (b.y1 <= 0.4 || b.y0 > 0.4 || !isStruct(b) || (b.boundary && L.edge === 'berm')) continue; b.struct = true;
     const i0 = Math.max(0, Math.floor((b.x0 - 0.5 - x0) / cs)), i1 = Math.min(nx - 1, Math.ceil((b.x1 + 0.5 - x0) / cs)), j0 = Math.max(0, Math.floor((b.z0 - 0.5 - z0) / cs)), j1 = Math.min(nz - 1, Math.ceil((b.z1 + 0.5 - z0) / cs));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) occ[j * nx + i] = 1; }
+  for (const [ax, az, bx, bz] of L.flatZones || []) for (let j = Math.max(0, Math.floor((az - 1 - z0) / cs)); j <= Math.min(nz - 1, Math.ceil((bz + 1 - z0) / cs)); j++) for (let i = Math.max(0, Math.floor((ax - 1 - x0) / cs)); i <= Math.min(nx - 1, Math.ceil((bx + 1 - x0) / cs)); i++) occ[j * nx + i] = 1; // building interiors stay flat
   for (const [ax, az, bx, bz] of L.water || []) for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = x0 + i * cs, z = z0 + j * cs; if (x > ax - 4 && x < bx + 4 && z > az - 4 && z < bz + 4) occ[j * nx + i] = 1; }
   const d = new Float32Array(N); for (let k = 0; k < N; k++) d[k] = occ[k] ? 0 : 1e6; // chamfer distance transform (metres to the nearest structure)
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i; let v = d[k]; if (i > 0) v = Math.min(v, d[k - 1] + 1); if (j > 0) { v = Math.min(v, d[k - nx] + 1); if (i > 0) v = Math.min(v, d[k - nx - 1] + 1.414); if (i < nx - 1) v = Math.min(v, d[k - nx + 1] + 1.414); } d[k] = v; }
@@ -3883,8 +3888,18 @@ document.addEventListener('pointerlockchange', () => {
 const BUCKET = () => ({ matches: 0, wins: 0, losses: 0, draws: 0, kills: 0, deaths: 0, heads: 0, shots: 0, hits: 0 });
 const STATS = (() => { let d = null; try { d = JSON.parse(localStorage.getItem('bp_stats') || 'null'); } catch (e) {}
   d = d || {}; if (!d.pvp) { const ai = BUCKET(); for (const k in ai) if (typeof d[k] === 'number') ai[k] = d[k]; d = { ai, pvp: BUCKET(), time: d.time || 0, bestStreak: d.bestStreak || 0, bestWave: d.bestWave || 0, bestScore: d.bestScore || 0, runs: d.runs || 0, weapons: d.weapons || {}, recent: d.recent || [], xp: d.xp || 0 }; } // migrate: old totals were all vs bots
-  return Object.assign({ ai: BUCKET(), pvp: BUCKET(), time: 0, bestStreak: 0, bestWave: 0, bestScore: 0, runs: 0, weapons: {}, recent: [], xp: 0 }, d); })();
-const saveStats = () => { try { localStorage.setItem('bp_stats', JSON.stringify(STATS)); } catch (e) {} };
+  return Object.assign({ ai: BUCKET(), pvp: BUCKET(), time: 0, bestStreak: 0, bestWave: 0, bestScore: 0, runs: 0, weapons: {}, recent: [], xp: 0 }, d, { ai: Object.assign(BUCKET(), d.ai), pvp: Object.assign(BUCKET(), d.pvp) }); })();
+const saveStats = () => { try { localStorage.setItem('bp_stats', JSON.stringify(STATS)); } catch (e) {} cloudQueue(); };
+const freshStats = () => ({ ai: BUCKET(), pvp: BUCKET(), time: 0, bestStreak: 0, bestWave: 0, bestScore: 0, runs: 0, weapons: {}, recent: [], xp: 0, xpv: 2 });
+function replaceStats(d) { d = d || {}; for (const k of Object.keys(STATS)) delete STATS[k]; Object.assign(STATS, freshStats(), d, { ai: Object.assign(BUCKET(), d.ai), pvp: Object.assign(BUCKET(), d.pvp), weapons: d.weapons || {}, recent: Array.isArray(d.recent) ? d.recent : [] }); STATS.xpv = 2; try { localStorage.setItem('bp_stats', JSON.stringify(STATS)); } catch (e) {} }
+// ---- PLAYER PROFILE: a permanent identity (like a Battle.net / Activision ID). Rename freely; the #TAG stays, so people
+// still know it's you. Lives in this browser as a guest; signing in (Supabase) links it to an account on every device.
+const PROFILE = (() => { let p = null; try { p = JSON.parse(localStorage.getItem('bp_profile') || 'null'); } catch (e) {}
+  if (!p || !/^[0-9a-f]{32}$/.test(p.id || '')) { const a = new Uint8Array(16); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(a) : a.forEach((_, i) => a[i] = Math.random() * 256 | 0);
+    const id = [...a].map(b => b.toString(16).padStart(2, '0')).join(''); p = { id, tag: id.slice(0, 4).toUpperCase(), created: Date.now() }; }
+  try { localStorage.setItem('bp_profile', JSON.stringify(p)); } catch (e) {} return p; })();
+const saveProfile = () => { try { localStorage.setItem('bp_profile', JSON.stringify(PROFILE)); } catch (e) {} };
+const cleanTag = t => /^[0-9A-F]{4}$/.test(String(t || '')) ? String(t) : '';
 const wstat = id => STATS.weapons[id] || (STATS.weapons[id] = { kills: 0, shots: 0, hits: 0 });
 // Level curve: L2 after about one match; every unlock (L22) takes ~60 bot matches or ~20-25 online matches.
 const xpNeed = l => 1500 + (l - 1) * 300;
@@ -3932,6 +3947,75 @@ function emblem(l, size = 44) { // evolves every level: tier colour per 10 level
   return `<svg class="emblem" viewBox="-10 0 120 102" width="${size}" height="${size}">${g}</svg>`;
 }
 function renderRank() { const L = lvlOf(STATS.xp), el = $('mrank'); if (el) el.innerHTML = `${emblem(L.l, 46)}<div class="rk"><b>${L.l}</b><small>${rankName(L.l)}</small><i><u style="width:${Math.round(L.cur / L.need * 100)}%"></u></i></div>`; }
+// ---- CLOUD ACCOUNTS (Supabase): optional. Fill fps/cloud-config.js with your project URL + publishable (anon) key.
+var CLOUD = { sb: null, user: null, state: 'off', msg: '', t: 0, busy: false };
+const cloudCfg = () => { const c = window.BP_SUPA; return c && c.url && c.key ? c : null; };
+function loadSupa() { return window.supabase && window.supabase.createClient ? Promise.resolve() : new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/supabase.js?v=2.45.4'; sc.onload = res; sc.onerror = () => rej(new Error('Could not load the sign-in library')); document.head.appendChild(sc); }); }
+async function cloudInit() {
+  const c = cloudCfg(); if (!c || CLOUD.sb) return;
+  try { await loadSupa(); CLOUD.sb = window.supabase.createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'bp_auth' } });
+    CLOUD.sb.auth.onAuthStateChange((ev, session) => { const u = session && session.user;
+      if (u && (!CLOUD.user || CLOUD.user.id !== u.id)) { CLOUD.user = u; setTimeout(cloudPull, 0); }
+      else if (!u && CLOUD.user) { CLOUD.user = null; CLOUD.state = 'off'; delete PROFILE.cloud; saveProfile(); renderCareer(); } });
+    if (/access_token|error_description/.test(location.hash)) setTimeout(() => { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }, 1500);
+  } catch (e) { CLOUD.state = 'error'; CLOUD.msg = e.message; renderCareer(); }
+}
+async function cloudPull() {
+  const sb = CLOUD.sb, u = CLOUD.user; if (!sb || !u) return; CLOUD.state = 'sync'; CLOUD.msg = ''; renderCareer();
+  try {
+    const { data, error } = await sb.from('profiles').select('*').eq('user_id', u.id).maybeSingle(); if (error) throw error;
+    if (!data) { // first sign-in: this browser's profile becomes the account
+      const { error: e2 } = await sb.from('profiles').insert({ user_id: u.id, player_id: PROFILE.id, tag: PROFILE.tag, name: cleanName(settings.name), stats: STATS, xp: STATS.xp | 0 }); if (e2) throw e2;
+    } else { // the account's identity wins; progress: whichever copy is further along
+      PROFILE.id = /^[0-9a-f]{32}$/.test(data.player_id) ? data.player_id : PROFILE.id; PROFILE.tag = cleanTag(data.tag) || PROFILE.tag; settings.name = cleanName(data.name); saveSettings();
+      if ((data.xp | 0) >= (STATS.xp | 0) && data.stats && data.stats.pvp) replaceStats(data.stats); else await cloudPush(true);
+    }
+    PROFILE.cloud = u.id; saveProfile(); CLOUD.state = 'on'; CLOUD.t = Date.now();
+  } catch (e) { CLOUD.state = 'error'; CLOUD.msg = e.message || String(e); }
+  renderCareer(); renderRank(); try { menuRefresh(); } catch (e) {}
+}
+function cloudQueue() { if (!CLOUD || !CLOUD.user || CLOUD.state !== 'on') return; clearTimeout(cloudQueue.t); cloudQueue.t = setTimeout(() => cloudPush(), 4000); }
+async function cloudPush(now) {
+  const sb = CLOUD.sb, u = CLOUD.user; if (!sb || !u) return;
+  try { const { error } = await sb.from('profiles').update({ name: cleanName(settings.name), stats: STATS, xp: STATS.xp | 0, updated_at: new Date().toISOString() }).eq('user_id', u.id); if (error) throw error; CLOUD.t = Date.now(); if (CLOUD.state === 'error') { CLOUD.state = 'on'; CLOUD.msg = ''; } }
+  catch (e) { CLOUD.state = 'error'; CLOUD.msg = e.message || String(e); }
+}
+async function cloudSignIn(kind, email) {
+  await cloudInit(); const sb = CLOUD.sb; if (!sb) return; const to = location.origin + location.pathname;
+  try {
+    if (kind === 'google') { const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: to } }); if (error) throw error; }
+    else { if (!/^\S+@\S+\.\S+$/.test(email || '')) { CLOUD.msg = 'Enter a valid email address.'; renderCareer(); return; }
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: to } }); if (error) throw error; CLOUD.state = 'sent'; CLOUD.msg = 'Check your email for a sign-in link, then open it in this browser.'; }
+  } catch (e) { CLOUD.state = 'error'; CLOUD.msg = e.message || String(e); }
+  renderCareer();
+}
+async function cloudSignOut() { try { await cloudPush(true); await CLOUD.sb.auth.signOut(); } catch (e) {} CLOUD.user = null; CLOUD.state = 'off'; delete PROFILE.cloud; saveProfile(); renderCareer(); }
+// export / import: move a guest profile to another device without an account
+function exportCode() { return 'BP1.' + btoa(unescape(encodeURIComponent(JSON.stringify({ p: { id: PROFILE.id, tag: PROFILE.tag, created: PROFILE.created }, n: settings.name, s: STATS })))); }
+function importCode(code) { try { const j = JSON.parse(decodeURIComponent(escape(atob(String(code).trim().replace(/^BP1\./, ''))))); if (!j.p || !/^[0-9a-f]{32}$/.test(j.p.id) || !j.s || !j.s.pvp) throw 0;
+  Object.assign(PROFILE, { id: j.p.id, tag: cleanTag(j.p.tag) || j.p.id.slice(0, 4).toUpperCase(), created: j.p.created || Date.now() }); saveProfile(); settings.name = cleanName(j.n); saveSettings(); replaceStats(j.s); cloudQueue(); return true; } catch (e) { return false; } }
+function resetProgress() { replaceStats(freshStats()); if (CLOUD.user) cloudPush(true); renderCareer(); renderRank(); try { menuRefresh(); } catch (e) {} }
+function menuRefresh() { const e = $('mpname2'); if (e) e.innerHTML = esc((settings.name || 'OPERATOR').toUpperCase()) + `<em class="ptag">#${PROFILE.tag}</em>`; }
+function profileCard() {
+  const cfg = !!cloudCfg(), u = CLOUD.user, since = new Date(PROFILE.created || Date.now()).toLocaleDateString();
+  const acct = !cfg ? `<p class="cnote">Cloud accounts aren't set up on this server yet — your profile is saved in this browser. Use an export code to move it.</p>`
+    : u ? `<div class="prow"><span class="pchip on">SIGNED IN</span><span class="pmail">${esc(u.email || 'account')}</span><span class="psync">${CLOUD.state === 'sync' ? 'Syncing…' : CLOUD.state === 'error' ? 'Sync problem' : 'Saved to your account'}</span><button class="pbtn" id="pfOut">SIGN OUT</button></div>`
+    : `<div class="prow"><span class="pchip">GUEST</span><span class="psync">Sign in to keep this profile on every device.</span></div><div class="prow"><input class="mpin" id="pfMail" type="email" placeholder="you@example.com" autocomplete="email"><button class="pbtn" id="pfMailBtn">EMAIL ME A SIGN-IN LINK</button><button class="pbtn" id="pfGoogle">GOOGLE</button></div>`;
+  return `<div class="pcard"><div class="ptop"><div class="pname"><b id="pfName">${esc(cleanName(settings.name))}</b><em>#${PROFILE.tag}</em></div><small>Player ID ${PROFILE.id.slice(0, 8).toUpperCase()}… · since ${since}</small></div>
+    <div class="prow"><input class="mpin" id="pfRename" maxlength="16" value="${esc(cleanName(settings.name))}"><button class="pbtn" id="pfRenameBtn">RENAME</button><span class="psync">Your #${PROFILE.tag} never changes, so friends still know it's you.</span></div>
+    ${acct}${CLOUD.msg ? `<p class="cnote pmsg">${esc(CLOUD.msg)}</p>` : ''}
+    <div class="prow"><button class="pbtn" id="pfExport">EXPORT CODE</button><button class="pbtn" id="pfImport">IMPORT CODE</button><button class="pbtn warn" id="pfReset">RESET PROGRESS</button></div><textarea class="mpin pcode" id="pfCode" style="display:none" spellcheck="false"></textarea></div>`;
+}
+function wireProfile() {
+  const on = (id, f) => { const e = $(id); if (e) e.onclick = f; };
+  on('pfRenameBtn', () => { settings.name = cleanName($('pfRename').value); saveSettings(); try { sendInfo(); } catch (e) {} if ($('mpname')) $('mpname').value = settings.name; cloudQueue(); renderCareer(); try { menuRefresh(); } catch (e) {} showMenuToast('Name changed to ' + settings.name + '#' + PROFILE.tag); });
+  on('pfMailBtn', () => cloudSignIn('email', $('pfMail').value.trim())); on('pfGoogle', () => cloudSignIn('google')); on('pfOut', cloudSignOut);
+  on('pfExport', () => { const t = $('pfCode'); t.style.display = 'block'; t.value = exportCode(); t.select(); try { navigator.clipboard.writeText(t.value).then(() => showMenuToast('Export code copied — paste it into IMPORT on your other device'), () => showMenuToast('Copy the code below and paste it into IMPORT on your other device')); } catch (e) {} });
+  on('pfImport', () => { const t = $('pfCode'); if (t.style.display !== 'block' || !t.value || t.value === exportCode()) { t.style.display = 'block'; t.value = ''; t.placeholder = 'Paste an export code here, then press IMPORT CODE again'; t.focus(); return; }
+    if (importCode(t.value)) { showMenuToast('Profile imported'); renderCareer(); renderRank(); try { menuRefresh(); } catch (e) {} } else showMenuToast('That code is not a valid profile'); });
+  on('pfReset', () => { const b = $('pfReset'); if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'PRESS AGAIN TO WIPE LEVEL & STATS'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'RESET PROGRESS'; } }, 4000); return; }
+    resetProgress(); showMenuToast('Progress reset — your name and #' + PROFILE.tag + ' stay'); });
+}
 function renderCareer() {
   const el = $('career'); if (!el) return; const P = STATS.pvp, A = STATS.ai, L = lvlOf(STATS.xp);
   const kd = B => (B.kills / Math.max(1, B.deaths)).toFixed(2), acc = B => (B.shots ? (B.hits / B.shots * 100).toFixed(1) : '0.0') + '%', wl = B => (B.wins / Math.max(1, B.losses)).toFixed(2), hs = B => (B.kills ? Math.round(B.heads / B.kills * 100) : 0) + '%';
@@ -3940,14 +4024,13 @@ function renderCareer() {
   const ai = [['Matches vs AI', A.matches], ['Kills / deaths', A.kills + ' / ' + A.deaths], ['K/D vs AI', kd(A)], ['Accuracy vs AI', acc(A)], ['Survival runs', STATS.runs], ['Best wave', STATS.bestWave], ['Best score', STATS.bestScore], ['Time played', tp]];
   const ws = Object.entries(STATS.weapons).filter(([id, w]) => w.kills || w.shots).sort((a, b) => b[1].kills - a[1].kills).slice(0, 8);
   const wname = id => id === 'nade' ? 'GRENADES & EXPLOSIVES' : (WEAPONS.find(w => w.id === id) || { name: id }).name;
-  el.innerHTML = `<div class="xpbar">${emblem(L.l, 60)}<b>LEVEL ${L.l} · ${rankName(L.l)}</b><i><u style="width:${Math.round(L.cur / L.need * 100)}%"></u></i><small>${L.cur} / ${L.need} XP to level ${L.l + 1}</small></div>
+  el.innerHTML = profileCard() + `<div class="xpbar">${emblem(L.l, 60)}<b>LEVEL ${L.l} · ${rankName(L.l)}</b><i><u style="width:${Math.round(L.cur / L.need * 100)}%"></u></i><small>${L.cur} / ${L.need} XP to level ${L.l + 1}</small></div>
     <div class="cbig">${big.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('')}</div>
     <p class="cnote">K/D, W/L and accuracy above count real multiplayer matches only. Bot matches and survival are tracked separately.</p>
     <div class="ccols"><div><h3>Vs AI</h3><table class="ktab">${ai.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table></div>
     <div><h3>Weapons (all modes)</h3><table class="ktab"><tr><th>WEAPON</th><th>KILLS</th><th>ACC</th></tr>${ws.length ? ws.map(([id, w]) => `<tr><td>${esc(wname(id))}</td><td>${w.kills}</td><td>${w.shots ? Math.round(w.hits / w.shots * 100) + '%' : '—'}</td></tr>`).join('') : '<tr><td colspan="3">Play a match to start tracking.</td></tr>'}</table></div>
-    <div><h3>Recent matches</h3><table class="ktab"><tr><th>MODE</th><th>RESULT</th><th>K/D</th><th>ACC</th></tr>${STATS.recent.length ? STATS.recent.map(r => `<tr><td>${esc(r.mode)}<br><small>${esc(r.map)}</small></td><td class="r_${r.result}">${r.result.toUpperCase()}</td><td>${r.k}/${r.d}</td><td>${r.acc}%</td></tr>`).join('') : '<tr><td colspan="4">No matches yet.</td></tr>'}</table></div></div>
-    <button class="btn2" id="statReset" style="margin-top:18px">RESET STATS</button>`;
-  $('statReset').onclick = () => { if (confirm('Reset all career stats and XP?')) { STATS.ai = BUCKET(); STATS.pvp = BUCKET(); for (const k of ['time', 'bestStreak', 'bestWave', 'bestScore', 'runs', 'xp']) STATS[k] = 0; STATS.weapons = {}; STATS.recent = []; saveStats(); renderCareer(); renderRank(); } };
+    <div><h3>Recent matches</h3><table class="ktab"><tr><th>MODE</th><th>RESULT</th><th>K/D</th><th>ACC</th></tr>${STATS.recent.length ? STATS.recent.map(r => `<tr><td>${esc(r.mode)}<br><small>${esc(r.map)}</small></td><td class="r_${r.result}">${r.result.toUpperCase()}</td><td>${r.k}/${r.d}</td><td>${r.acc}%</td></tr>`).join('') : '<tr><td colspan="4">No matches yet.</td></tr>'}</table></div></div>`;
+  wireProfile();
 }
 const game = { state: 'menu', time: 0, score: 0, kills: 0, heads: 0, shots: 0, hits: 0, wave: 0, queue: [], spawnT: 0, interT: 0, phase: 'inter', streak: 0, lastKill: -9, shake: 0, runTime: 0 };
 
@@ -5053,7 +5136,7 @@ function peerOpts() {
 function makeCode() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 5; i++) c += A[Math.random() * A.length | 0]; return c; }
 function setMpStatus(t, bad) { const el = $('mpStatus'); el.textContent = t || ''; el.style.color = bad ? '#ff6b5a' : '#ffcf6b'; }
 function mpView(v) { $('mpJoin').style.display = v === 'join' ? 'block' : 'none'; $('mpLobby').style.display = v === 'lobby' ? 'block' : 'none'; }
-function meInfo() { return { name: cleanName(settings.name), cls: settings.cls, kills: 0, deaths: 0, color: 0 }; }
+function meInfo() { return { name: cleanName(settings.name), tag: PROFILE.tag, cls: settings.cls, kills: 0, deaths: 0, color: 0 }; }
 function mpCleanup() {
   clearRemotes(); pubBeaconStop();
   try { if (MP.peer) MP.peer.destroy(); } catch (e) {}
@@ -5111,7 +5194,7 @@ function joinLobby(raw) {
     const c = MP.host = peer.connect(PREFIX + code, { reliable: true });
     const to = MP.joinTO = setTimeout(() => { if (!MP.joined && MP.peer === peer) setMpStatus('Could not reach lobby ' + code + '. Check the code and try again.', true); }, 10000);
     c.on('open', () => {
-      c.send({ t: 'hello', name: settings.name, cls: settings.cls });
+      c.send({ t: 'hello', name: settings.name, tag: PROFILE.tag, cls: settings.cls });
       const u = MP.hostU = peer.connect(PREFIX + code, { reliable: false, metadata: { ch: 'u' } });
       u.on('data', clientRecv);
     });
@@ -5176,10 +5259,10 @@ function hostRecv(from, d) {
   if (d.t === 'bye') { const c = MP.conns.get(from); dropPlayer(from); try { c && c.close(); } catch (e) {} return; }
   if (d.t === 'hello') {
     if (MP.players[from] || !MP.conns.has(from)) return;
-    MP.players[from] = { name: cleanName(d.name), cls: CLASSES[d.cls] ? d.cls : 'assault', kills: 0, deaths: 0, color: MP.nextColor++ % PCOLORS.length };
+    MP.players[from] = { name: cleanName(d.name), tag: cleanTag(d.tag), cls: CLASSES[d.cls] ? d.cls : 'assault', kills: 0, deaths: 0, color: MP.nextColor++ % PCOLORS.length };
     broadcastLobby(); sfx.play('pickup'); return;
   }
-  if (d.t === 'info') { const p = MP.players[from]; if (p) { p.name = cleanName(d.name); p.cls = CLASSES[d.cls] ? d.cls : p.cls; broadcastLobby(); } return; }
+  if (d.t === 'info') { const p = MP.players[from]; if (p) { p.name = cleanName(d.name); if (d.tag !== undefined) p.tag = cleanTag(d.tag); p.cls = CLASSES[d.cls] ? d.cls : p.cls; broadcastLobby(); } return; }
   if (!MP.players[from]) return;
   d.id = from;
   if (d.t === 'po') { const rtt = performance.now() - num(d.c, 0); if (rtt >= 0 && rtt < 5000) { const p = MP.players[from]; p.ping = p.ping ? lerp(p.ping, rtt, 0.3) : rtt; } return; }
@@ -5205,7 +5288,7 @@ function clientRecv(d) {
     case 'pings': if (d.p && typeof d.p === 'object') { for (const id in d.p) if (MP.players[id]) MP.players[id].ping = clamp(num(d.p[id]) | 0, 0, 9999); if (!MP.active) renderLobby(); } return;
     case 'full': setMpStatus(d.why ? String(d.why).slice(0, 80) : 'Lobby unavailable.', true); return;
     case 'lobby': {
-      const ps = {}; if (d.players && typeof d.players === 'object') for (const id of Object.keys(d.players).slice(0, 8)) { const p = d.players[id] || {}; ps[id] = { name: cleanName(p.name), cls: CLASSES[p.cls] ? p.cls : 'assault', kills: num(p.kills) | 0, deaths: num(p.deaths) | 0, color: num(p.color) | 0, ping: num(p.ping) | 0, bot: p.bot === true && /^bot-\d$/.test(id), team: p.team === 0 || p.team === 1 ? p.team : undefined }; }
+      const ps = {}; if (d.players && typeof d.players === 'object') for (const id of Object.keys(d.players).slice(0, 8)) { const p = d.players[id] || {}; ps[id] = { name: cleanName(p.name), tag: cleanTag(p.tag), cls: CLASSES[p.cls] ? p.cls : 'assault', kills: num(p.kills) | 0, deaths: num(p.deaths) | 0, color: num(p.color) | 0, ping: num(p.ping) | 0, bot: p.bot === true && /^bot-\d$/.test(id), team: p.team === 0 || p.team === 1 ? p.team : undefined }; }
       MP.players = ps; MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 200); MP.time = clamp(num(d.time, 480) | 0, 60, 3600); MP.health = HEALTH[d.hp] ? d.hp : MP.health; MP.hostId = String(d.hostId || ''); MP.mode = ['ffa', 'tdm', 'surv'].includes(d.mode) ? d.mode : 'ffa';
       if (!MP.active && game.state !== 'mpover') { setMpStatus(''); mpView('lobby'); } renderLobby(); return;
     }
@@ -5533,7 +5616,7 @@ function renderLobby() {
   $('mpCodeTxt').textContent = MP.code;
   const ids = Object.keys(MP.players), hostId = MP.isHost ? MP.myId : MP.hostId;
   $('mpCount').textContent = ids.length;
-  $('mpPlayers').innerHTML = ids.map(id => { const p = MP.players[id]; return `<div class="pl"><i style="background:#${new THREE.Color(MP.mode === 'tdm' && p.team >= 0 ? TEAMC[p.team] : PCOLORS[p.color % PCOLORS.length]).getHexString()}"></i><b>${esc(p.name)}</b><span>${esc(CLASSES[p.cls] ? CLASSES[p.cls].name : '')}</span>${p.bot ? '<em class="botb">BOT</em>' : ''}<span class="png">${pingHtml(id, hostId)}</span>${id === hostId ? '<em>HOST</em>' : ''}${id === MP.myId ? '<em class="you">YOU</em>' : ''}</div>`; }).join('');
+  $('mpPlayers').innerHTML = ids.map(id => { const p = MP.players[id]; return `<div class="pl"><i style="background:#${new THREE.Color(MP.mode === 'tdm' && p.team >= 0 ? TEAMC[p.team] : PCOLORS[p.color % PCOLORS.length]).getHexString()}"></i><b>${esc(p.name)}${p.tag ? `<em class="ptag">#${p.tag}</em>` : ''}</b><span>${esc(CLASSES[p.cls] ? CLASSES[p.cls].name : '')}</span>${p.bot ? '<em class="botb">BOT</em>' : ''}<span class="png">${pingHtml(id, hostId)}</span>${id === hostId ? '<em>HOST</em>' : ''}${id === MP.myId ? '<em class="you">YOU</em>' : ''}</div>`; }).join('');
   $('mpHostCtl').style.display = MP.isHost ? 'grid' : 'none';
   const MN = { ffa: 'FREE-FOR-ALL', tdm: 'TEAM DEATHMATCH', surv: 'SURVIVAL CO-OP' }[MP.mode || 'ffa'];
   $('mpInfo').textContent = MP.mode === 'surv' ? `${MN} · ${MAPS[MP.map].name} · hold out together` : `${MN} · ${MAPS[MP.map].name} · ${MP.mode === 'tdm' ? 'team ' : ''}first to ${MP.limit} kills · ${Math.round(MP.time / 60)} min`;
@@ -5634,8 +5717,8 @@ function renderOnline() {
 }
 function sendInfo() {
   if (!MP.peer) return;
-  if (MP.isHost) { const p = MP.players[MP.myId]; if (p) { p.name = cleanName(settings.name); p.cls = settings.cls; broadcastLobby(); } }
-  else if (MP.host && MP.host.open) MP.host.send({ t: 'info', name: settings.name, cls: settings.cls });
+  if (MP.isHost) { const p = MP.players[MP.myId]; if (p) { p.name = cleanName(settings.name); p.tag = PROFILE.tag; p.cls = settings.cls; broadcastLobby(); } }
+  else if (MP.host && MP.host.open) MP.host.send({ t: 'info', name: settings.name, tag: PROFILE.tag, cls: settings.cls });
 }
 
 // ============================================================ MENU TABS, MAP INFO & LOADING SCREEN
@@ -6080,7 +6163,8 @@ function initUI() {
   window.menuCycleTab = d => { const i = tabs.findIndex(t => t.dataset.tab === menuTab); showTab(tabs[(i + d + tabs.length) % tabs.length].dataset.tab); };
   document.querySelectorAll('#menu select, #pause select, #mp select').forEach(spinify);
   customs(); $('psetBtn').onclick = () => pauseSettings(true); $('psetBack').onclick = () => pauseSettings(false);
-  renderCareer(); renderRank(); mapInfo(); $('mpname2').textContent = (settings.name || 'OPERATOR').toUpperCase(); $('mclass').textContent = cls().name + ' · ' + WEAPONS[widx(getLO().primary)].short;
+  if (cloudCfg()) cloudInit();
+  renderCareer(); renderRank(); mapInfo(); menuRefresh(); $('mclass').textContent = cls().name + ' · ' + WEAPONS[widx(getLO().primary)].short;
   const botOpts = () => { const tdm = settings.botMode === 'tdm', el = $('bots'), lim = $('botLimit'), cur = +settings.bots || (tdm ? 7 : 5);
     el.innerHTML = (tdm ? [2, 3, 4, 5, 6].map(n => `<option value="${2 * n - 1}">${n} vs ${n}</option>`) : [4, 6, 8, 10, 12].map(n => `<option value="${n - 1}">${n} players</option>`)).join('');
     el.value = String(cur); if (el.selectedIndex < 0) { el.selectedIndex = 1; } settings.bots = +el.value;

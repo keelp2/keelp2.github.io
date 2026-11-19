@@ -68,6 +68,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 #onlinepanel{position:absolute;top:58px;right:300px;width:min(320px,90vw);background:rgba(10,12,16,.96);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;display:none;z-index:40;font-size:13px}#onlinepanel.on{display:block}#onlinepanel h4{margin:0 0 8px;letter-spacing:.16em;font-size:12px;color:#ffb27a}#onlinepanel .orow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)}#onlinepanel .orow small{color:#9aa3ad}#onlinepanel p{margin:8px 0 0;color:#9aa3ad;font-size:11px}
 #mtoast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,10px);background:rgba(12,14,19,.94);border:1px solid #ff8a3d;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;letter-spacing:.06em;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:90}#mtoast.on{opacity:1;transform:translate(-50%,0)}
 #lvlup.on{opacity:1;transform:translate(-50%,0)}#lvlup small{display:block;font-size:11px;letter-spacing:.35em;color:#ffb27a;font-weight:800}#lvlup b{display:block;font-size:30px;font-weight:900;letter-spacing:.08em}#lvlup i{font-style:normal;font-size:12px;letter-spacing:.25em;color:#cfd6e0}
+.pcard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:grid;gap:10px}
+.ptop{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}.pname b{font-size:22px;letter-spacing:.06em}.pname em,.ptag{font-style:normal;color:#8fd4ff;margin-left:4px;font-weight:600;opacity:.9}
+.ptop small{color:#9aa3ad;font-size:11px;letter-spacing:.08em}.prow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.prow .mpin{flex:1 1 180px;min-width:0;max-width:280px}
+.pbtn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#e8edf2;padding:8px 12px;border-radius:6px;font:inherit;font-size:12px;letter-spacing:.1em;cursor:pointer}.pbtn:hover,.pbtn:focus{background:rgba(255,255,255,.16);outline:none}
+.pbtn.warn{border-color:rgba(255,110,90,.5);color:#ffb0a0}.pchip{font-size:10px;letter-spacing:.14em;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,.1);color:#cfd6dd}.pchip.on{background:rgba(90,200,120,.2);color:#9ff0b8}
+.psync,.pmail{color:#9aa3ad;font-size:12px}.pmsg{color:#ffcf6b}.pcode{width:100%;height:64px;font-size:11px;font-family:monospace;resize:vertical}
 #protcue{position:absolute;top:63%;left:0;right:0;text-align:center;font-size:12px;letter-spacing:.2em;color:#8fd4ff;text-shadow:0 0 8px rgba(80,170,255,.8),0 1px 3px #000;opacity:0;transition:opacity .25s;pointer-events:none}
 #hint{position:absolute;top:58%;left:0;right:0;text-align:center;font-size:14px;letter-spacing:.15em;color:#ffcf6b;text-shadow:0 1px 4px #000;opacity:0}
 #hp{position:absolute;left:18px;bottom:18px;padding:10px 14px;width:270px}
@@ -507,7 +513,8 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611192000"></script>
+<script src="cloud-config.js?v=1"></script>
+<script src="game.js?v=202611192200"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
