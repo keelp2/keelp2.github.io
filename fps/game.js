@@ -6055,7 +6055,7 @@ function startPotg(done, Bk, killcam) {
   for (const id of ids) { const I = POTG.actors[id]; if (!I) continue; const ch = makeCharacter(I.kind || 'knight', { weapon: (fr[0].a.find(a => a[0] === id) || [])[7] || 'rifle', faction: I.faction, seed: I.seed, byClass: I.human, troop: I.troop }); ch.group.visible = false; world.group.add(ch.group); ghosts[id] = ch; }
   const ov = $('potgov') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'potgov' }));
   ov.innerHTML = killcam ? `<div class="ptitle"><small>KILLCAM</small><b>${esc(A.name.toUpperCase())}</b><i>HOW YOU WENT DOWN</i></div><div class="pcall" id="potgCall"></div><div class="pscope" id="potgScope"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>` : `<div class="ptitle"><small>PLAY OF THE GAME</small><b>${esc(A.name.toUpperCase())}</b><i>${B.n > 1 ? ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, B.n)] : 'CLUTCH ELIMINATION'}</i></div><div class="pcall" id="potgCall"></div><div class="pscope" id="potgScope"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>`;
-  ov.className = 'on'; $('hud').classList.add('cine'); $('hud').classList.add('potgmode');
+  ov.className = 'on' + (killcam ? ' kc' : ''); if (killcam) $('hud').classList.add('kcmode'); else { $('hud').classList.add('cine'); $('hud').classList.add('potgmode'); } // killcam keeps the score bar up
   game.potg = { t: B.t0, B, fr, ghosts, hidden, done, ei: POTG.ev.findIndex(e => e.t >= B.t0), cam: null, kc: 0, skip: false, real: 0, killcam: !!killcam };
   if (!killcam) { game.state = 'potg'; sfx.play('levelup'); }
   const sk = e => { if (game.potg && (e.type !== 'keydown' || e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape')) game.potg.skip = true; }; addEventListener('keydown', sk); addEventListener('mousedown', sk); game.potg.unbind = () => { removeEventListener('keydown', sk); removeEventListener('mousedown', sk); };
@@ -6093,7 +6093,7 @@ function potgViewmodel(G, id) { // the hero's weapon, held in first person for t
 function endPotg() {
   const G = game.potg; if (!G) return; game.potg = null; G.unbind && G.unbind(); if (G.vm) scene.remove(G.vm);
   for (const id in G.ghosts) { const g = G.ghosts[id].group; if (g.parent) g.parent.remove(g); } for (const o of G.hidden) o.group.visible = true;
-  const ov = $('potgov'); if (ov) ov.className = ''; $('hud').classList.remove('cine'); $('hud').classList.remove('potgmode');
+  const ov = $('potgov'); if (ov) ov.className = ''; $('hud').classList.remove('cine'); $('hud').classList.remove('potgmode'); $('hud').classList.remove('kcmode');
   if (!G.killcam) game.state = 'play'; camera.fov = settings.fov; camera.updateProjectionMatrix(); G.done();
 }
 function startOutro(res, why, done) {
