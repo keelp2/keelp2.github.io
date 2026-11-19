@@ -629,6 +629,7 @@ const music = {
     const src = c.createMediaElementSource(el), g = c.createGain(); g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(name === 'title' ? 0.8 : 0.95, c.currentTime + 0.6); src.connect(g); g.connect(sfx.musicBus);
     el.play().catch(() => {}); this.file = { el, g }; this.name = name; if (!el.loop) el.onended = () => { if (this.file && this.file.el === el) { this.file = null; this.name = ''; } }; },
   play(name) {
+    if (name === 'title' && (game.state === 'play' || game.state === 'potg')) return; /* never during a match */
     if (!sfx.ok()) { this.pending = name; return; }
     if (MUSIC_OK[name]) { if (this.name === name && this.file && this.file.el.loop) return; this.stop(); this.playFile(name); return; }
     if (this.name === name && this.cur && SONGS[name]().loop) return;
@@ -3588,7 +3589,7 @@ function spawnBot(st) {
   if (BD.teams && st.team === 0) { e.tag = makeNameTag(st.name, TEAMC[0]); e.tag.position.y = 2.25 / e.s; e.inner.add(e.tag); }
 }
 function startBotMatch() {
-  sfx.init(); music.play('start'); resize();
+  sfx.init(); music.stop(); resize();
   if (!world || world.def !== MAPS[settings.map] || world.shadows !== QUALITY[settings.quality].shadows) { loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows; }
   resetRun(); game.mode = 'botdm'; game.phase = 'dm'; potgReset();
   BD.startT = game.time; BD.time = settings.botTime === undefined ? 600 : +settings.botTime; BD.matchT = BD.time || 1e9; BD.respawn = [];
@@ -5289,7 +5290,7 @@ function survivalStart() { // MW3-style: pistol + knife, one frag, $500 — ever
   Object.assign(wst, { cur: pi, last: pi }); vmModels.forEach((m, i) => m.g.visible = i === pi); player.grenades = 1; player.tacticals = 0; placeArmories();
 }
 function startGame() {
-  sfx.init(); music.play('start'); resize(); if (MP.peer) { sayBye(); mpCleanup(); }
+  sfx.init(); music.stop(); resize(); if (MP.peer) { sayBye(); mpCleanup(); }
   if (!world || world.def !== MAPS[settings.map] || world.shadows !== QUALITY[settings.quality].shadows) { loadMap(settings.map); world.shadows = QUALITY[settings.quality].shadows; }
   resetRun(); survivalStart(); game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock();
   startIntro('SURVIVAL · ' + { easy: 'RECRUIT', normal: 'VETERAN', hard: 'ELITE' }[settings.difficulty], 'Start with a pistol. Earn cash, buy guns and gear at the armories.');
@@ -5845,7 +5846,7 @@ function hostStartMatch() {
   bcast(msg); startMatch(msg);
 }
 function startMatch(d) { if (!d._ld) { d._ld = 1; return deploy('MULTIPLAYER · ' + Object.keys(MP.players || {}).length + ' PLAYERS', () => startMatch(d), clamp(num(d.map, 0), 0, MAPS.length - 1) | 0); }
-  sfx.init(); music.play('start'); MP.ending = false; if (!MP.isHost && typeof d.hostId === 'string') MP.hostId = d.hostId; if (game.potg) endPotg();
+  sfx.init(); music.stop(); MP.ending = false; if (!MP.isHost && typeof d.hostId === 'string') MP.hostId = d.hostId; if (game.potg) endPotg();
   MP.mode = ['ffa', 'tdm', 'surv'].includes(d.mode) ? d.mode : 'ffa'; MP.teamScore = [0, 0]; setTimeout(potgReset, 0);
   if (d.players && typeof d.players === 'object') for (const id in d.players) if (MP.players[id] && (d.players[id].team === 0 || d.players[id].team === 1)) MP.players[id].team = d.players[id].team;
   MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 200); MP.time = clamp(num(d.time, 480) | 0, 60, 3600); MP.health = HEALTH[d.hp] ? d.hp : 'core';
@@ -6119,16 +6120,22 @@ function updatePotg(dt) {
   if (G.killcam) for (const o of [...enemies, ...remoteList]) if (o.group && o.group.visible) { o.group.visible = false; G.hidden.includes(o) || G.hidden.push(o); }
   const lastK = G.B.kills[G.B.kills.length - 1], dk = lastK ? G.t - lastK.t : -9; G.sl = damp(G.sl || 0, dk > -0.45 && dk < 0.9 ? 1 : 0, 7, dt); const slow = lerp(1, 0.32, G.sl); G.t += dt * slow; // slow-mo only for the final kill
   if (G.t >= G.B.t1 || G.skip || G.real > 16) return endPotg();
-  let i = 0; while (i < G.fr.length - 2 && G.fr[i + 1].t < G.t) i++; const f0 = G.fr[i], f1 = G.fr[i + 1] || f0, k = clamp((G.t - f0.t) / Math.max(1e-3, f1.t - f0.t), 0, 1);
+  let i = G.fi || 0; if (G.fr[i] && G.fr[i].t > G.t) i = 0; while (i < G.fr.length - 2 && G.fr[i + 1].t < G.t) i++; G.fi = i; const f0 = G.fr[i], f1 = G.fr[i + 1] || f0, fm = G.fr[i - 1] || f0, f2 = G.fr[i + 2] || f1, k = clamp((G.t - f0.t) / Math.max(1e-3, f1.t - f0.t), 0, 1);
+  /* Catmull-Rom through the 20 Hz samples (straight lines between them read as jitter, worst on the camera); falls back to linear across a teleport */
+  const CR = (p0, p1, p2, p3, u) => 0.5 * (2 * p1 + (p2 - p0) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (3 * p1 - p0 - 3 * p2 + p3) * u * u * u);
   for (const id in G.ghosts) { const ch = G.ghosts[id], a0 = f0.a.find(a => a[0] === id), a1 = f1.a.find(a => a[0] === id) || a0;
     if (!a0) { ch.group.visible = false; continue; }
     if (!a0[6]) { if (!ch._seen) { ch.group.visible = false; continue; } /* died in the clip: drop where they stood, the same fall as in game */
       if (ch._deadT == null) { ch._deadT = 0; ch._fallDir = Math.random() < 0.5 ? -1 : 1; } ch._deadT += dt * slow; const fk = Math.min(1, ch._deadT / 0.5);
       ch.group.rotation.x = -ch._fallDir * fk * fk * 1.45; ch.group.position.y = ch._ly - 0.05 * fk; if (ch.mixer) ch.mixer.update(0); continue; }
     if (ch._deadT != null) { ch._deadT = null; ch.group.rotation.x = 0; } ch._seen = true; ch.group.visible = true;
-    const x = lerp(a0[1], a1[1], k), y = lerp(a0[2], a1[2], k), z = lerp(a0[3], a1[3], k), yaw = a0[4] + angDiff(a0[4], a1[4]) * k, sp = Math.hypot(a1[1] - a0[1], a1[3] - a0[3]) / Math.max(1e-3, f1.t - f0.t);
+    let am = fm.a.find(a => a[0] === id) || a0, a2 = f2.a.find(a => a[0] === id) || a1; const jump = (p, q) => Math.abs(p[1] - q[1]) + Math.abs(p[3] - q[3]) > 3 || !p[6] !== !q[6];
+    if (jump(am, a0)) am = a0; if (jump(a1, a2)) a2 = a1; const lin = jump(a0, a1);
+    const P = j => lin ? lerp(a0[j], a1[j], k) : CR(am[j], a0[j], a1[j], a2[j], k), Y0 = a0[4] + angDiff(a0[4], am[4]), Y2 = a0[4] + angDiff(a0[4], a1[4]), Y3 = Y2 + angDiff(a1[4], a2[4]);
+    const x = P(1), y = P(2), z = P(3), yaw = lin ? a0[4] + angDiff(a0[4], a1[4]) * k : CR(Y0, a0[4], Y2, Y3, k), pitch = clamp(P(5), -1.5, 1.5);
+    const sp0 = Math.hypot(a1[1] - a0[1], a1[3] - a0[3]) / Math.max(1e-3, f1.t - f0.t), sp = ch._sp = lin ? 0 : damp(ch._sp == null ? sp0 : ch._sp, sp0, 6, dt * slow);
     ch.group.position.set(x, y, z); ch._ly = y; ch.group.rotation.y = yaw; if (ch.weaponId !== a0[7] && a0[7]) { try { setCharWeapon(ch, a0[7]); ch.weaponId = a0[7]; } catch (e) {} } animChar(ch, dt * slow, sp, a0[5]);
-    if (id === G.B.id) { G.hero = { x, y, z, yaw, pitch: lerp(a0[5], a1[5], k), ads: lerp(a0[8] || 0, a1[8] || 0, k), crouch: lerp(a0[9] || 0, a1[9] || 0, k) }; G.spd = sp; if (G.vmId !== a0[7] && a0[7]) potgViewmodel(G, a0[7], ((POTG.actors[id] || {}).att || {})[a0[7]]); } }
+    if (id === G.B.id) { G.hero = { x, y, z, yaw, pitch, snap: lin, ads: lerp(a0[8] || 0, a1[8] || 0, k), crouch: lerp(a0[9] || 0, a1[9] || 0, k) }; G.spd = sp; if (G.vmId !== a0[7] && a0[7]) potgViewmodel(G, a0[7], ((POTG.actors[id] || {}).att || {})[a0[7]]); } }
   for (; G.ei >= 0 && G.ei < POTG.ev.length && POTG.ev[G.ei].t <= G.t; G.ei++) { const e = POTG.ev[G.ei]; if (e.t < G.B.t0) continue; const cp = camera.position;
     if (e.type === 'tr') { const mine = G.hero && Math.hypot(e.a[0] - G.hero.x, e.a[2] - G.hero.z) < 1.6; if (mine) { G.lastTr = { t: e.t, b: e.b }; G.kick = 1; if (G.vm && G.vm.userData.flash) { G.vm.userData.flash.visible = true; setTimeout(() => { if (G.vm) G.vm.userData.flash.visible = false; }, 50); } }
       spawnTracer(mine && G.vm ? G.vm.localToWorld(new V3(0, 0.03, -0.75)) : new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
@@ -6140,6 +6147,7 @@ function updatePotg(dt) {
   const H = G.hero; if (!H) return; // through the hero's eyes, with their gun in hand
   const eye = new V3(H.x, H.y + 1.62 - 0.55 * H.crouch, H.z), Wp = WEAPONS[widx(G.vmId || 'rifle')] || WEAPONS[0], ads = H.ads > 0.5 ? 1 : H.ads * 2, scoped = !!Wp.scope && H.ads > 0.85; // exactly what they saw: same aim, stance and zoom
   camera.position.copy(eye); camera.lookAt(eye.x + Math.sin(H.yaw) * 20 * Math.cos(H.pitch), eye.y + Math.sin(H.pitch) * 20, eye.z + Math.cos(H.yaw) * 20 * Math.cos(H.pitch));
+  { const q = camera.quaternion; if (!G.cq || H.snap || G.cq.angleTo(q) > 0.9) G.cq = q.clone(); else G.cq.slerp(q, 1 - Math.exp(-dt * 38)); q.copy(G.cq); } /* a light filter on top: takes the edge off steppy aim without visible lag */
   camera.fov = settings.fov / lerp(1, Wp.zoom || 1.3, ads); camera.updateProjectionMatrix(); sky.position.copy(camera.position);
   const sc = $('potgScope'); if (sc) sc.style.opacity = scoped ? 1 : 0; G.xh = settings.xhair === 'none' ? 0 : Math.max(0, 1 - H.ads * 1.6) * (G.spd > 5.5 && H.ads < 0.2 ? 0.3 : 1); $('xh').style.opacity = G.xh; if (!G.killcam) hitTick(dt);
   const hg = G.ghosts[G.B.id]; if (hg) hg.group.visible = false;
@@ -6632,8 +6640,8 @@ addEventListener('bp-troops', () => { makeThumbs(); PV.mode = 'char'; buildPrevi
 for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['voices', 'voices', v => v === '1'], ['presence', 'presence', v => v === '1'], ['unlockAll', 'unlockAll', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1'], ['hmSound', 'hmSound', String]]) {
   const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); if (key === 'unlockAll' && $('loadout')) renderLoadout($('loadout')); if (key === 'hmSound') { sfx.init(); if (sfx.ctx) loadHitmarker(sfx.ctx, true); } if (key === 'presence') { if (settings.presence === false) presenceStop(); else presenceStart(); } };
 }
-const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
+const firstTouch = () => { sfx.init(); setTimeout(() => { if (game.state === 'menu') music.play('title'); }, 100); /* no music once a match is on */ removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { cam: () => camera, gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
