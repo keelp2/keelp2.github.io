@@ -4848,6 +4848,8 @@ function updateNadeIndicator() {
   for (; k < 3; k++) nadeInd[k].style.display = 'none';
 }
 function explosion(p, radius, dmg, owner) { game.nadeDmg = game.lastNadeKill = true; try { explosion0(p, radius, dmg, owner); } finally { game.nadeDmg = game.lastNadeKill = false; } }
+// how much of a body a blast can reach: rays to feet, chest and head. Solid walls stop it almost entirely; partial cover helps
+function blastExposure(p, x, y, z, h) { let n = 0; for (const t of [0.25, 0.55, 0.9]) if (los(p.x, p.y + 0.25, p.z, x, y + h * t, z)) n++; return n === 0 ? 0.08 : 0.4 + 0.6 * n / 3; }
 function explosion0(p, radius, dmg, owner) {
   potgEvent('boom', { p: [p.x, p.y, p.z] });
   spawnBoom(p, radius * 0.75);
@@ -4860,13 +4862,13 @@ function explosion0(p, radius, dmg, owner) {
     if (e.dead) continue;
     const cx = e.pos.x, cy = e.pos.y + e.h * 0.5, cz = e.pos.z, d = Math.hypot(cx - p.x, cy - p.y, cz - p.z);
     if (d < radius) {
-      let f = 1 - d / radius; if (!los(p.x, p.y + 0.2, p.z, cx, cy, cz)) f *= 0.35;
+      let f = (1 - d / radius) * blastExposure(p, e.pos.x, e.pos.y, e.pos.z, e.h);
       const dir = { x: (cx - p.x) / (d || 1) * 9 * f, z: (cz - p.z) / (d || 1) * 9 * f };
       const atk = owner instanceof Enemy ? owner : 'player'; if (isAlly(atk === 'player' ? PLAYER_T : atk, e)) continue; if (!e.damage(dmg * f, false, dir, atk) && f > 0 && atk === 'player') hitMarker(false, false, 'nade');
     }
   }
   if (player.alive && dp < radius) {
-    let f = 1 - dp / radius; const ph = playerHead(new V3()); if (!los(p.x, p.y + 0.2, p.z, ph.x, ph.y - 0.6, ph.z)) f *= 0.35;
+    let f = (1 - dp / radius) * blastExposure(p, player.pos.x, player.pos.y, player.pos.z, player.h || 1.75);
     if (!isAlly(owner, PLAYER_T)) damagePlayer(dmg * f * (owner instanceof Enemy ? 0.6 : MP.active && owner !== MP.myId ? 1 : 0.45) * (settings.cls === 'heavy' ? 0.6 : 1), p, owner);
     const dx = player.pos.x - p.x, dy = player.pos.y + 0.9 - p.y, dz = player.pos.z - p.z, l = Math.hypot(dx, dy, dz) || 1;
     player.vel.x += dx / l * 11 * f; player.vel.y += Math.max(3, dy / l * 11) * f; player.vel.z += dz / l * 11 * f; player.onGround = false;
@@ -4925,16 +4927,21 @@ function updatePlayer(dt) {
     else P.pos.set(lerp(M.a.x, M.b.x, smooth(0.35, 1, k)), lerp(M.a.y, M.b.y, Math.min(1, e * 1.5)), lerp(M.a.z, M.b.z, smooth(0.35, 1, k))); P.vel.set(0, 0, 0); if (M.crouch) P.crouch = 1;
     if (k >= 1) { P.mantle = null; P.onGround = true; } return; }
   if ((P.jumpBuf > 0 || (keys.Space && !P.onGround)) && fwd > 0.3 && !P.sliding) { // look for a ledge just ahead
-    const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), px = P.pos.x + fx * 0.6, pz = P.pos.z + fz * 0.6; let top = null;
-    for (const b of world.nav.bucket(px, pz)) if (!b.dead && px > b.x0 && px < b.x1 && pz > b.z0 && pz < b.z1 && b.y1 > P.pos.y + 0.45 && b.y1 < P.pos.y + 1.85 && (top === null || b.y1 > top)) top = b.y1;
+    // forgiving ledge/window search: several distances ahead (up to ~1.1 m) and the direction you're moving, not just where you look
+    const mvx = P.vel.x, mvz = P.vel.z, mvl = Math.hypot(mvx, mvz), lfx = -Math.sin(P.yaw), lfz = -Math.cos(P.yaw), fx = mvl > 1.5 ? (lfx * 0.5 + mvx / mvl * 0.5) : lfx, fz = mvl > 1.5 ? (lfz * 0.5 + mvz / mvl * 0.5) : lfz, fl = Math.hypot(fx, fz) || 1;
+    let top = null, px = 0, pz = 0;
+    for (const dd of [0.45, 0.65, 0.85, 1.1]) { const qx = P.pos.x + fx / fl * dd, qz = P.pos.z + fz / fl * dd; let t = null;
+      for (const b of world.nav.bucket(qx, qz)) if (!b.dead && qx > b.x0 && qx < b.x1 && qz > b.z0 && qz < b.z1 && b.y1 > P.pos.y + 0.35 && b.y1 < P.pos.y + (P.onGround ? 1.85 : 2.1) && (t === null || b.y1 > t)) t = b.y1;
+      if (t !== null) { top = t; px = qx; pz = qz; break; } }
     if (top !== null) for (const b of world.boxes) if (b.glass && !b.dead && overlapBox(b, px, top + 0.03, pz, P.r * 0.9, 1.1)) { breakPane(b.glass, true); game.shake = Math.min(1, game.shake + 0.2); }
     if (top !== null && !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.1)) { // thin sill with room beyond (a window, a low wall): vault straight through and land on the far side
-      let far = 0; for (let d = 0.65; d <= 1.6; d += 0.1) { const qx = P.pos.x + fx * d, qz = P.pos.z + fz * d; if (!world.nav.bucket(qx, qz).some(b => !b.dead && qx > b.x0 && qx < b.x1 && qz > b.z0 && qz < b.z1 && b.y1 > top - 0.05 && b.y0 < top + 1.2)) { far = d; break; } }
-      if (far && far < 1.45) for (const off of [0.45, 0.65, 0.9, 1.15]) { const lx = P.pos.x + fx * (far + off), lz = P.pos.z + fz * (far + off), hit = raycast(new V3(lx, top + 0.4, lz), new V3(0, -1, 0), 4, false), gy = top + 0.4 - hit.t;
+      const nfx = fx / fl, nfz = fz / fl, d0 = Math.hypot(px - P.pos.x, pz - P.pos.z); let far = 0; for (let d = d0 + 0.05; d <= d0 + 1.2; d += 0.08) { const qx = P.pos.x + nfx * d, qz = P.pos.z + nfz * d; if (!world.nav.bucket(qx, qz).some(b => !b.dead && !b.glass && qx > b.x0 && qx < b.x1 && qz > b.z0 && qz < b.z1 && b.y1 > top - 0.05 && b.y0 < top + 1.2)) { far = d; break; } } // glass doesn't count: the vault smashes it
+      if (far && far - d0 < 1.0) for (const off of [0.45, 0.65, 0.9, 1.15]) { const lx = P.pos.x + nfx * (far + off), lz = P.pos.z + nfz * (far + off), hit = raycast(new V3(lx, top + 0.4, lz), new V3(0, -1, 0), 4, false), gy = top + 0.4 - hit.t;
+        for (const g of world.boxes) if (g.glass && !g.dead && Math.hypot((g.x0 + g.x1) / 2 - px, (g.z0 + g.z1) / 2 - pz) < 1.4 && g.y1 > top && g.y0 < top + 1.5) breakPane(g.glass, true); // crash through the pane
         if (hit.t < 4 && gy > top - 3.2 && gy < top + 0.1 && !anyOverlap(lx, gy + 0.03, lz, P.r * 0.9, 1.7) && !anyOverlap(lx, top + 0.15, lz, P.r * 0.9, 1.0)) {
           P.mantle = { t: 0, dur: 0.42 + Math.max(0, top - P.pos.y) * 0.08 + off * 0.12, a: P.pos.clone(), b: new V3(lx, gy + 0.02, lz), peak: top + 0.12, crouch: false }; P.jumpBuf = 0; sfx.play('land', { vol: 0.35 }); vm.kick = 0.35; noise(P.pos, 6, PLAYER_T); return; } }
       const stand = !anyOverlap(px, top + 0.03, pz, P.r * 0.9, 1.75);
-      P.mantle = { t: 0, dur: 0.3 + (top - P.pos.y) * 0.12, a: P.pos.clone(), b: new V3(P.pos.x + fx * 0.85, top + 0.02, P.pos.z + fz * 0.85), crouch: !stand }; P.jumpBuf = 0; sfx.play('land', { vol: 0.4 }); vm.kick = 0.4; noise(P.pos, 6, PLAYER_T); return; } }
+      P.mantle = { t: 0, dur: 0.3 + (top - P.pos.y) * 0.12, a: P.pos.clone(), b: new V3(px, top + 0.02, pz), crouch: !stand }; P.jumpBuf = 0; sfx.play('land', { vol: 0.4 }); vm.kick = 0.4; noise(P.pos, 6, PLAYER_T); return; } }
   if (P.jumpBuf > 0 && P.coyote > 0) {
     P.vel.y = 7.4 * cls().jump; P.jumpBuf = 0; P.coyote = 0; P.onGround = false;
     if (P.sliding) { P.sliding = false; P.slideCD = 0.3; }
@@ -5678,7 +5685,7 @@ function mpBotDied(e, killer, head) {
 }
 function mpBotsTick(dt) { // host: stream bot positions, respawn the fallen
   MP.botSendT = (MP.botSendT || 0) - dt;
-  if (MP.botSendT <= 0) { MP.botSendT = 1 / 20; for (const e of enemies) if (e.netId && !(e.dead && e.deadT > 3)) bcast({ t: 'st', id: e.netId, tp: e.etype, p: v3a(e.pos), yaw: Math.round((e.yaw + Math.PI) * 1000) / 1000, pt: Math.round((e.aimPitch || 0) * 100) / 100, h: Math.round(e.h / 1.82 / e.s * 1.75 * 100) / 100, alive: !e.dead, w: e.W.id, q: ++e.q }, null, true); }
+  if (MP.botSendT <= 0) { MP.botSendT = 1 / 20; for (const e of enemies) if (e.netId && !(e.dead && e.deadT > 3)) bcast({ t: 'st', id: e.netId, tp: e.etype, ad: e.visible && e.target ? 1 : 0, p: v3a(e.pos), yaw: Math.round((e.yaw + Math.PI) * 1000) / 1000, pt: Math.round((e.aimPitch || 0) * 100) / 100, h: Math.round(e.h / 1.82 / e.s * 1.75 * 100) / 100, alive: !e.dead, w: e.W.id, q: ++e.q }, null, true); }
   if (MP.botRespawn) for (let i = MP.botRespawn.length - 1; i >= 0; i--) { const r = MP.botRespawn[i]; r.t -= dt; if (r.t <= 0) { MP.botRespawn.splice(i, 1); if (MP.players[r.id] && !enemies.some(e => e.netId === r.id && !e.dead)) mpSpawnBot(r.id); } }
 }
 function hostPick(from, k) {
@@ -5720,6 +5727,7 @@ class Remote {
     if (this.lastArr) { const iv = Math.min(now - this.lastArr, 500); this.ivAvg = lerp(this.ivAvg || 33, iv, 0.1); this.jit = lerp(this.jit || 5, Math.abs(iv - this.ivAvg), 0.1); }
     this.lastArr = now;
     this.delay = clamp((this.ivAvg || 33) + (this.jit || 5) * 2.5 + 8, 40, 220); // just enough buffer to hide this connection's jitter
+    this.lastAd = clamp(num(d.ad, 0), 0, 1); this.lastH = clamp(num(d.h, 1.75), 1, 1.8);
     this.snaps.push({ w: typeof d.w === 'string' ? d.w : this.weaponId, pitch: clamp(num(d.pt), -1.5, 1.5), t: now, x: p.x, y: p.y, z: p.z, yaw: num(d.yaw), h: clamp(num(d.h, 1.75), 1, 1.8), alive: !!d.alive, dn: !!d.dn });
     if (this.snaps.length > 40) this.snaps.shift();
   }
@@ -5848,7 +5856,7 @@ function updateMP(dt) {
   MP.sendT -= dt;
   if (MP.sendT <= 0) {
     MP.sendT = 1 / 30;
-    netSend({ t: 'st', p: v3a(player.pos), yaw: Math.round(player.yaw * 1000) / 1000, pt: Math.round(player.pitch * 100) / 100, h: Math.round(player.h * 100) / 100, alive: player.alive, w: WEAPONS[wst.cur].id, dn: player.downed ? 1 : 0 });
+    netSend({ t: 'st', p: v3a(player.pos), yaw: Math.round(player.yaw * 1000) / 1000, pt: Math.round(player.pitch * 100) / 100, h: Math.round(player.h * 100) / 100, alive: player.alive, w: WEAPONS[wst.cur].id, dn: player.downed ? 1 : 0, ad: Math.round(wst.ads * 10) / 10 });
   }
   if (!player.alive) { MP.respawnT -= dt; game.deadT = (game.deadT || 0) + dt; if (MP.respawnT <= 0 && MP.mode !== 'surv') mpRespawn(); }
   MP.matchT -= dt;
@@ -6010,11 +6018,11 @@ function potgRecord(dt) {
   if (POTG.frames.length > 20 * 900) POTG.frames.splice(0, 20 * 60); // keep at most 15 minutes
   const a = [], myTeam = MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0;
   potgActor('me', { names: ['You', cleanName(settings.name)], name: cleanName(settings.name) + '#' + PROFILE.tag, kind: cls().model, faction: myTeam, seed: PROFILE.id, human: true });
-  a.push(['me', player.pos.x, player.pos.y, player.pos.z, player.yaw + Math.PI, player.pitch || 0, player.alive ? 1 : 0, WEAPONS[wst.cur].id]);
+  a.push(['me', player.pos.x, player.pos.y, player.pos.z, player.yaw + Math.PI, player.pitch || 0, player.alive ? 1 : 0, WEAPONS[wst.cur].id, Math.round(wst.ads * 10) / 10, Math.round((player.crouch || 0) * 10) / 10]);
   for (const e of enemies) { if (!e._pid) e._pid = 'e' + (POTG.nid++); potgActor(e._pid, { names: [e.T && e.T.name, e.netId && MP.players[e.netId] && MP.players[e.netId].name].filter(Boolean), name: (e.T && e.T.name) || 'Bot', kind: e.kind, faction: e.look ? e.look.faction : 1, seed: e.T && e.T.name, human: false, troop: e.troop });
-    a.push([e._pid, e.pos.x, e.pos.y, e.pos.z, e.yaw, e.aimPitch || 0, e.dead ? 0 : 1, e.W ? e.W.id : 'rifle']); }
+    a.push([e._pid, e.pos.x, e.pos.y, e.pos.z, e.yaw, e.aimPitch || 0, e.dead ? 0 : 1, e.W ? e.W.id : 'rifle', e.visible && e.target && (e.aimT > 0 || e.state === 'engage') ? 1 : 0, Math.round((e.crouchK || 0) * 10) / 10]); }
   for (const r of remoteList) { const id = 'r' + r.id; potgActor(id, { names: [r.name], name: r.name, kind: r.kind, faction: r.look ? r.look.faction : 0, seed: r.name, look: r.look, human: !(MP.players[r.id] && MP.players[r.id].bot), troop: r.troop });
-    a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, 'rifle']); }
+    a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, r.weaponId || 'rifle', r.lastAd || 0, r.lastH ? clamp((1.75 - r.lastH) / 0.6, 0, 1) : 0]); }
   POTG.frames.push({ t: POTG.t, a });
 }
 const potgEvent = (type, o) => { if (POTG.on && !game.outro && game.state === 'play' && !game.potg) POTG.ev.push(Object.assign({ t: POTG.t, type }, o)); };
@@ -6032,10 +6040,10 @@ function potgPick() { // CoD-style scoring: kills, headshots, kill chains, long 
   return best && POTG.frames.length > 10 ? best : null;
 }
 // Killcam: when you die, replay the last few seconds through your killer's eyes while you wait to respawn
-function potgKillcam(id) { if (!POTG.on || !id || !POTG.actors[id]) return; game.killcamQ = { id, t: POTG.t, at: game.time + 1.0 }; MP.respawnT = Math.max(MP.respawnT, 5.2); }
+function potgKillcam(id) { if (!MP.active || !POTG.on || !id || !POTG.actors[id]) return; game.killcamQ = { id, t: POTG.t, at: game.time + 0.8 }; MP.respawnT = Math.max(MP.respawnT, 4.4); } // online only
 function killcamTick(dt) {
   const Q = game.killcamQ; if (Q && !game.potg && !player.alive && game.time >= Q.at) { game.killcamQ = null; const t1 = Math.min(Q.t + 0.9, POTG.t), ev = POTG.ev.filter(e => e.type === 'kill' && e.t >= Q.t - 0.5 && e.t <= Q.t + 0.5);
-    startPotg(() => {}, { id: Q.id, sc: 0, n: 1, t0: Math.max(0, t1 - 5.2), t1, kills: ev }, true); }
+    startPotg(() => {}, { id: Q.id, sc: 0, n: 1, t0: Math.max(0, t1 - 3.4), t1, kills: ev }, true); }
   if (game.potg && game.potg.killcam) { if (player.alive) endPotg(); else updatePotg(dt); }
 }
 function startPotg(done, Bk, killcam) {
@@ -6046,7 +6054,7 @@ function startPotg(done, Bk, killcam) {
   const ids = new Set(); for (const f of fr) for (const a of f.a) ids.add(a[0]);
   for (const id of ids) { const I = POTG.actors[id]; if (!I) continue; const ch = makeCharacter(I.kind || 'knight', { weapon: (fr[0].a.find(a => a[0] === id) || [])[7] || 'rifle', faction: I.faction, seed: I.seed, byClass: I.human, troop: I.troop }); ch.group.visible = false; world.group.add(ch.group); ghosts[id] = ch; }
   const ov = $('potgov') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'potgov' }));
-  ov.innerHTML = killcam ? `<div class="ptitle"><small>KILLCAM</small><b>${esc(A.name.toUpperCase())}</b><i>HOW YOU WENT DOWN</i></div><div class="pcall" id="potgCall"></div>` : `<div class="ptitle"><small>PLAY OF THE GAME</small><b>${esc(A.name.toUpperCase())}</b><i>${B.n > 1 ? ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, B.n)] : 'CLUTCH ELIMINATION'}</i></div><div class="pcall" id="potgCall"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>`;
+  ov.innerHTML = killcam ? `<div class="ptitle"><small>KILLCAM</small><b>${esc(A.name.toUpperCase())}</b><i>HOW YOU WENT DOWN</i></div><div class="pcall" id="potgCall"></div><div class="pscope" id="potgScope"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>` : `<div class="ptitle"><small>PLAY OF THE GAME</small><b>${esc(A.name.toUpperCase())}</b><i>${B.n > 1 ? ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, B.n)] : 'CLUTCH ELIMINATION'}</i></div><div class="pcall" id="potgCall"></div><div class="pscope" id="potgScope"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>`;
   ov.className = 'on'; $('hud').classList.add('cine'); $('hud').classList.add('potgmode');
   game.potg = { t: B.t0, B, fr, ghosts, hidden, done, ei: POTG.ev.findIndex(e => e.t >= B.t0), cam: null, kc: 0, skip: false, real: 0, killcam: !!killcam };
   if (!killcam) { game.state = 'potg'; sfx.play('levelup'); }
@@ -6062,19 +6070,21 @@ function updatePotg(dt) {
     if (!a0 || !a0[6]) { ch.group.visible = false; continue; } ch.group.visible = id !== G.B.id || true;
     const x = lerp(a0[1], a1[1], k), y = lerp(a0[2], a1[2], k), z = lerp(a0[3], a1[3], k), yaw = a0[4] + angDiff(a0[4], a1[4]) * k, sp = Math.hypot(a1[1] - a0[1], a1[3] - a0[3]) / Math.max(1e-3, f1.t - f0.t);
     ch.group.position.set(x, y, z); ch.group.rotation.y = yaw; if (ch.weaponId !== a0[7] && a0[7]) { try { setCharWeapon(ch, a0[7]); ch.weaponId = a0[7]; } catch (e) {} } animChar(ch, dt * slow, sp, a0[5]);
-    if (id === G.B.id) { G.hero = { x, y, z, yaw, pitch: lerp(a0[5], a1[5], k) }; G.spd = sp; if (G.vmId !== a0[7] && a0[7]) potgViewmodel(G, a0[7]); } }
+    if (id === G.B.id) { G.hero = { x, y, z, yaw, pitch: lerp(a0[5], a1[5], k), ads: lerp(a0[8] || 0, a1[8] || 0, k), crouch: lerp(a0[9] || 0, a1[9] || 0, k) }; G.spd = sp; if (G.vmId !== a0[7] && a0[7]) potgViewmodel(G, a0[7]); } }
   for (; G.ei >= 0 && G.ei < POTG.ev.length && POTG.ev[G.ei].t <= G.t; G.ei++) { const e = POTG.ev[G.ei]; if (e.t < G.B.t0) continue; const cp = camera.position;
     if (e.type === 'tr') { const mine = G.hero && Math.hypot(e.a[0] - G.hero.x, e.a[2] - G.hero.z) < 1.6; if (mine) { G.kick = 1; if (G.vm && G.vm.userData.flash) { G.vm.userData.flash.visible = true; setTimeout(() => { if (G.vm) G.vm.userData.flash.visible = false; }, 50); } }
       spawnTracer(mine && G.vm ? G.vm.localToWorld(new V3(0, 0.03, -0.75)) : new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
     else if (e.type === 'boom') { sfx.boom(Math.hypot(e.p[0] - cp.x, e.p[2] - cp.z), 0, 1, { x: e.p[0], y: e.p[1], z: e.p[2] }); debris.burst(e.p[0], e.p[1] + 0.3, e.p[2], 24, 9, 1, 0.75, 0.4, 0.9, 1); }
     else if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } sfx.play(e.h ? 'hmhead' : 'hmkill'); } }
   const H = G.hero; if (!H) return; // through the hero's eyes, with their gun in hand
-  const eye = new V3(H.x, H.y + 1.62, H.z), fx = Math.sin(H.yaw), fz = Math.cos(H.yaw), cp = Math.cos(H.pitch);
-  if (!G.eye) G.eye = eye.clone(); else G.eye.lerp(eye, 1 - Math.exp(-18 * dt)); G.lp = G.lp === undefined ? H.pitch : damp(G.lp, H.pitch, 14, dt); G.ly = G.ly === undefined ? H.yaw : G.ly + angDiff(G.ly, H.yaw) * (1 - Math.exp(-14 * dt));
-  camera.position.copy(G.eye); camera.lookAt(G.eye.x + Math.sin(G.ly) * 20 * Math.cos(G.lp), G.eye.y + Math.sin(G.lp) * 20, G.eye.z + Math.cos(G.ly) * 20 * Math.cos(G.lp)); camera.fov = settings.fov; camera.updateProjectionMatrix(); sky.position.copy(camera.position);
+  const eye = new V3(H.x, H.y + 1.62 - 0.55 * H.crouch, H.z), Wp = WEAPONS[widx(G.vmId || 'rifle')] || WEAPONS[0], ads = H.ads > 0.5 ? 1 : H.ads * 2, scoped = !!Wp.scope && H.ads > 0.85; // exactly what they saw: same aim, stance and zoom
+  camera.position.copy(eye); camera.lookAt(eye.x + Math.sin(H.yaw) * 20 * Math.cos(H.pitch), eye.y + Math.sin(H.pitch) * 20, eye.z + Math.cos(H.yaw) * 20 * Math.cos(H.pitch));
+  camera.fov = settings.fov / lerp(1, Wp.zoom || 1.3, ads); camera.updateProjectionMatrix(); sky.position.copy(camera.position);
+  const sc = $('potgScope'); if (sc) sc.style.opacity = scoped ? 1 : 0;
   const hg = G.ghosts[G.B.id]; if (hg) hg.group.visible = false;
   if (G.vm) { G.kick = Math.max(0, (G.kick || 0) - dt * 9); const bob = Math.sin(G.real * 9) * 0.004 * Math.min(1, (G.spd || 0) / 3);
-    G.vm.position.copy(camera.position); G.vm.quaternion.copy(camera.quaternion); G.vm.translateX(0.12); G.vm.translateY(-0.13 + bob - G.kick * 0.01); G.vm.translateZ(-0.36 + G.kick * 0.05); G.vm.rotateX(G.kick * 0.08); }
+    const hp = Wp.hip || [0.12, -0.13, -0.36], ap = Wp.adsPos || [0, -0.07, -0.3], aa = H.ads; G.vm.visible = !scoped;
+    G.vm.position.copy(camera.position); G.vm.quaternion.copy(camera.quaternion); G.vm.translateX(lerp(hp[0], ap[0], aa)); G.vm.translateY(lerp(hp[1], ap[1], aa) + bob * (1 - aa) - G.kick * 0.01); G.vm.translateZ(lerp(hp[2], ap[2], aa) + G.kick * 0.05); G.vm.rotateX(G.kick * 0.08 * (1 - 0.6 * aa)); }
 }
 function potgViewmodel(G, id) { // the hero's weapon, held in first person for the replay
   if (G.vm) { scene.remove(G.vm); G.vm = null; } G.vmId = id; const i = widx(id); if (i < 0) return;
