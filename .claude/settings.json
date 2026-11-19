@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes ara3d@0.9.0:*)"
+    ]
+  }
+}
