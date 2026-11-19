@@ -73,7 +73,7 @@ Each clip should be one shot, roughly 0.4–1.5 s including the tail. Fast-firin
 
 | Key | Sound |
 |---|---|
-| `hm` | **Hit marker**: short, crisp tick (CoD-style). Ships as `hitmarker.wav`, loaded directly; headshot and kill markers reuse it (pitched up with a ping, or pitched down and doubled) |
+| `hm` | **Hit marker**: short, crisp tick (CoD-style). Ships as `hm_<style>.wav` (punch, snap, thump, tight, clean — chosen in Settings → Audio), loaded directly; headshot and kill markers reuse it (pitched up with a ping, or pitched down and doubled) |
 | `hmhead` | Headshot hit marker (a little sharper and brighter) |
 | `hmkill` | Kill-confirm marker (tick plus a body "thump") |
 | `hmstun` | Hitting someone with a stun/concussion |
