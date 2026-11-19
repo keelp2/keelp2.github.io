@@ -1,4 +1,4 @@
-/* BREACHPOINT — a lightweight wave-survival FPS. Pure Three.js + WebAudio, no build step. */
+/* CALL OF DOODIE (formerly Breachpoint) — a lightweight FPS. Pure Three.js + WebAudio, no build step. */
 (() => {
 'use strict';
 const V3 = THREE.Vector3;
@@ -514,7 +514,7 @@ Object.assign(INSTR, {
   crash(dest, t, f, d, v) { const c = sfx.ctx, n = c.createBufferSource(), hp = c.createBiquadFilter(), g = c.createGain(); n.buffer = sfx.nb; n.loop = true; hp.type = 'bandpass'; hp.frequency.value = 6500; hp.Q.value = 0.5;
     g.gain.setValueAtTime(v * 0.09, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6); n.connect(hp); hp.connect(g); g.connect(dest); n.start(t, Math.random()); n.stop(t + 1.9); },
 });
-// "Breachpoint" main theme — D minor, 140 bpm, 32 bars: string ostinato intro -> drums + chugging guitars -> brass chorus -> breakdown -> final chorus
+// "Call of Doodie" main theme — D minor, 140 bpm, 32 bars: string ostinato intro -> drums + chugging guitars -> brass chorus -> breakdown -> final chorus
 function rockTheme() {
   const ev = [], R = { Dm: 38, Bb: 34, C: 36, A: 33, F: 41, Gm: 31 }, P = { Dm: [50, 53, 57], Bb: [46, 50, 53], C: [48, 52, 55], A: [45, 49, 52], F: [41, 45, 48], Gm: [43, 46, 50] };
   const verse = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'A'], chorus = ['Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Gm', 'A'];
@@ -556,7 +556,7 @@ function rockWin() { const ev = [];
 // Songs: list of [beat, instrument, midi, lengthInBeats, velocity, extra]
 // ---- score: cinematic military themes (synthesised: string pads, ostinato, sub bass, taiko, brass)
 const CHORDS = { Dm: [50, 53, 57], Bb: [46, 50, 53], F: [41, 45, 48], C: [48, 52, 55], Gm: [43, 46, 50], A: [45, 49, 52] };
-function mainTheme() { // "Breachpoint" — D minor, 84 bpm, 16 bars
+function mainTheme() { // old orchestral theme — D minor, 84 bpm, 16 bars
   const ev = [], prog = ['Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Gm', 'A'];
   prog.forEach((ch, i) => { const b = i * 8, n = CHORDS[ch];
     for (const x of n) ev.push([b, 'pad', x, 8, 1]);
@@ -5280,7 +5280,7 @@ function updateDmgNumbers(dt) {
 const MP = { seen: {}, lastHost: 0, active: false, peer: null, isHost: false, conns: new Map(), uconns: new Map(), mesh: new Map(), hostU: null, seq: 0, pingTimer: 0, host: null, myId: '', code: '', players: {}, map: 0, limit: 20, time: 480, matchT: 0, sendT: 0, joined: false, lastAttacker: null, lastAttackT: -99, lastHead: false, pickPending: -1, respawnT: 0, nextColor: 1 };
 const remotes = new Map();
 const PCOLORS = [0xff7a1a, 0x3fa7ff, 0x5dff9a, 0xff4fd8, 0xffd23a, 0xa07aff, 0xff5a5a, 0x4fffe8];
-const PREFIX = 'breachpoint-v1-';
+const PREFIX = 'breachpoint-v1-'; // internal id (kept so online lobbies and saves survive the rename)
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const cleanName = n => String(n || '').replace(/[^\w \-.]/g, '').trim().slice(0, 16) || 'Player';
 const num = (v, d = 0) => (typeof v === 'number' && isFinite(v) ? v : d);

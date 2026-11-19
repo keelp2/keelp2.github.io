@@ -1,4 +1,4 @@
-# Breachpoint audio: drop-in clips
+# Call of Doodie audio: drop-in clips
 
 Everything in the game has a generated sound already. Any clip you add **replaces** that sound; anything you don't add keeps the generated version. So you can add clips a few at a time.
 

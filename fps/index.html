@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Breachpoint</title>
+<title>Call of Doodie</title>
 <style>
 :root{--acc:#ff7a1a;--panel:rgba(12,14,19,.78);--fg:#e9edf2;--mut:#8d97a5;--line:rgba(255,255,255,.12)}
 *{box-sizing:border-box}
@@ -221,7 +221,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 #menu{padding:0;align-items:stretch;justify-content:stretch}
 .mshell{display:flex;flex-direction:column;width:100%;height:100%;background:linear-gradient(90deg,rgba(6,8,11,.94) 0%,rgba(6,8,11,.82) 45%,rgba(6,8,11,.55) 100%)}
 .mtop{display:flex;align-items:center;gap:28px;padding:0 40px;height:72px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.35);flex:none}
-.logo{font-size:26px;font-weight:900;letter-spacing:.16em}.logo span{color:var(--acc)}
+.logo{font-size:26px;font-weight:900;letter-spacing:.1em;white-space:nowrap;flex-shrink:0}.logo span{color:var(--acc)}
 .mtabs{display:flex;gap:4px;flex:1;height:100%;min-width:0}
 .mtabs button{background:none;border:0;border-bottom:3px solid transparent;padding:0 18px;font-weight:800;letter-spacing:.2em;font-size:14px;color:var(--mut);transition:.15s}
 .mtabs button:hover{color:#fff}.mtabs button.on{color:#fff;border-bottom-color:var(--acc);background:linear-gradient(0deg,rgba(255,122,26,.16),transparent)}
@@ -371,7 +371,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 <div id="menu" class="screen on">
   <div class="mshell">
     <header class="mtop">
-      <div class="logo">BREACH<span>POINT</span></div>
+      <div class="logo">CALL OF <span>DOODIE</span></div>
       <nav class="mtabs" id="mtabs"><button data-tab="play" class="on">PLAY</button><button data-tab="loadout">LOADOUT</button><button data-tab="operators">OPERATORS</button><button data-tab="career">CAREER</button><button data-tab="settings">SETTINGS</button><button data-tab="controls">CONTROLS</button></nav>
       <button class="online" id="onlinechip" data-nav><i></i><b id="onlineN">…</b> ONLINE</button><div id="onlinepanel"></div>
       <div class="mrank" id="mrank"></div><div class="mplayer"><b id="mpname2">OPERATOR</b><small id="mclass"></small></div>
@@ -425,7 +425,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 <div id="outroov"><div class="obanner"><h2 id="outroTitle">VICTORY</h2><p id="outroWhy"></p></div></div>
 <div id="introov"><div id="ifade"></div><i class="lb t"></i><i class="lb b"></i><div class="icard"><small id="introMode"></small><h2 id="introMap"></h2><p id="introObj"></p></div><div id="introCount"></div></div>
 <div id="loading"><div class="ldbg" id="ldbg"></div><div class="ldshade"></div>
-  <div class="ldtop"><span class="logo">BREACH<span>POINT</span></span></div>
+  <div class="ldtop"><span class="logo">CALL OF <span>DOODIE</span></span></div>
   <div class="ldinfo"><small id="ldmode">SURVIVAL</small><h2 id="ldmap">MAP</h2><p id="lddesc"></p></div>
   <div class="ldtip"><b>TIP</b> <span id="ldtip"></span></div>
   <div class="ldbar"><i id="ldfill"></i></div>
@@ -515,7 +515,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
 <script src="cloud-config.js?v=1"></script>
-<script src="game.js?v=202611200400"></script>
+<script src="game.js?v=202611200500"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>
