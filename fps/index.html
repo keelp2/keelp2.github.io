@@ -222,10 +222,10 @@ img.thumb.tall{height:110px;object-fit:cover}
 .mshell{display:flex;flex-direction:column;width:100%;height:100%;background:linear-gradient(90deg,rgba(6,8,11,.94) 0%,rgba(6,8,11,.82) 45%,rgba(6,8,11,.55) 100%)}
 .mtop{display:flex;align-items:center;gap:28px;padding:0 40px;height:72px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.35);flex:none}
 .logo{font-size:26px;font-weight:900;letter-spacing:.16em}.logo span{color:var(--acc)}
-.mtabs{display:flex;gap:4px;flex:1;height:100%}
+.mtabs{display:flex;gap:4px;flex:1;height:100%;min-width:0}
 .mtabs button{background:none;border:0;border-bottom:3px solid transparent;padding:0 18px;font-weight:800;letter-spacing:.2em;font-size:14px;color:var(--mut);transition:.15s}
 .mtabs button:hover{color:#fff}.mtabs button.on{color:#fff;border-bottom-color:var(--acc);background:linear-gradient(0deg,rgba(255,122,26,.16),transparent)}
-.mplayer{text-align:right;line-height:1.2}.mplayer b{display:block;letter-spacing:.12em}.mplayer small{color:#ffb27a;font-size:11px;letter-spacing:.14em}
+.mplayer{text-align:right;line-height:1.2;min-width:150px;max-width:240px;flex-shrink:0}.mplayer b{display:block;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mplayer b .ptag{font-size:.8em;letter-spacing:.04em}.mplayer small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mplayer small{color:#ffb27a;font-size:11px;letter-spacing:.14em}
 .mbody{flex:1;overflow:auto;padding:26px 40px}
 .mtab{display:none}.mtab.on{display:block;animation:tabIn .22s ease-out}
 @keyframes tabIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -249,6 +249,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 .ktab td{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)}.ktab td:first-child{width:42%;color:#dfe5ec}
 .ktab kbd,.mfoot kbd{display:inline-block;padding:0 6px;margin-right:3px;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;font-family:inherit;font-size:11px;color:#dfe5ec}
 .mfoot{display:flex;justify-content:space-between;gap:20px;padding:10px 40px;border-top:1px solid var(--line);font-size:11px;color:var(--mut);background:rgba(0,0,0,.35);flex:none}
+@media (max-width:1440px){.mtop{gap:14px;padding:0 22px}.mtabs button{padding:0 11px;letter-spacing:.12em}.mplayer{min-width:120px;max-width:170px}}
 @media (max-width:1000px){.playgrid,.lgrid,.cgrid{grid-template-columns:1fr}.sgroups{grid-template-columns:1fr}.mtop{padding:0 14px;gap:10px}.mtabs button{padding:0 8px;font-size:11px;letter-spacing:.1em}.mbody{padding:16px}.mplayer{display:none}}
 .lcat{font-size:10px;letter-spacing:.24em;color:#ffb27a;margin:12px 0 6px;font-weight:700}
 .lslot{font-size:13px!important;letter-spacing:.24em!important;color:#fff!important;margin:22px 0 4px!important;font-weight:800;border-bottom:1px solid var(--line);padding-bottom:6px}
@@ -514,7 +515,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
 <script src="cloud-config.js?v=1"></script>
-<script src="game.js?v=202611200000"></script>
+<script src="game.js?v=202611200100"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>

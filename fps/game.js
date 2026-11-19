@@ -82,8 +82,9 @@ function setupPost() {
   } catch (e) { console.warn('post-processing unavailable', e); postFailed = true; composer = null; }
 }
 addEventListener('bp-post', () => setupPost());
+let menuRes = false;
 function resize() {
-  renderer.setPixelRatio(QUALITY[settings.quality].pr() * dynScale);
+  renderer.setPixelRatio(QUALITY[settings.quality].pr() * dynScale * (menuRes ? 0.6 : 1)); // the menu's backdrop sits behind dimmed panels: render it lighter
   renderer.setSize(innerWidth, innerHeight);
   if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); }
   camera.aspect = vmCam.aspect = innerWidth / innerHeight;
@@ -5918,14 +5919,17 @@ function snap(obj, camPos, look, w = 220, h = 120) {
   const sc = new THREE.Scene(); PV.scene.children.filter(o => o.isLight).forEach(l => sc.add(l.clone())); sc.add(obj);
   const cam = new THREE.PerspectiveCamera(30, w / h, 0.01, 50); cam.position.copy(camPos); cam.lookAt(look);
   const prev = new THREE.Vector2(); PV.r.getSize(prev); PV.r.setSize(w, h, false); PV.r.setClearColor(0x000000, 0); PV.r.clear(); PV.r.render(sc, cam);
-  const url = PV.r.domElement.toDataURL('image/png'); PV.r.setSize(prev.x, prev.y, false); return url;
+  const url = PV.r.domElement.toDataURL('image/webp', 0.92); PV.r.setSize(prev.x, prev.y, false); return url; // webp keeps alpha, encodes far faster than png
 }
-function makeThumbs() {
-  if (!PV.r) return;
-  for (const w of WEAPONS) { const g = buildGun(w.id, {}, false).g, box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); g.rotation.y = Math.PI / 2; const len = box.getSize(new V3()).length();
-    THUMBS[w.id] = snap(g, new V3(0, 0.03, len * 1.25 + 0.05), new V3(0, 0, 0)); }
-  for (const k in CLASSES) { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0] }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.2, 3.4), new V3(0, 0.95, 0), 160, 160); }
-  renderLoadout($('loadout')); if (window.renderClassesUI) window.renderClassesUI();
+function makeThumbs() { // built in small slices while the browser is idle, so the menu never freezes
+  if (!PV.r) return; const jobs = [];
+  for (const w of WEAPONS) jobs.push(() => { const g = buildGun(w.id, {}, false).g, box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); g.rotation.y = Math.PI / 2; const len = box.getSize(new V3()).length(); THUMBS[w.id] = snap(g, new V3(0, 0.03, len * 1.25 + 0.05), new V3(0, 0, 0)); });
+  for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0] }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.2, 3.4), new V3(0, 0.95, 0), 160, 160);  });
+  let i = 0; const later = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 16);
+  const step = () => { const t = performance.now(); while (i < jobs.length && performance.now() - t < 10) { try { jobs[i](); } catch (e) {} i++; }
+    if (i < jobs.length) { if (i % 12 < 3 && document.querySelector('.mtab.on[data-tab="loadout"]')) renderLoadout($('loadout')); later(step); }
+    else { renderLoadout($('loadout')); if (window.renderClassesUI) window.renderClassesUI(); } };
+  later(step);
 }
 // map thumbnails are captured from the menu background the first time each map is shown
 let mapThumbPending = false;
@@ -6185,13 +6189,13 @@ function frame(now) {
   updateEnvironment(dt);
   if (game.state !== 'paused' && game.state !== 'over' && game.state !== 'armory') { sparks.update(dt); debris.update(dt); updateTracers(dt); updateBooms(dt); }
   const tB = performance.now();
-  const menuFrame = game.state === 'menu' || game.state === 'mpover'; menuTick = (menuTick + 1) % 2;
+  const menuFrame = game.state === 'menu' || game.state === 'mpover'; menuTick = (menuTick + 1) % 2; if (menuFrame !== menuRes) { menuRes = menuFrame; resize(); }
   if (game.state !== 'play') { placeRing(); if (game.state === 'menu') updatePrompts(); } else if (navRing.style.opacity !== '0') navRing.style.opacity = '0';
   sfx.listen(camera);
   updateSunShadow(); if (!composer && window.BP_POST) setupPost();
   if (menuFrame && menuTick === 1) { if (game.state === 'menu') updatePreview(dt * 2); prof.render += performance.now() - tB; return; } // menu: world and preview take turns
-  if (composer) { composer.render(dt); renderer.setRenderTarget(null); }
-  else { renderer.clear(); renderer.render(scene, camera); }
+  if (composer && !menuFrame) { composer.render(dt); renderer.setRenderTarget(null); }
+  else { renderer.setRenderTarget(null); renderer.clear(); renderer.render(scene, camera); } // no post-processing behind the menu
   prof.js += tB - tA; prof.n++;
   if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third' && !(game.intro && (game.intro.showAvatar || game.intro.t < 3.95)) && !(game.outro && game.outro.t > 1.4)) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
 
