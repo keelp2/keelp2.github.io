@@ -18,7 +18,7 @@ function pickSpawn(foes, friends, list, _fb) {
   const L = world.L, nav = world.nav, cands = (list || L.enemySpawns.concat([[L.spawn.x, L.spawn.z]], L.teamSpawns ? L.teamSpawns[0].concat(L.teamSpawns[1]) : [])).map(([x, z]) => [x, 0.05, z]);
   const [bx0, bz0, bx1, bz1] = L.bounds, inside = (x, z, m) => x > bx0 + m && x < bx1 - m && z > bz0 + m && z < bz1 - m; // never at the very edge of the map
   for (let i = 0; i < (list ? 0 : 56); i++) { const n = nav.randomNode(); if (n < 0) continue; const [x, y, z] = nav.nodePos(n); if (y - TH(x, z) < 0.3 && inside(x, z, 9) && nav.nodeAt(x, y, z, 1) >= 0 && nav.freeAt(x, y, z)) cands.push([x, y + 0.05, z]); }
-  if (friends && friends.length) for (const f of friends) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.28, r = rand(4, 9), k = nav.nodeAt(f.x + Math.cos(a) * r, f.y, f.z + Math.sin(a) * r, 2); if (k >= 0 && (!nav.safeMask || nav.safeMask[k])) { const [x, y, z] = nav.nodePos(k); if (inside(x, z, 6)) cands.push([x, y + 0.05, z]); } }
+  if (friends && friends.length) for (const f of friends) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.28, r = rand(7, 14), k = nav.nodeAt(f.x + Math.cos(a) * r, f.y, f.z + Math.sin(a) * r, 2); if (k >= 0 && (!nav.safeMask || nav.safeMask[k])) { const [x, y, z] = nav.nodePos(k); if (inside(x, z, 6)) cands.push([x, y + 0.05, z]); } }
   let best = cands[0], bs = -1e9, bestSafe = false;
   for (const c of cands) {
     if (!nav.freeAt(c[0], c[1], c[2])) continue;

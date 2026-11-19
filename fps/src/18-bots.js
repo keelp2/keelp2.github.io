@@ -102,6 +102,7 @@ class Enemy {
       const a = i / 18 * Math.PI * 2 + rand(0, 0.3), r = rand(2.5, 10), x = this.pos.x + Math.cos(a) * r, z = this.pos.z + Math.sin(a) * r;
       const n = nav.nodeAt(x, this.pos.y, z, 1); if (n < 0) continue; const [nx, ny, nz] = nav.nodePos(n); if (Math.abs(ny - this.pos.y) > 1.5) continue;
       if (los(t.x, t.y, t.z, nx, ny + 1.3 * this.s, nz)) continue;
+      if (enemies.some(o => o !== this && !o.dead && ((o.cover && Math.hypot(o.cover.x - nx, o.cover.z - nz) < 3.5) || Math.hypot(o.pos.x - nx, o.pos.z - nz) < 2.5))) continue; /* don't pile into a spot someone already holds */
       const d = Math.hypot(nx - this.pos.x, nz - this.pos.z) + Math.hypot(nx - this.target.pos.x, nz - this.target.pos.z) * -0.15; if (d < bd) { bd = d; best = new V3(nx, ny, nz); }
     }
     if (this.bot) for (const n of navPosts()) { // or duck into a nearby house / up a stairwell
@@ -234,8 +235,9 @@ class Enemy {
         }
       }
     }
-    // separation
-    for (const o of enemies) { if (o === this || o.dead) continue; const ox = this.pos.x - o.pos.x, oz = this.pos.z - o.pos.z, d2 = ox * ox + oz * oz; if (d2 < 1.44 && d2 > 1e-4 && Math.abs(o.pos.y - this.pos.y) < 1.5) { const d = Math.sqrt(d2); mx += ox / d * (1.2 - d) * 1.6; mz += oz / d * (1.2 - d) * 1.6; } }
+    // separation: never overlap; and squad spacing — teammates spread to ~5 m instead of walking shoulder to shoulder (reads as a clump)
+    for (const o of enemies) { if (o === this || o.dead) continue; const ox = this.pos.x - o.pos.x, oz = this.pos.z - o.pos.z, d2 = ox * ox + oz * oz; if (d2 < 1e-4 || Math.abs(o.pos.y - this.pos.y) > 1.5) continue;
+      if (d2 < 1.44) { const d = Math.sqrt(d2); mx += ox / d * (1.2 - d) * 1.6; mz += oz / d * (1.2 - d) * 1.6; } else if (d2 < 25 && this.bot && isAlly(this, o) && this.state !== 'cover') { const d = Math.sqrt(d2); mx += ox / d * (5 - d) / 5 * 0.85; mz += oz / d * (5 - d) / 5 * 0.85; } }
     { const px = this.pos.x - player.pos.x, pz = this.pos.z - player.pos.z, d = Math.hypot(px, pz); if (d < 1.0 && d > 1e-3 && Math.abs(player.pos.y - this.pos.y) < 1.5) { mx += px / d * 1.5; mz += pz / d * 1.5; } }
     const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
     { const want = this.wantCrouch && !this.dead ? 1 : 0; if (want < (this.crouchK || 0) && anyOverlap(this.pos.x, this.pos.y, this.pos.z, this.r * 0.9, 1.82 * this.s)) {} else this.crouchK = damp(this.crouchK || 0, want, 9, dt); this.h = 1.82 * this.s * (1 - 0.36 * this.crouchK); spd *= 1 - 0.5 * this.crouchK; }

@@ -202,30 +202,41 @@ function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.phase) return; const o = $('nuk
 function nukeDetonate() { NUKE.phase = 'blast'; NUKE.bt = 0; NUKE.hit = false; const [x0, z0, x1, z1] = world.L.bounds; NUKE.gz = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2); NUKE.gz.y = TH(NUKE.gz.x, NUKE.gz.z);
   const o = $('nukeov'); if (o) { o.querySelector('.flash').style.opacity = 1; setHTML(o.querySelector('b'), ''); }
   const d = Math.hypot(player.pos.x - NUKE.gz.x, player.pos.z - NUKE.gz.z); sfx.boom(d, 0, 3, { x: NUKE.gz.x, y: 20, z: NUKE.gz.z }); game.shake = 0.9; rumble(0.6, 0.6, 600);
-  const M = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, fog: false, depthWrite: false }), g = new THREE.Group(); g.position.copy(NUKE.gz);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 1, 1, 20, 1, true), M(0xffffff)); stem.position.y = 0.5; g.add(stem);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), M(0xffffff)); g.add(cap);
-  const capR = new THREE.Mesh(new THREE.TorusGeometry(1, 0.42, 12, 32), M(0xffffff)); capR.rotation.x = Math.PI / 2; g.add(capR);
-  const skirt = new THREE.Mesh(new THREE.TorusGeometry(1, 0.3, 10, 32), M(0xffffff)); skirt.rotation.x = Math.PI / 2; g.add(skirt);
-  const base = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), M(0xffffff)); g.add(base);
-  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const cx = cv.getContext('2d'), gr = cx.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,230,1)'); gr.addColorStop(0.3, 'rgba(255,190,90,.7)'); gr.addColorStop(1, 'rgba(255,120,40,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 128, 128);
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), blending: THREE.AdditiveBlending, transparent: true, fog: false, depthWrite: false })); g.add(glow);
-  g.userData = { stem, cap, capR, skirt, base, glow }; g.traverse(m => { m.renderOrder = 5; m.frustumCulled = false; }); scene.add(g); NUKE.mush = g;
+  NUKE.mush = makeMushroom(); NUKE.mush.position.copy(NUKE.gz); scene.add(NUKE.mush);
   const w = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 72), new THREE.MeshBasicMaterial({ color: 0xd9b48a, transparent: true, opacity: 0.75, fog: false, depthWrite: false, side: THREE.DoubleSide })); w.rotation.x = -Math.PI / 2; w.position.copy(NUKE.gz).add(new V3(0, 0.6, 0)); scene.add(w); NUKE.wave = w;
   const w2 = new THREE.Mesh(new THREE.RingGeometry(0.7, 1, 72), new THREE.MeshBasicMaterial({ color: 0x8a6a50, transparent: true, opacity: 0.35, fog: false, depthWrite: false, side: THREE.DoubleSide })); w2.rotation.x = -Math.PI / 2; w2.position.copy(w.position).add(new V3(0, 0.3, 0)); scene.add(w2); NUKE.wave2 = w2;
   NUKE.sky0 = [skyMat.uniforms.top.value.clone(), skyMat.uniforms.bottom.value.clone(), scene.fog ? scene.fog.color.clone() : null]; }
-function nukeMushroom(t) { /* rises and boils: white-hot -> orange -> dark smoke; the sky and haze burn orange */
-  const U = NUKE.mush.userData, rise = 1 - Math.exp(-t / 2.2), H = 25 + 125 * rise, heat = clamp(1 - t / 5, 0, 1), col = new THREE.Color(0x3d322d).lerp(new THREE.Color(0xff7a28), clamp(heat * 1.6, 0, 1)).lerp(new THREE.Color(0xfff6dc), clamp(heat * 2 - 1, 0, 1));
-  for (const m of [U.stem, U.cap, U.capR, U.skirt, U.base]) m.material.color.copy(col);
-  U.stem.scale.set(6 + 4 * rise, H, 6 + 4 * rise); U.stem.position.y = H / 2;
-  const cr = 14 + 34 * rise; U.cap.scale.set(cr, cr * 0.62, cr); U.cap.position.y = H; U.capR.scale.setScalar(cr * 0.95); U.capR.position.y = H - cr * 0.18;
-  U.skirt.scale.setScalar(cr * 0.5); U.skirt.position.y = H * 0.55; U.base.scale.set(18 + 40 * rise, 8 + 10 * rise, 18 + 40 * rise);
-  U.glow.scale.setScalar(120 + 200 * heat); U.glow.position.y = H * 0.85; U.glow.material.opacity = 0.3 + 0.7 * heat; NUKE.mush.rotation.y += 0.002;
+/* the mushroom cloud: ~170 soft smoke puffs. The cap is a rolling torus (puffs roll up the outside and back under),
+   the stem is a rising column, the base is a dust skirt racing outward; everything grows and cools from white-hot to dark smoke */
+function puffTex() { if (NUKE.ptex) return NUKE.ptex; const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  for (let i = 0; i < 34; i++) { const x = 64 + rand(-22, 22), y = 64 + rand(-22, 22), r = rand(20, 42), gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
+  const fade = g.createRadialGradient(64, 64, 30, 64, 64, 64); fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)'); g.globalCompositeOperation = 'destination-out'; g.fillStyle = fade; g.fillRect(0, 0, 128, 128);
+  return NUKE.ptex = new THREE.CanvasTexture(c); }
+function makeMushroom() { const g = new THREE.Group(), tex = puffTex(), P = [];
+  const mk = (kind, n) => { for (let i = 0; i < n; i++) { const m = new THREE.SpriteMaterial({ map: tex, transparent: true, fog: false, depthWrite: false, rotation: rand(0, 6.28) }), sp = new THREE.Sprite(m); sp.renderOrder = 6; g.add(sp);
+    P.push({ sp, kind, th: rand(0, 6.28), ph: rand(0, 6.28), h: Math.random(), rr: Math.sqrt(Math.random()), sz: rand(0.75, 1.3), spin: rand(-0.4, 0.4) }); } };
+  mk('cap', 130); mk('stem', 55); mk('skirt', 40); mk('ring', 26);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const cx = cv.getContext('2d'), gr = cx.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,235,1)'); gr.addColorStop(0.35, 'rgba(255,170,70,.75)'); gr.addColorStop(1, 'rgba(255,90,20,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 128, 128);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), blending: THREE.AdditiveBlending, transparent: true, fog: false, depthWrite: false })); glow.renderOrder = 7; g.add(glow);
+  g.userData = { P, glow, last: 0 }; g.traverse(o => { o.frustumCulled = false; }); return g; }
+const _hot = new THREE.Color(0xfff3d6), _fire = new THREE.Color(0xff7424), _smoke = new THREE.Color(0x5a4c44), _dark = new THREE.Color(0x2e2724), _pc = new THREE.Color();
+function nukeMushroom(t) {
+  const U = NUKE.mush.userData, dt = Math.min(0.05, t - U.last); U.last = t;
+  const grow = 1 - Math.exp(-t / 2.6), H = 14 + 82 * grow, R = 6 + 30 * grow, r = 6 + 17 * grow, rs = 3.5 + 7 * grow, heat = clamp(1 - t / 6, 0, 1);
+  for (const q of U.P) { const m = q.sp.material; let x, y, z, size, lit;
+    if (q.kind === 'cap') { q.ph += dt * 0.55; q.th += dt * 0.05; const rr = r * (0.55 + 0.45 * q.rr); x = Math.cos(q.th) * (R + rr * Math.cos(q.ph)); z = Math.sin(q.th) * (R + rr * Math.cos(q.ph)); y = H + rr * Math.sin(q.ph) * 0.8; size = r * 1.45 * q.sz; lit = 0.5 - 0.5 * Math.sin(q.ph); } /* rolling: up the outside, back in underneath */
+    else if (q.kind === 'stem') { q.h = (q.h + dt * 0.14) % 1; q.th += dt * 0.3; const rad = rs * (0.3 + 0.7 * q.rr) * (1 - 0.35 * q.h); x = Math.cos(q.th) * rad; z = Math.sin(q.th) * rad; y = q.h * H * 0.92; size = rs * 2.3 * q.sz; lit = 1 - q.h * 0.6; }
+    else if (q.kind === 'ring') { q.th += dt * 0.12; const rad = R * 0.55 + r * 0.6; x = Math.cos(q.th) * rad; z = Math.sin(q.th) * rad; y = H * (0.5 + 0.06 * Math.sin(q.ph)); size = r * 0.8 * q.sz; lit = 0.35; } /* the condensation collar around the stem */
+    else { const rad = (10 + 75 * grow) * (0.55 + 0.45 * q.rr); q.th += dt * 0.02; x = Math.cos(q.th) * rad; z = Math.sin(q.th) * rad; y = 3 + 4 * q.sz * grow; size = (10 + 18 * grow) * q.sz; lit = 0.2; } /* base surge */
+    q.sp.position.set(x, y, z); q.sp.scale.setScalar(size); m.rotation += q.spin * dt;
+    const h = clamp(heat * (0.6 + lit * 0.8), 0, 1); _pc.copy(_dark).lerp(_smoke, 0.4 + 0.6 * lit).lerp(_fire, clamp(h * 1.5, 0, 1)).lerp(_hot, clamp(h * 2 - 1.05, 0, 1)); m.color.copy(_pc);
+    m.opacity = clamp(t / 0.4, 0, 1) * (q.kind === 'skirt' ? 0.6 : q.kind === 'ring' ? 0.55 : 1); }
+  U.glow.position.set(0, H * 0.9, 0); U.glow.scale.setScalar(60 + 200 * heat); U.glow.material.opacity = 0.15 + 0.85 * heat; NUKE.mush.rotation.y += dt * 0.03;
   const k = clamp(t / 1.2, 0, 1) * (0.6 + 0.4 * heat); skyMat.uniforms.top.value.copy(NUKE.sky0[0]).lerp(new THREE.Color(0xb3471c), k); skyMat.uniforms.bottom.value.copy(NUKE.sky0[1]).lerp(new THREE.Color(0xffa255), k);
   if (scene.fog && NUKE.sky0[2]) scene.fog.color.copy(NUKE.sky0[2]).lerp(new THREE.Color(0xc06a34), k); }
 function nukeKill() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId;
   game.ksKind = 'nuke'; game.ownSupport = true;
-  try { if (!MP.active) { for (const e of enemies) if (!e.dead && !isAlly(PLAYER_T, e)) { e.protT = 0; e.damage(99999, false, null, mine ? 'player' : null); } if (!mine && player.alive) damagePlayer(99999, null, null); game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 3200); }
-    else { if (!mine && player.alive && !isAlly(PLAYER_T, NUKE.by)) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; damagePlayer(99999, null, NUKE.by); }
-      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId && !isAlly(NUKE.by, e)) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 3200); } } }
+  try { if (!MP.active) { for (const e of enemies) if (!e.dead) { e.protT = 0; e.damage(99999, false, null, mine && !isAlly(PLAYER_T, e) ? 'player' : null); } game.nukeWin = mine ? 'win' : 'loss'; if (player.alive) { BD.lastAttacker = null; player.protT = 0; game.ownSupport = false; damagePlayer(99999, null, null); } setTimeout(() => endBotMatch('Tactical nuke'), 3200); }
+    else { if (player.alive) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; player.protT = 0; game.ownSupport = false; damagePlayer(99999, null, NUKE.by); } /* nobody survives a nuke — the caller included */
+      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 3200); } } }
   finally { game.ksKind = null; game.ownSupport = false; } }
