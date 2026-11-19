@@ -187,13 +187,45 @@ const NUKE = { t: 0, by: null };
 function nukeLaunch(by) { if (NUKE.t > 0) return; NUKE.t = 10; NUKE.by = by; NUKE.beep = 0; if (by === 'me' || by === MP.myId) { if (MP.active) netSend({ t: 'nuke' }); }
   let o = $('nukeov'); if (!o) { o = document.createElement('div'); o.id = 'nukeov'; o.innerHTML = '<i class="nk"></i><b></b><small></small><div class="flash"></div>'; $('hud').appendChild(o); }
   o.querySelector('.nk').innerHTML = KS_ICON.nuke; o.querySelector('small').textContent = (by === 'me' || by === MP.myId) ? 'YOU LAUNCHED A TACTICAL NUKE' : (pname(by) || 'AN ENEMY').toUpperCase() + ' LAUNCHED A TACTICAL NUKE'; o.classList.add('on'); o.querySelector('.flash').style.opacity = 0; }
-function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.fade) return; const o = $('nukeov');
-  if (NUKE.t > 0) { NUKE.t -= dt; NUKE.beep -= dt; if (NUKE.beep <= 0) { NUKE.beep = 1; sfx.play('nukeSiren'); } if (o) setHTML(o.querySelector('b'), String(Math.max(0, Math.ceil(NUKE.t))));
-    if (NUKE.t <= 0) { NUKE.fade = 3.5; nukeBlast(); } return; }
-  NUKE.fade -= dt; if (o) { o.querySelector('.flash').style.opacity = clamp(NUKE.fade / 2.5, 0, 1); if (NUKE.fade <= 0) { o.classList.remove('on'); NUKE.fade = 0; } } }
-function nukeBlast() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId, o = $('nukeov'); if (o) o.querySelector('.flash').style.opacity = 1; sfx.boom(0, 0, 3); game.shake = 1.6; rumble(1, 1, 1500);
+function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.phase) return; const o = $('nukeov');
+  if (NUKE.t > 0) { NUKE.t -= dt; NUKE.beep -= dt; if (NUKE.beep <= 0) { NUKE.beep = 1; sfx.play('nukeSiren'); }
+    if (o) { setHTML(o.querySelector('b'), String(Math.max(0, Math.ceil(NUKE.t)))); const pulse = Math.max(0, NUKE.beep - 0.6) / 0.4; o.style.background = `radial-gradient(ellipse at center, transparent 40%, rgba(255,40,20,${(0.12 + 0.3 * pulse).toFixed(3)}))`; } /* the screen throbs red with the siren */
+    if (NUKE.t <= 0) nukeDetonate(); return; }
+  NUKE.bt += dt; const t = NUKE.bt, fl = o && o.querySelector('.flash');
+  if (NUKE.mush) nukeMushroom(t);
+  if (!NUKE.hit) { if (fl) fl.style.opacity = clamp(1 - t / 0.9, 0.12, 1).toFixed(3); /* the first flash, then a glare that hangs */
+    const r = NUKE.wave ? t * 55 : 0; if (NUKE.wave) { NUKE.wave.scale.setScalar(Math.max(1, r)); NUKE.wave.material.opacity = 0.75; NUKE.wave2.scale.setScalar(Math.max(1, r * 0.82)); }
+    const d = Math.hypot(player.pos.x - NUKE.gz.x, player.pos.z - NUKE.gz.z); if (r >= d || t > 4.5) { NUKE.hit = true; NUKE.ht = t; game.shake = 1.8; rumble(1, 1, 1200); sfx.boom(0, 0, 3); nukeKill(); } }
+  else { const u = t - NUKE.ht; if (fl) fl.style.opacity = (u < 1.8 ? clamp(u / 0.35, 0, 1) : clamp(1 - (u - 1.8) / 1.4, 0, 1)).toFixed(3); if (NUKE.wave) NUKE.wave.scale.setScalar(t * 55); } /* the shockwave hits you: white-out, then the burning aftermath fades back in */
+  if (o) o.style.background = 'none';
+  if (t > 9) { NUKE.phase = null; if (o) o.classList.remove('on'); for (const m of [NUKE.mush, NUKE.wave, NUKE.wave2]) if (m) scene.remove(m); NUKE.mush = NUKE.wave = NUKE.wave2 = null; } }
+function nukeDetonate() { NUKE.phase = 'blast'; NUKE.bt = 0; NUKE.hit = false; const [x0, z0, x1, z1] = world.L.bounds; NUKE.gz = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2); NUKE.gz.y = TH(NUKE.gz.x, NUKE.gz.z);
+  const o = $('nukeov'); if (o) { o.querySelector('.flash').style.opacity = 1; setHTML(o.querySelector('b'), ''); }
+  const d = Math.hypot(player.pos.x - NUKE.gz.x, player.pos.z - NUKE.gz.z); sfx.boom(d, 0, 3, { x: NUKE.gz.x, y: 20, z: NUKE.gz.z }); game.shake = 0.9; rumble(0.6, 0.6, 600);
+  const M = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, fog: false, depthWrite: false }), g = new THREE.Group(); g.position.copy(NUKE.gz);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 1, 1, 20, 1, true), M(0xffffff)); stem.position.y = 0.5; g.add(stem);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), M(0xffffff)); g.add(cap);
+  const capR = new THREE.Mesh(new THREE.TorusGeometry(1, 0.42, 12, 32), M(0xffffff)); capR.rotation.x = Math.PI / 2; g.add(capR);
+  const skirt = new THREE.Mesh(new THREE.TorusGeometry(1, 0.3, 10, 32), M(0xffffff)); skirt.rotation.x = Math.PI / 2; g.add(skirt);
+  const base = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), M(0xffffff)); g.add(base);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const cx = cv.getContext('2d'), gr = cx.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,230,1)'); gr.addColorStop(0.3, 'rgba(255,190,90,.7)'); gr.addColorStop(1, 'rgba(255,120,40,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 128, 128);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), blending: THREE.AdditiveBlending, transparent: true, fog: false, depthWrite: false })); g.add(glow);
+  g.userData = { stem, cap, capR, skirt, base, glow }; g.traverse(m => { m.renderOrder = 5; m.frustumCulled = false; }); scene.add(g); NUKE.mush = g;
+  const w = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 72), new THREE.MeshBasicMaterial({ color: 0xd9b48a, transparent: true, opacity: 0.75, fog: false, depthWrite: false, side: THREE.DoubleSide })); w.rotation.x = -Math.PI / 2; w.position.copy(NUKE.gz).add(new V3(0, 0.6, 0)); scene.add(w); NUKE.wave = w;
+  const w2 = new THREE.Mesh(new THREE.RingGeometry(0.7, 1, 72), new THREE.MeshBasicMaterial({ color: 0x8a6a50, transparent: true, opacity: 0.35, fog: false, depthWrite: false, side: THREE.DoubleSide })); w2.rotation.x = -Math.PI / 2; w2.position.copy(w.position).add(new V3(0, 0.3, 0)); scene.add(w2); NUKE.wave2 = w2;
+  NUKE.sky0 = [skyMat.uniforms.top.value.clone(), skyMat.uniforms.bottom.value.clone(), scene.fog ? scene.fog.color.clone() : null]; }
+function nukeMushroom(t) { /* rises and boils: white-hot -> orange -> dark smoke; the sky and haze burn orange */
+  const U = NUKE.mush.userData, rise = 1 - Math.exp(-t / 2.2), H = 25 + 125 * rise, heat = clamp(1 - t / 5, 0, 1), col = new THREE.Color(0x3d322d).lerp(new THREE.Color(0xff7a28), clamp(heat * 1.6, 0, 1)).lerp(new THREE.Color(0xfff6dc), clamp(heat * 2 - 1, 0, 1));
+  for (const m of [U.stem, U.cap, U.capR, U.skirt, U.base]) m.material.color.copy(col);
+  U.stem.scale.set(6 + 4 * rise, H, 6 + 4 * rise); U.stem.position.y = H / 2;
+  const cr = 14 + 34 * rise; U.cap.scale.set(cr, cr * 0.62, cr); U.cap.position.y = H; U.capR.scale.setScalar(cr * 0.95); U.capR.position.y = H - cr * 0.18;
+  U.skirt.scale.setScalar(cr * 0.5); U.skirt.position.y = H * 0.55; U.base.scale.set(18 + 40 * rise, 8 + 10 * rise, 18 + 40 * rise);
+  U.glow.scale.setScalar(120 + 200 * heat); U.glow.position.y = H * 0.85; U.glow.material.opacity = 0.3 + 0.7 * heat; NUKE.mush.rotation.y += 0.002;
+  const k = clamp(t / 1.2, 0, 1) * (0.6 + 0.4 * heat); skyMat.uniforms.top.value.copy(NUKE.sky0[0]).lerp(new THREE.Color(0xb3471c), k); skyMat.uniforms.bottom.value.copy(NUKE.sky0[1]).lerp(new THREE.Color(0xffa255), k);
+  if (scene.fog && NUKE.sky0[2]) scene.fog.color.copy(NUKE.sky0[2]).lerp(new THREE.Color(0xc06a34), k); }
+function nukeKill() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId;
   game.ksKind = 'nuke'; game.ownSupport = true;
-  try { if (!MP.active) { for (const e of enemies) if (!e.dead && !isAlly(PLAYER_T, e)) { e.protT = 0; e.damage(99999, false, null, mine ? 'player' : null); } if (!mine && player.alive) damagePlayer(99999, null, null); game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 2600); }
+  try { if (!MP.active) { for (const e of enemies) if (!e.dead && !isAlly(PLAYER_T, e)) { e.protT = 0; e.damage(99999, false, null, mine ? 'player' : null); } if (!mine && player.alive) damagePlayer(99999, null, null); game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 3200); }
     else { if (!mine && player.alive && !isAlly(PLAYER_T, NUKE.by)) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; damagePlayer(99999, null, NUKE.by); }
-      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId && !isAlly(NUKE.by, e)) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 2600); } } }
+      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId && !isAlly(NUKE.by, e)) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 3200); } } }
   finally { game.ksKind = null; game.ownSupport = false; } }

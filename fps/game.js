@@ -3884,10 +3884,10 @@ function buildGun(id, att = {}, withHands = true) {
   const rail = (x0, x1, y, w = 0.021) => { X(x0, x1, y - 0.006, y, w, M.black); for (let x = x0 + 0.003; x < x1 - 0.004; x += 0.011) X(x, x + 0.005, y, y + 0.0035, w, M.black); return y + 0.0035; };
   const optic = (kind, cx, ry) => { // returns sight line height
     if (kind === 'reddot') { X(cx - 0.025, cx + 0.025, ry, ry + 0.016, 0.024, M.black); Cz(0.02, cx - 0.03, cx + 0.03, ry + 0.04, M.black, 18, undefined, g, 0, true);
-      const l = add(new THREE.Mesh(new THREE.CircleGeometry(0.019, 16), M.lens)); l.position.set(0, ry + 0.04, -(cx + 0.028)); X(cx + 0.024, cx + 0.025, ry + 0.0388, ry + 0.0412, 0.0024, M.dot); return ry + 0.04; }
+      const l = add(new THREE.Mesh(new THREE.CircleGeometry(0.019, 16), M.lens)); l.position.set(0, ry + 0.04, -(cx + 0.028)); X(cx + 0.024, cx + 0.025, ry + 0.03945, ry + 0.04055, 0.0011, M.dot); return ry + 0.04; } /* a small, crisp dot */
     if (kind === 'holo') { X(cx - 0.04, cx + 0.04, ry, ry + 0.014, 0.04, M.black); for (const sd of [-1, 1]) X(cx - 0.005, cx + 0.04, ry + 0.014, ry + 0.06, 0.004, M.black, sd * 0.019); X(cx - 0.005, cx + 0.04, ry + 0.056, ry + 0.062, 0.042, M.black);
       const l = add(new THREE.Mesh(new THREE.PlaneGeometry(0.034, 0.04), M.lens)); l.position.set(0, ry + 0.035, -(cx + 0.03));
-      const ring = add(new THREE.Mesh(new THREE.TorusGeometry(0.007, 0.0006, 4, 24), M.dot)); ring.position.set(0, ry + 0.036, -(cx + 0.029)); X(cx + 0.029, cx + 0.03, ry + 0.0355, ry + 0.0365, 0.001, M.dot); return ry + 0.036; }
+      const ring = add(new THREE.Mesh(new THREE.TorusGeometry(0.0052, 0.00038, 4, 28), M.dot)); ring.position.set(0, ry + 0.036, -(cx + 0.029)); X(cx + 0.029, cx + 0.03, ry + 0.03575, ry + 0.03625, 0.0005, M.dot); return ry + 0.036; }
     if (kind === 'acog' || kind === 'scope') { const big = kind === 'scope', y = ry + (big ? 0.042 : 0.036);
       for (const x of [cx - 0.04, cx + 0.04]) X(x - 0.007, x + 0.007, ry, y, big ? 0.03 : 0.024, M.black);
       Cz(big ? 0.016 : 0.015, cx - 0.06, cx + 0.07, y, M.black); Cz(big ? 0.016 : 0.015, cx + 0.07, cx + (big ? 0.13 : 0.1), y, M.black, 16, big ? 0.027 : 0.021);
@@ -4357,7 +4357,7 @@ function disposeGroup(g) {
 }
 let radarImg = null;
 function loadMap(i) {
-  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; game.firstBlood = false; game.lifeK = 0; game.nemesis = null; MEDALS.q.length = 0; NUKE.t = 0; NUKE.fade = 0; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
+  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; game.firstBlood = false; game.lifeK = 0; game.nemesis = null; MEDALS.q.length = 0; NUKE.t = 0; NUKE.phase = null; for (const m of [NUKE.mush, NUKE.wave, NUKE.wave2]) if (m) scene.remove(m); NUKE.mush = NUKE.wave = NUKE.wave2 = null; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
   if (world) { scene.remove(world.group); disposeGroup(world.group); }
   enemies = []; pickups = []; barrels = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   const def = MAPS[i], th = def.theme, L = new LevelBuilder(); def.build(L);
@@ -5134,7 +5134,7 @@ function showHint(t, c) { const el = $('hint'); el.textContent = t; el.style.col
 function hitMarker(kill, head, kind) { // kind: undefined (bullet) | 'nade' | 'fire' | 'stun'
   const h = $('hit'), cls = kill ? 'kill' : kind === 'stun' ? 'stun' : head ? 'head' : '';
   if (!(hud.hitT > 0 && hud.hitCls === 'kill' && !kill)) { h.className = cls; hud.hitCls = cls; } // a kill marker isn't overwritten by trailing pellets
-  hud.hitT = kill ? 0.55 : 0.3; hud.hitDur = hud.hitT; hud.hitPop = kill ? 11 : head ? 8 : 6;
+  hud.hitT = kill ? 0.55 : 0.3; hud.hitDur = hud.hitT; hud.hitPop = kill ? 6 : head ? 4.5 : 3.5;
   const now = performance.now();
   if (kill) { sfx.play('hmkill'); hud.hmSnd = now; }
   else if (now - (hud.hmSnd || 0) > 45) { hud.hmSnd = now; sfx.play(kind === 'stun' ? 'hmstun' : head ? 'hmhead' : 'hm'); }
@@ -5354,7 +5354,7 @@ function tabletDraw() {
   g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, W - 26, W, 26); g.fillStyle = '#9cffb4'; g.font = '600 13px Inter, Arial, sans-serif'; g.fillText(`GRID ${String.fromCharCode(65 + clamp(Math.floor((T.x - x0) / (x1 - x0) * 8), 0, 7))}${1 + clamp(Math.floor((T.z - z0) / (z1 - z0) * 8), 0, 7)} · ${Math.round(Math.hypot(T.x - player.pos.x, T.z - player.pos.z))} m from you`, 10, W - 9);
 }
 function supportTick(dt) {
-  medalTick(dt); nukeTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
+  medalTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
   const T = SURV.tgt; let tile = $('suptile'); if (!tile) { tile = document.createElement('div'); tile.id = 'suptile'; $('hud').appendChild(tile); }
   const n = SURV.support.length, nm = id => (KS_DEFS[id] || KS_DEFS.air).name; if (game.uavT > 0) game.uavT -= dt; ksTrack();
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
@@ -5382,7 +5382,7 @@ function updateSurvival(dt) {
 }
 function hitTick(dt) { /* pops out, snaps in, then fades */
   hud.hitT -= dt; const hm = $('hit'), k = Math.max(0, hud.hitT) / (hud.hitDur || 0.3), e = k * k * k;
-  hm.style.opacity = Math.min(1, k * 3.2); hm.style.setProperty('--g', (5 + e * (hud.hitPop || 6)).toFixed(2) + 'px'); hm.style.transform = hud.hitCls === 'kill' ? `scale(${1 + e * 0.25})` : '';
+  hm.style.opacity = Math.min(1, k * 3.2); hm.style.setProperty('--g', (4 + e * (hud.hitPop || 3.5)).toFixed(2) + 'px'); hm.style.transform = hud.hitCls === 'kill' ? `scale(${1 + e * 0.25})` : '';
 }
 function updateHUD(dt) {
   const w = WEAPONS[wst.cur], s = inv[wst.cur];
@@ -5631,15 +5631,47 @@ const NUKE = { t: 0, by: null };
 function nukeLaunch(by) { if (NUKE.t > 0) return; NUKE.t = 10; NUKE.by = by; NUKE.beep = 0; if (by === 'me' || by === MP.myId) { if (MP.active) netSend({ t: 'nuke' }); }
   let o = $('nukeov'); if (!o) { o = document.createElement('div'); o.id = 'nukeov'; o.innerHTML = '<i class="nk"></i><b></b><small></small><div class="flash"></div>'; $('hud').appendChild(o); }
   o.querySelector('.nk').innerHTML = KS_ICON.nuke; o.querySelector('small').textContent = (by === 'me' || by === MP.myId) ? 'YOU LAUNCHED A TACTICAL NUKE' : (pname(by) || 'AN ENEMY').toUpperCase() + ' LAUNCHED A TACTICAL NUKE'; o.classList.add('on'); o.querySelector('.flash').style.opacity = 0; }
-function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.fade) return; const o = $('nukeov');
-  if (NUKE.t > 0) { NUKE.t -= dt; NUKE.beep -= dt; if (NUKE.beep <= 0) { NUKE.beep = 1; sfx.play('nukeSiren'); } if (o) setHTML(o.querySelector('b'), String(Math.max(0, Math.ceil(NUKE.t))));
-    if (NUKE.t <= 0) { NUKE.fade = 3.5; nukeBlast(); } return; }
-  NUKE.fade -= dt; if (o) { o.querySelector('.flash').style.opacity = clamp(NUKE.fade / 2.5, 0, 1); if (NUKE.fade <= 0) { o.classList.remove('on'); NUKE.fade = 0; } } }
-function nukeBlast() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId, o = $('nukeov'); if (o) o.querySelector('.flash').style.opacity = 1; sfx.boom(0, 0, 3); game.shake = 1.6; rumble(1, 1, 1500);
+function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.phase) return; const o = $('nukeov');
+  if (NUKE.t > 0) { NUKE.t -= dt; NUKE.beep -= dt; if (NUKE.beep <= 0) { NUKE.beep = 1; sfx.play('nukeSiren'); }
+    if (o) { setHTML(o.querySelector('b'), String(Math.max(0, Math.ceil(NUKE.t)))); const pulse = Math.max(0, NUKE.beep - 0.6) / 0.4; o.style.background = `radial-gradient(ellipse at center, transparent 40%, rgba(255,40,20,${(0.12 + 0.3 * pulse).toFixed(3)}))`; } /* the screen throbs red with the siren */
+    if (NUKE.t <= 0) nukeDetonate(); return; }
+  NUKE.bt += dt; const t = NUKE.bt, fl = o && o.querySelector('.flash');
+  if (NUKE.mush) nukeMushroom(t);
+  if (!NUKE.hit) { if (fl) fl.style.opacity = clamp(1 - t / 0.9, 0.12, 1).toFixed(3); /* the first flash, then a glare that hangs */
+    const r = NUKE.wave ? t * 55 : 0; if (NUKE.wave) { NUKE.wave.scale.setScalar(Math.max(1, r)); NUKE.wave.material.opacity = 0.75; NUKE.wave2.scale.setScalar(Math.max(1, r * 0.82)); }
+    const d = Math.hypot(player.pos.x - NUKE.gz.x, player.pos.z - NUKE.gz.z); if (r >= d || t > 4.5) { NUKE.hit = true; NUKE.ht = t; game.shake = 1.8; rumble(1, 1, 1200); sfx.boom(0, 0, 3); nukeKill(); } }
+  else { const u = t - NUKE.ht; if (fl) fl.style.opacity = (u < 1.8 ? clamp(u / 0.35, 0, 1) : clamp(1 - (u - 1.8) / 1.4, 0, 1)).toFixed(3); if (NUKE.wave) NUKE.wave.scale.setScalar(t * 55); } /* the shockwave hits you: white-out, then the burning aftermath fades back in */
+  if (o) o.style.background = 'none';
+  if (t > 9) { NUKE.phase = null; if (o) o.classList.remove('on'); for (const m of [NUKE.mush, NUKE.wave, NUKE.wave2]) if (m) scene.remove(m); NUKE.mush = NUKE.wave = NUKE.wave2 = null; } }
+function nukeDetonate() { NUKE.phase = 'blast'; NUKE.bt = 0; NUKE.hit = false; const [x0, z0, x1, z1] = world.L.bounds; NUKE.gz = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2); NUKE.gz.y = TH(NUKE.gz.x, NUKE.gz.z);
+  const o = $('nukeov'); if (o) { o.querySelector('.flash').style.opacity = 1; setHTML(o.querySelector('b'), ''); }
+  const d = Math.hypot(player.pos.x - NUKE.gz.x, player.pos.z - NUKE.gz.z); sfx.boom(d, 0, 3, { x: NUKE.gz.x, y: 20, z: NUKE.gz.z }); game.shake = 0.9; rumble(0.6, 0.6, 600);
+  const M = c => new THREE.MeshBasicMaterial({ color: c, transparent: true, fog: false, depthWrite: false }), g = new THREE.Group(); g.position.copy(NUKE.gz);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 1, 1, 20, 1, true), M(0xffffff)); stem.position.y = 0.5; g.add(stem);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), M(0xffffff)); g.add(cap);
+  const capR = new THREE.Mesh(new THREE.TorusGeometry(1, 0.42, 12, 32), M(0xffffff)); capR.rotation.x = Math.PI / 2; g.add(capR);
+  const skirt = new THREE.Mesh(new THREE.TorusGeometry(1, 0.3, 10, 32), M(0xffffff)); skirt.rotation.x = Math.PI / 2; g.add(skirt);
+  const base = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), M(0xffffff)); g.add(base);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const cx = cv.getContext('2d'), gr = cx.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,230,1)'); gr.addColorStop(0.3, 'rgba(255,190,90,.7)'); gr.addColorStop(1, 'rgba(255,120,40,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 128, 128);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), blending: THREE.AdditiveBlending, transparent: true, fog: false, depthWrite: false })); g.add(glow);
+  g.userData = { stem, cap, capR, skirt, base, glow }; g.traverse(m => { m.renderOrder = 5; m.frustumCulled = false; }); scene.add(g); NUKE.mush = g;
+  const w = new THREE.Mesh(new THREE.RingGeometry(0.93, 1, 72), new THREE.MeshBasicMaterial({ color: 0xd9b48a, transparent: true, opacity: 0.75, fog: false, depthWrite: false, side: THREE.DoubleSide })); w.rotation.x = -Math.PI / 2; w.position.copy(NUKE.gz).add(new V3(0, 0.6, 0)); scene.add(w); NUKE.wave = w;
+  const w2 = new THREE.Mesh(new THREE.RingGeometry(0.7, 1, 72), new THREE.MeshBasicMaterial({ color: 0x8a6a50, transparent: true, opacity: 0.35, fog: false, depthWrite: false, side: THREE.DoubleSide })); w2.rotation.x = -Math.PI / 2; w2.position.copy(w.position).add(new V3(0, 0.3, 0)); scene.add(w2); NUKE.wave2 = w2;
+  NUKE.sky0 = [skyMat.uniforms.top.value.clone(), skyMat.uniforms.bottom.value.clone(), scene.fog ? scene.fog.color.clone() : null]; }
+function nukeMushroom(t) { /* rises and boils: white-hot -> orange -> dark smoke; the sky and haze burn orange */
+  const U = NUKE.mush.userData, rise = 1 - Math.exp(-t / 2.2), H = 25 + 125 * rise, heat = clamp(1 - t / 5, 0, 1), col = new THREE.Color(0x3d322d).lerp(new THREE.Color(0xff7a28), clamp(heat * 1.6, 0, 1)).lerp(new THREE.Color(0xfff6dc), clamp(heat * 2 - 1, 0, 1));
+  for (const m of [U.stem, U.cap, U.capR, U.skirt, U.base]) m.material.color.copy(col);
+  U.stem.scale.set(6 + 4 * rise, H, 6 + 4 * rise); U.stem.position.y = H / 2;
+  const cr = 14 + 34 * rise; U.cap.scale.set(cr, cr * 0.62, cr); U.cap.position.y = H; U.capR.scale.setScalar(cr * 0.95); U.capR.position.y = H - cr * 0.18;
+  U.skirt.scale.setScalar(cr * 0.5); U.skirt.position.y = H * 0.55; U.base.scale.set(18 + 40 * rise, 8 + 10 * rise, 18 + 40 * rise);
+  U.glow.scale.setScalar(120 + 200 * heat); U.glow.position.y = H * 0.85; U.glow.material.opacity = 0.3 + 0.7 * heat; NUKE.mush.rotation.y += 0.002;
+  const k = clamp(t / 1.2, 0, 1) * (0.6 + 0.4 * heat); skyMat.uniforms.top.value.copy(NUKE.sky0[0]).lerp(new THREE.Color(0xb3471c), k); skyMat.uniforms.bottom.value.copy(NUKE.sky0[1]).lerp(new THREE.Color(0xffa255), k);
+  if (scene.fog && NUKE.sky0[2]) scene.fog.color.copy(NUKE.sky0[2]).lerp(new THREE.Color(0xc06a34), k); }
+function nukeKill() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId;
   game.ksKind = 'nuke'; game.ownSupport = true;
-  try { if (!MP.active) { for (const e of enemies) if (!e.dead && !isAlly(PLAYER_T, e)) { e.protT = 0; e.damage(99999, false, null, mine ? 'player' : null); } if (!mine && player.alive) damagePlayer(99999, null, null); game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 2600); }
+  try { if (!MP.active) { for (const e of enemies) if (!e.dead && !isAlly(PLAYER_T, e)) { e.protT = 0; e.damage(99999, false, null, mine ? 'player' : null); } if (!mine && player.alive) damagePlayer(99999, null, null); game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 3200); }
     else { if (!mine && player.alive && !isAlly(PLAYER_T, NUKE.by)) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; damagePlayer(99999, null, NUKE.by); }
-      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId && !isAlly(NUKE.by, e)) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 2600); } } }
+      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId && !isAlly(NUKE.by, e)) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 3200); } } }
   finally { game.ksKind = null; game.ownSupport = false; } }
 // ============================================================ FLOW
 function showScreen(id) { for (const s of ['menu', 'pause', 'over', 'armory', 'mp', 'mpover']) $(s).classList.toggle('on', s === id); $('hud').classList.toggle('on', id === null || id === 'pause'); if (id) setTimeout(syncSpins, 0); }
@@ -6930,7 +6962,7 @@ function frameStep(now) {
     barrels.forEach(b => b.update(dt)); pickups.forEach(p => p.inner.rotation.y += dt);
   }
   updateEnvironment(dt);
-  if (game.state !== 'paused' && game.state !== 'over' && game.state !== 'armory') { sparks.update(dt); debris.update(dt); updateTracers(dt); updateBooms(dt); updateMists(dt); }
+  if (game.state !== 'paused' && game.state !== 'over' && game.state !== 'armory') { sparks.update(dt); debris.update(dt); updateTracers(dt); updateBooms(dt); nukeTick(dt); updateMists(dt); }
   const tB = performance.now();
   const menuFrame = game.state === 'menu' || game.state === 'mpover'; menuTick = (menuTick + 1) % 2; if (menuFrame !== menuRes) { menuRes = menuFrame; resize(); }
   if (game.state !== 'play') { placeRing(); if (game.state === 'menu') updatePrompts(); } else if (navRing.style.opacity !== '0') navRing.style.opacity = '0';
