@@ -1,4 +1,5 @@
-/* CALL OF DOODIE (formerly Breachpoint) — a lightweight FPS. Pure Three.js + WebAudio, no build step. */
+/* CALL OF DOODIE (formerly Breachpoint) — a lightweight FPS. Pure Three.js + WebAudio.
+   GENERATED FILE — do not edit game.js directly. Edit the section files in fps/src/ and run:  node fps/tools/build.js */
 (() => {
 'use strict';
 const V3 = THREE.Vector3;

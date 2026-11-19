@@ -1,0 +1,16 @@
+name: fps build check
+on:
+  push:
+    paths: ['fps/**']
+  pull_request:
+    paths: ['fps/**']
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: game.js matches fps/src
+        run: node fps/tools/build.js --check
