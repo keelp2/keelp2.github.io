@@ -2553,6 +2553,7 @@ function initDecals() {
 }
 function surfOfBox(b) { return b && b.m === 'floor' && b.y1 <= 0.05 ? (GROUNDSURF[world.L.ground] || 'dirt') : (b && SURF[b.m]) || 'concrete'; }
 function impactFx(p, nx, ny, nz, box, snd) {
+  potgEvent('imp', { p: [p.x, p.y, p.z], n: [nx, ny, nz], b: box });
   const k = surfOfBox(box), x = p.x + nx * 0.03, y = p.y + ny * 0.03, z = p.z + nz * 0.03;
   if (k === 'metal') { sparks.burst(x, y, z, 9, 6, 1, 0.85, 0.45, 0.25, 1, nx, ny, nz); }
   else if (k === 'wood') { debris.burst(x, y, z, 5, 3, 0.45, 0.32, 0.18, 0.7, 1, nx, ny, nz); debris.burst(x, y, z, 3, 1, 0.6, 0.52, 0.4, 1, 0.2, nx, ny, nz); }
@@ -2581,8 +2582,18 @@ function initBlood() {
     q.fillStyle = `rgba(${110 + Math.random() * 50 | 0},0,0,${0.25 + Math.random() * 0.45})`; q.beginPath(); q.arc(x, y, 1 + Math.pow(Math.random(), 3) * 9, 0, 7); q.fill(); }
   const ov = document.createElement('div'); ov.id = 'bloodov'; ov.style.backgroundImage = `url(${sc.toDataURL()})`; $('hud').appendChild(ov);
 }
+// blood mist: a soft red puff that blooms and fades at the hit point (alongside the spray, droplets and splatter decals)
+const mists = []; let mistTex = null;
+function bloodMist(p, dir, s) {
+  if (!mistTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(150,10,10,0.95)'); gr.addColorStop(0.45, 'rgba(110,6,6,0.55)'); gr.addColorStop(1, 'rgba(80,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); mistTex = new THREE.CanvasTexture(c); mistTex.colorSpace = THREE.SRGBColorSpace; }
+  const m = mists.find(x => !x.on) || (() => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: mistTex, transparent: true, depthWrite: false })); scene.add(sp); const o = { sp }; mists.push(o); return o; })();
+  m.on = true; m.t = 0; m.life = 0.38 + s * 0.12; m.s = s; m.sp.visible = true; m.sp.position.copy(p).addScaledVector(dir, 0.08); m.v = dir.clone().multiplyScalar(0.9); m.sp.material.rotation = Math.random() * 6.28;
+}
+function updateMists(dt) { for (const m of mists) if (m.on) { m.t += dt; const k = m.t / m.life; if (k >= 1) { m.on = false; m.sp.visible = false; continue; } m.sp.position.addScaledVector(m.v, dt); m.sp.scale.setScalar((0.18 + 0.55 * Math.sqrt(k)) * m.s); m.sp.material.opacity = (1 - k) * 0.85; } }
 function bloodHit(p, dir, head) { // spray + splatter on whatever is behind (and below) the victim
-  if (settings.blood === false) return;
+  if (settings.blood === false) return; potgEvent('blood', { p: [p.x, p.y, p.z], d: [dir.x, dir.y, dir.z], h: head ? 1 : 0 });
+  bloodMist(p, dir, head ? 1.25 : 0.9); if (head) bloodMist(p.clone().addScaledVector(dir, 0.15), dir, 0.8);
+  debris.burst(p.x, p.y, p.z, head ? 10 : 6, head ? 6 : 4.5, 0.5, 0.03, 0.03, 0.4, 2.0, dir.x * 1.4, dir.y * 1.4, dir.z * 1.4); // exit spray, fast droplets
   debris.burst(p.x, p.y, p.z, head ? 14 : 8, head ? 4 : 3, 0.42, 0.02, 0.02, 0.55, 1.3, dir.x, dir.y, dir.z);
   debris.burst(p.x, p.y, p.z, 6, 1.2, 0.5, 0.03, 0.03, 0.9, 0.4, -dir.x * 0.4, 0.2, -dir.z * 0.4);
   const h = raycast(p, dir, 3.2, false); if (h.t < 3.2 && h.box) placeBlood(p.clone().addScaledVector(dir, h.t), h.nx, h.ny, h.nz, rand(0.35, 0.8) * (head ? 1.3 : 1));
@@ -6063,7 +6074,7 @@ function startPotg(done, Bk, killcam) {
 function updatePotg(dt) {
   const G = game.potg; if (!G) return; G.real += dt; if (gp.on && gp.pressed && gp.pressed('a')) G.skip = true;
   if (G.killcam) for (const o of [...enemies, ...remoteList]) if (o.group && o.group.visible) { o.group.visible = false; G.hidden.includes(o) || G.hidden.push(o); }
-  const slow = G.B.kills.some(k => Math.abs(k.t - G.t) < 0.45) ? 0.35 : 1; G.t += dt * slow;
+  const lastK = G.B.kills[G.B.kills.length - 1], dk = lastK ? G.t - lastK.t : -9; G.sl = damp(G.sl || 0, dk > -0.45 && dk < 0.9 ? 1 : 0, 7, dt); const slow = lerp(1, 0.32, G.sl); G.t += dt * slow; // slow-mo only for the final kill
   if (G.t >= G.B.t1 || G.skip || G.real > 16) return endPotg();
   let i = 0; while (i < G.fr.length - 2 && G.fr[i + 1].t < G.t) i++; const f0 = G.fr[i], f1 = G.fr[i + 1] || f0, k = clamp((G.t - f0.t) / Math.max(1e-3, f1.t - f0.t), 0, 1);
   for (const id in G.ghosts) { const ch = G.ghosts[id], a0 = f0.a.find(a => a[0] === id), a1 = f1.a.find(a => a[0] === id) || a0;
@@ -6074,6 +6085,8 @@ function updatePotg(dt) {
   for (; G.ei >= 0 && G.ei < POTG.ev.length && POTG.ev[G.ei].t <= G.t; G.ei++) { const e = POTG.ev[G.ei]; if (e.t < G.B.t0) continue; const cp = camera.position;
     if (e.type === 'tr') { const mine = G.hero && Math.hypot(e.a[0] - G.hero.x, e.a[2] - G.hero.z) < 1.6; if (mine) { G.kick = 1; if (G.vm && G.vm.userData.flash) { G.vm.userData.flash.visible = true; setTimeout(() => { if (G.vm) G.vm.userData.flash.visible = false; }, 50); } }
       spawnTracer(mine && G.vm ? G.vm.localToWorld(new V3(0, 0.03, -0.75)) : new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
+    else if (e.type === 'blood') bloodHit(new V3(...e.p), new V3(...e.d), !!e.h);
+    else if (e.type === 'imp') impactFx(new V3(...e.p), e.n[0], e.n[1], e.n[2], e.b, false);
     else if (e.type === 'boom') { sfx.boom(Math.hypot(e.p[0] - cp.x, e.p[2] - cp.z), 0, 1, { x: e.p[0], y: e.p[1], z: e.p[2] }); debris.burst(e.p[0], e.p[1] + 0.3, e.p[2], 24, 9, 1, 0.75, 0.4, 0.9, 1); }
     else if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } sfx.play(e.h ? 'hmhead' : 'hmkill'); } }
   const H = G.hero; if (!H) return; // through the hero's eyes, with their gun in hand
@@ -6474,7 +6487,7 @@ function frame(now) {
     barrels.forEach(b => b.update(dt)); pickups.forEach(p => p.inner.rotation.y += dt);
   }
   updateEnvironment(dt);
-  if (game.state !== 'paused' && game.state !== 'over' && game.state !== 'armory') { sparks.update(dt); debris.update(dt); updateTracers(dt); updateBooms(dt); }
+  if (game.state !== 'paused' && game.state !== 'over' && game.state !== 'armory') { sparks.update(dt); debris.update(dt); updateTracers(dt); updateBooms(dt); updateMists(dt); }
   const tB = performance.now();
   const menuFrame = game.state === 'menu' || game.state === 'mpover'; menuTick = (menuTick + 1) % 2; if (menuFrame !== menuRes) { menuRes = menuFrame; resize(); }
   if (game.state !== 'play') { placeRing(); if (game.state === 'menu') updatePrompts(); } else if (navRing.style.opacity !== '0') navRing.style.opacity = '0';
