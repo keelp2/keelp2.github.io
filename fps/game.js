@@ -16,21 +16,19 @@ const settings = { xhair: 'cross', xcolor: '#ffffff', invertY: false, adsToggle:
 try { Object.assign(settings, JSON.parse(localStorage.getItem('breachpoint') || '{}')); } catch (e) {}
 const saveSettings = () => { try { localStorage.setItem('breachpoint', JSON.stringify(settings)); } catch (e) {} };
 const QUALITY = { // graphics tiers: each player picks their own (auto-detected the first time)
-  low: { pr: () => 0.5, shadows: false, sm: 0 },
   medium: { pr: () => Math.min(window.devicePixelRatio || 1, 1) * 0.9, shadows: true, sm: 1024, ext: 38 },
   high: { pr: () => Math.min(window.devicePixelRatio || 1, 1.5), shadows: true, sm: 2048, ext: 48 },
   ultra: { pr: () => Math.min(window.devicePixelRatio || 1, 2), shadows: true, sm: 4096, ext: 60 },
 };
 function detectGfx() {
-  try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return 'low';
+  try { const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl'); if (!gl) return 'medium';
     const ext = gl.getExtension('WEBGL_debug_renderer_info'), r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
-    if (/swiftshader|llvmpipe|software|basic render/i.test(r)) return 'low';
     if (/nvidia|geforce|rtx|gtx|quadro|radeon\s*(rx|pro|vii)|arc\s*a\d|apple m\d/i.test(r)) return 'high';
     return 'medium'; } catch (e) { return 'medium'; }
 }
 if (settings.aimAssist === true || settings.aimAssist === undefined) settings.aimAssist = 'standard'; else if (settings.aimAssist === false) settings.aimAssist = 'off';
 if (settings.qv !== 2) { settings.quality = detectGfx(); settings.qv = 2; saveSettings(); }
-if (!QUALITY[settings.quality]) settings.quality = 'medium';
+if (!QUALITY[settings.quality]) settings.quality = 'medium'; // 'low' was removed: weak machines get Medium + dynamic resolution
 const GFX = settings.quality, HQ = GFX === 'high' || GFX === 'ultra', ULTRA = GFX === 'ultra';
 const DIFF = {
   easy: { dmg: 0.55, acc: 0.75, react: 1.45, hp: 0.85 },
@@ -2760,10 +2758,10 @@ const CHAR = {
   ogre: { scale: 1, skin: 0xd0a888, body: 0x4a4c48, pants: 0x55574f, boots: 0x222222, arms: 0x4a4c48 },
   fairy: { scale: 1, skin: 0xc09070, body: 0x5a6a42, pants: 0x4e5a3a, boots: 0x2e2a20, arms: 0x5a6a42 },
   // enemies
-  guard: { scale: 1, skin: 0xc8a07a, body: 0x4a5040, pants: 0x3e4436, boots: 0x22201a, arms: 0x4a5040 },
-  goblin: { scale: 0.97, skin: 0xb08060, body: 0x6a5e48, pants: 0x4a4436, boots: 0x22201a, arms: 0x6a5e48 },
-  troll: { scale: 1.12, skin: 0xa08070, body: 0x303234, pants: 0x2c2e30, boots: 0x161616, arms: 0x303234 },
-  archer: { scale: 1, skin: 0xc8a07a, body: 0x4a5a3a, pants: 0x3e4a30, boots: 0x22201a, arms: 0x4a5a3a },
+  guard: { foe: true, scale: 1, skin: 0xc8a07a, body: 0x4a5040, pants: 0x3e4436, boots: 0x22201a, arms: 0x4a5040 },
+  goblin: { foe: true, scale: 0.97, skin: 0xb08060, body: 0x6a5e48, pants: 0x4a4436, boots: 0x22201a, arms: 0x6a5e48 },
+  troll: { foe: true, scale: 1.12, skin: 0xa08070, body: 0x303234, pants: 0x2c2e30, boots: 0x161616, arms: 0x303234 },
+  archer: { foe: true, scale: 1, skin: 0xc8a07a, body: 0x4a5a3a, pants: 0x3e4a30, boots: 0x22201a, arms: 0x4a5a3a },
 };
 function makeProcChar(kind, opt = {}) {
   const D = CHAR[kind] || CHAR.guard, sc = opt.scale || D.scale;
@@ -2877,6 +2875,67 @@ function camoTex(kind, base) {
     const t = new THREE.CanvasTexture(c); t.flipY = base.flipY; t.colorSpace = THREE.SRGBColorSpace; t.wrapS = base.wrapS; t.wrapT = base.wrapT; t.anisotropy = 4; return (CAMOTEX[kind] = t);
   } catch (e) { return base; }
 }
+// ---- FACTIONS (Gulf War, 1991): the US-led Coalition vs Saddam Hussein's Republican Guard. Desert maps, AR vs AK.
+const FACTIONS = [
+  { id: 'coalition', name: 'COALITION', short: 'COALITION', desc: 'US-led Coalition · Operation Desert Storm, 1991', camo: ['#b39d74', '#94805c', '#6e5536', '#c8b48a'], style: 'blot', vest: 0x9a8462, helm: 0xb8a27a, boots: 0x8a6e4e, glove: 0x6a5a44, belt: 0x6e5e44 },
+  { id: 'guard', name: 'REPUBLICAN GUARD', short: 'REP. GUARD', desc: "Iraqi Republican Guard · Saddam Hussein's Ba'athist regime, 1991", camo: ['#5c5a3c', '#46452c', '#6e5c3c', '#3a3a28'], style: 'lizard', vest: 0x4a4a30, helm: 0x4e5236, boots: 0x1e1c1a, glove: 0x2a2826, belt: 0x3a3426, beret: 0x8a1c1c },
+];
+const SKIN = [0xf2cfb0, 0xe3b48e, 0xcf9a72, 0xb27a52, 0x8e5a3a, 0x6a4128, 0x4e2e1c], HAIR = [0x1a1410, 0x2e2018, 0x4a3420, 0x6e5232, 0x9a7a4a, 0x2a2a2a];
+const UNIF = {};
+function uniformTex(f) { // tileable cloth camo: soft blots (desert) or vertical 'lizard' dashes
+  if (UNIF[f]) return UNIF[f]; const F = FACTIONS[f], c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), R = seeded(911 + f * 37);
+  g.fillStyle = F.camo[0]; g.fillRect(0, 0, 128, 128);
+  for (let L = 1; L < 4; L++) { g.fillStyle = F.camo[L]; for (let i = 0; i < (F.style === 'lizard' ? 70 : 26); i++) { const x = R() * 128, y = R() * 128;
+    if (F.style === 'lizard') { g.fillRect(x, y, 1.5 + R() * 2, 5 + R() * 12); g.fillRect(x + 128 * (x < 8), y, 1.5, 6); }
+    else for (const ox of [0, -128, 128]) for (const oy of [0, -128, 128]) { g.beginPath(); g.ellipse(x + ox, y + oy, 4 + R() * 9, 3 + R() * 6, R() * 3, 0, 6.3); g.fill(); } } }
+  const im = g.getImageData(0, 0, 128, 128); for (let i = 0; i < im.data.length; i += 4) { const n = (Math.random() - 0.5) * 16; im.data[i] += n; im.data[i + 1] += n; im.data[i + 2] += n; } g.putImageData(im, 0, 0); // weave
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1.4, 2); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return (UNIF[f] = t);
+}
+const _tap = {};
+const tapered = k => _tap[k] || (_tap[k] = new THREE.CylinderGeometry(k, 1, 1, 12, 1));
+// Build a real soldier on the animated skeleton: every part is rigid on its bone (laid out in model space at the bind pose),
+// so the Mixamo animations drive it. Purely visual: hitboxes are the same capsule for everyone.
+function dressSoldier(out, inner, bones, look) {
+  const F = FACTIONS[look.faction], M = (c, r = 0.85) => MAT({ color: c, roughness: r }), cloth = MAT({ map: uniformTex(look.faction), color: 0xffffff, roughness: 0.92 });
+  const skin = MAT({ color: look.skin, roughness: 0.62 }), hair = M(look.hair, 0.8), dark = M(0x15120f, 0.5), boot = M(F.boots, 0.7), glove = look.gloves ? M(F.glove, 0.8) : skin;
+  inner.updateMatrixWorld(true); const iq = inner.getWorldQuaternion(new THREE.Quaternion()), isc = inner.getWorldScale(new V3()).x, tmp = new V3();
+  const P = n => inner.worldToLocal(bones[n].getWorldPosition(new V3()));
+  const attach = n => { const b = bones[n], gq = new THREE.Group(); gq.quaternion.copy(b.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(iq)); gq.scale.setScalar(isc / b.getWorldScale(tmp).x); b.add(gq); return gq; };
+  const mesh = (par, geo, mat, x, y, z, sx, sy, sz) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; par.add(m); return m; };
+  const limb = (a, b, r0, r1, mat, sx = 1, sz = 1, joint = true) => { if (!bones[a] || !bones[b]) return null; const G = attach(a), d = P(b).sub(P(a)), L = d.length(), m = new THREE.Mesh(tapered(+(r1 / r0).toFixed(2)), mat);
+    m.position.copy(d).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new V3(0, 1, 0), d.clone().normalize()); m.scale.set(r0 * sx, L * 1.04, r0 * sz); m.castShadow = true; G.add(m);
+    if (joint) mesh(G, CG.sph, mat, 0, 0, 0, r0 * sx * 0.98, r0 * 0.98, r0 * sz * 0.98); return G; };
+  const fem = look.female, w = fem ? 0.9 : 1;
+  // legs + boots
+  for (const sd of ['Left', 'Right']) {
+    limb(sd + 'UpLeg', sd + 'Leg', 0.088 * (fem ? 1.02 : 1), 0.072, cloth); const sh = limb(sd + 'Leg', sd + 'Foot', 0.068, 0.052, cloth);
+    if (look.kneepads && sh) mesh(sh, CG.half, M(0x2a2a26, 0.6), 0, 0, 0.045, 0.06, 0.07, 0.05);
+    const ft = attach(sd + 'Foot'), toe = P(sd + 'ToeBase').sub(P(sd + 'Foot')); mesh(ft, CG.cyl, boot, 0, 0.04, 0, 0.058, 0.16, 0.058);
+    mesh(ft, CG.box, boot, toe.x * 0.4, toe.y * 0.5 - 0.04, toe.z * 0.4, 0.09, 0.085, Math.abs(toe.z) + 0.05);
+    // arms: sleeves, gloves
+    limb(sd + 'Shoulder', sd + 'Arm', 0.07 * w, 0.064 * w, cloth, 1, 1, false); limb(sd + 'Arm', sd + 'ForeArm', 0.062 * w, 0.053 * w, cloth); limb(sd + 'ForeArm', sd + 'Hand', 0.052 * w, 0.04 * w, look.rolled ? skin : cloth);
+    if (look.rolled) { const fa = attach(sd + 'ForeArm'), d = P(sd + 'Hand').sub(P(sd + 'ForeArm')); const m = mesh(fa, tapered(0.95), cloth, d.x * 0.12, d.y * 0.12, d.z * 0.12, 0.058 * w, 0.06, 0.058 * w); m.quaternion.setFromUnitVectors(new V3(0, 1, 0), d.normalize()); }
+    const hd = sd + 'HandMiddle2'; if (bones[hd]) { limb(sd + 'Hand', hd, 0.04, 0.033, glove, 1.25, 0.6); limb(sd + 'Hand', sd + 'HandThumb2', 0.017, 0.014, glove); }
+  }
+  // pelvis, torso, belt
+  const hip = attach('Hips'); mesh(hip, CG.sph, cloth, 0, -0.02, 0, 0.165 * (fem ? 1.04 : 1), 0.13, 0.12); mesh(hip, CG.cyl, M(F.belt, 0.7), 0, 0.05, 0, 0.17 * (fem ? 1.03 : 1), 0.05, 0.125);
+  limb('Spine', 'Spine2', 0.155 * w, 0.165 * w, cloth, 1, 0.74); const ch = limb('Spine2', 'Neck', 0.17 * w, 0.15 * w, cloth, 1.04, 0.74);
+  limb('Neck', 'Head', 0.052, 0.048, skin, 1, 1, false);
+  // head: skull, jaw, face, ears, hair
+  const H = attach('Head'), hs = fem ? 0.95 : 1, fwd = 0.1;
+  mesh(H, CG.sph, skin, 0, 0.1, 0.0, 0.098 * hs, 0.118 * hs, 0.108 * hs); mesh(H, CG.sph, skin, 0, 0.05, 0.02, (fem ? 0.07 : 0.08) * hs, 0.06, 0.08 * hs);
+  mesh(H, CG.box, skin, 0, 0.088, 0.112, 0.022, 0.04, 0.03); for (const sx of [-1, 1]) { mesh(H, CG.sph, M(0xf4f0ea, 0.4), sx * 0.034, 0.112, 0.1, 0.015, 0.011, 0.008); mesh(H, CG.sph, dark, sx * 0.034, 0.112, 0.106, 0.008, 0.008, 0.004); mesh(H, CG.box, hair, sx * 0.035, 0.13, 0.106, 0.034, 0.008, 0.012); mesh(H, CG.sph, skin, sx * 0.097 * hs, 0.098, -0.005, 0.016, 0.03, 0.022); }
+  mesh(H, CG.box, M(0x7a4a3a, 0.6), 0, 0.058, 0.1, 0.03, 0.006, 0.01); // mouth
+  if (look.stache) mesh(H, CG.box, hair, 0, 0.07, 0.104, 0.05, 0.012, 0.014);
+  if (look.beard) mesh(H, CG.sph, hair, 0, 0.035, 0.03, 0.084, 0.055, 0.084);
+  if (!look.hood) { mesh(H, CG.half, hair, 0, 0.138, -0.03, 0.102 * hs, 0.09 * hs, 0.1 * hs); if (fem) mesh(H, CG.sph, hair, 0, 0.1, -0.115, 0.045, 0.04, 0.04); } // hair (bun for women)
+  out.bodyMat = cloth; out.skinMat = skin; out.look = look; out.chestBone = ch;
+}
+function lookFor(seed, faction, kind) { // deterministic per player name / id, so everyone sees the same soldier
+  const R = seeded(hashStr(String(seed || Math.random())) ^ (faction * 7177)), female = R() < 0.3;
+  return { faction, female, skin: SKIN[Math.floor(R() * SKIN.length)], hair: HAIR[Math.floor(R() * HAIR.length)], stache: !female && R() < (faction ? 0.55 : 0.2), beard: !female && R() < 0.12,
+    gloves: faction === 0 ? R() < 0.7 : R() < 0.25, rolled: R() < 0.25, kneepads: kind === 'fairy' || R() < 0.2 };
+}
 function makeSoldierChar(kind, opt) {
   const D = CHAR[kind] || CHAR.guard, sc = opt.scale || D.scale, A = window.BP_ASSETS.soldier;
   const g = new THREE.Group(), inner = new THREE.Group(); inner.scale.setScalar(sc); g.add(inner);
@@ -2888,8 +2947,10 @@ function makeSoldierChar(kind, opt) {
       o.castShadow = true; o.frustumCulled = false; const old = o.material;
       if (/visor/i.test(o.name) || /visor/i.test(old.name)) o.material = PHONG({ color: VISOR[kind] || 0x222a33, specular: 0xffffff, shininess: 90 });
       else { o.material = MAT({ map: camoTex(kind, old.map), color: 0xffffff, roughness: 0.85 }); bodyMat = o.material; }
+      o.visible = false; // the sci-fi armour suit only lends its skeleton now; dressSoldier builds the person
     }
   });
+  const faction = opt.faction !== undefined ? opt.faction : (CHAR[kind] && CHAR[kind].foe ? 1 : 0), look = lookFor(opt.seed !== undefined ? opt.seed : opt.name, faction, kind);
   const mixer = new THREE.AnimationMixer(root), act = {};
   for (const c of A.animations) act[c.name] = mixer.clipAction(c);
   (act.Idle || Object.values(act)[0]).play();
@@ -2899,32 +2960,44 @@ function makeSoldierChar(kind, opt) {
   out.headAcc = new THREE.Group(); out.chestAcc = new THREE.Group(); inner.add(out.headAcc, out.chestAcc);
   const iq = inner.getWorldQuaternion(new THREE.Quaternion()).invert(), bq = b => b ? iq.clone().multiply(b.getWorldQuaternion(new THREE.Quaternion())).invert() : null;
   out.headBind = bq(bones.Head); out.chestBind = bq(bones.Spine2);
+  try { dressSoldier(out, inner, bones, look); } catch (e) { console.warn('dress failed', e); root.traverse(m => { if (m.isMesh) m.visible = true; }); }
   addAccessories(kind, out);
   return out;
 }
-function addAccessories(kind, o) { // per-class kit on top of the soldier model
-  const H = o.headAcc, C = o.chestAcc, Lm = (c, r = 0.85) => MAT({ color: c, roughness: r });
+function addAccessories(kind, o) { // per-class kit, in each faction's period gear
+  const H = o.headAcc, C = o.chestAcc, Lm = (c, r = 0.85) => MAT({ color: c, roughness: r }), lk = o.look || { faction: 0 }, F = FACTIONS[lk.faction], g1 = lk.faction === 1;
   const add = (par, geo, mat, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.scale.set(sx, sy, sz); m.castShadow = true; par.add(m); return m; };
-  const s = o.rsign, plate = (c) => { add(C, CG.box, Lm(c, 0.95), 0, -0.05, 0.115, 0, 0, 0, 0.27, 0.3, 0.06); add(C, CG.box, Lm(c, 0.95), 0, -0.05, -0.135, 0, 0, 0, 0.27, 0.32, 0.06); for (const x of [-0.08, 0, 0.08]) add(C, CG.box, Lm(c * 0 + 0x3a3a30), x, -0.13, 0.17, 0, 0, 0, 0.06, 0.1, 0.035); };
-  const ghillie = c => { const R = seeded(c), cols = [0x3a4026, 0x4a4a30, 0x2e3420, 0x5a5236, 0x434a2c].map(x => Lm(x, 1)); for (let i = 0; i < 46; i++) { const a = R() * 6.28, par = i < 18 ? H : C, r = par === H ? 0.12 + R() * 0.03 : 0.17 + R() * 0.05; // frayed burlap strips hanging off the hood and shoulders
-    add(par, CG.box, cols[i % cols.length], Math.cos(a) * r, par === H ? 0.07 + R() * 0.12 : 0.05 + R() * 0.15, Math.sin(a) * r * 0.85 - 0.03, (R() - 0.5) * 0.6, -a + Math.PI / 2, (R() - 0.5) * 0.5 + 0.25, 0.04 + R() * 0.03, 0.1 + R() * 0.08, 0.012); } };
-  const radio = () => add(C, CG.cyl, Lm(0x111111, 0.6), s * 0.1, 0.25, -0.17, 0, 0, 0, 0.006, 0.42, 0.006);
-  const helmet = (c, nvg) => { add(H, CG.half, Lm(c, 0.7), 0, 0.105, -0.005, 0, 0, 0, 0.142, 0.13, 0.158); add(H, CG.cyl, Lm(c, 0.7), 0, 0.1, -0.005, 0, 0, 0, 0.148, 0.018, 0.164);
-    if (nvg) { add(H, CG.box, Lm(0x1a1a1a, 0.5), 0, 0.17, 0.14, 0, 0, 0, 0.05, 0.03, 0.03); add(H, CG.cyl, Lm(0x111111, 0.4), 0, 0.2, 0.15, Math.PI / 2, 0, 0, 0.022, 0.06, 0.022); } };
-  const pack = (c, h = 0.34) => add(C, CG.box, Lm(c), 0, -0.06, -0.21, 0, 0, 0, 0.3, h, 0.14);
-  if (kind === 'knight') { plate(0x6e6450); radio(); helmet(0x7a6a4a, true); pack(0x5a5038, 0.26); }
-  else if (kind === 'ginger') { add(C, CG.box, Lm(0x5a5040), 0, -0.1, 0.13, 0, 0, 0, 0.26, 0.12, 0.05); // backwards cap + headset
-    add(H, CG.half, Lm(0x2a3a4a, 0.8), 0, 0.11, 0, 0, 0, 0, 0.13, 0.08, 0.145); add(H, CG.box, Lm(0x2a3a4a, 0.8), 0, 0.115, -0.17, 0, 0, 0, 0.16, 0.01, 0.09);
-    for (const sd of [-1, 1]) add(H, CG.cyl, Lm(0x1a1a1a, 0.5), sd * 0.13, 0.07, 0, 0, 0, Math.PI / 2, 0.04, 0.03, 0.04); }
-  else if (kind === 'ogre' || kind === 'troll') { plate(0x2e3030); for (const sd of [-1, 1]) add(C, CG.box, Lm(0x2a2c2c), sd * 0.2, 0.08, 0, 0, 0, sd * 0.3, 0.12, 0.05, 0.2);
-    helmet(0x2a2c2c, false); pack(0x35372f, 0.4); add(C, CG.box, Lm(0x2a2c2c), 0, 0.2, 0.05, 0, 0, 0, 0.26, 0.08, 0.26); // armoured collar
-    add(H, CG.box, PHONG({ color: 0x101214, specular: 0x666666, shininess: 70, transparent: true, opacity: 0.85 }), 0, 0.1, 0.13, -0.1, 0, 0, 0.2, 0.12, 0.02); }
-  else if (kind === 'fairy' || kind === 'archer') { ghillie(kind === 'fairy' ? 0x5a6a3a : 0x6a6a44); // boonie hat
-    add(H, CG.half, Lm(0x48502f, 1), 0, 0.12, 0, 0, 0, 0, 0.13, 0.09, 0.14); add(H, CG.cyl, Lm(0x48502f, 1), 0, 0.125, 0, 0, 0, 0, 0.2, 0.012, 0.21); }
-  else if (kind === 'wolf') { helmet(0x1e2022, false); add(C, CG.box, Lm(0x2a2418), 0, -0.02, 0.15, 0, 0, 0.75, 0.06, 0.5, 0.03); add(H, CG.cylT, Lm(0x141414, 0.5), 0, 0.05, 0.13, Math.PI / 2, 0, 0, 0.05, 0.06, 0.05); for (const sd of [-1, 1]) add(H, CG.cyl, Lm(0x22221e, 0.6), sd * 0.06, 0.02, 0.15, Math.PI / 2, 0, sd * 0.5, 0.03, 0.05, 0.03); plate(0x222222); }
-  else if (kind === 'witch') { add(H, CG.half, Lm(0x3a3a30, 0.95), 0, 0.1, 0, 0, 0, 0, 0.135, 0.13, 0.15); pack(0x6a5e44, 0.32); plate(0x8a7a58); for (const x of [-0.09, 0, 0.09]) add(C, CG.sph, Lm(0x3e4a2e, 0.5), x, 0.02, 0.18, 0, 0, 0, 0.032, 0.04, 0.032); }
-  else if (kind === 'guard') { plate(0x3e4436); radio(); helmet(0x4a4e3c, false); }
-  else if (kind === 'goblin') { add(C, CG.box, Lm(0x3a3a30), 0, -0.1, 0.13, 0, 0, 0, 0.28, 0.12, 0.05); add(H, CG.sph, Lm(0x1a1a1a, 0.95), 0, 0.07, 0.01, 0, 0, 0, 0.125, 0.14, 0.135); } // balaclava
+  const s = o.rsign, vestM = Lm(F.vest, 0.95), pouchM = Lm(g1 ? 0x3e3e28 : 0x8a7656, 0.95), strap = Lm(g1 ? 0x34331f : 0x7a6a4c, 0.9);
+  const vest = (heavy) => { // Coalition: flak vest / plates · Guard: Chicom-style chest rig
+    if (g1 && !heavy) { add(C, CG.box, vestM, 0, -0.1, 0.12, 0, 0, 0, 0.27, 0.15, 0.05); for (const x of [-0.085, 0, 0.085]) add(C, CG.box, pouchM, x, -0.1, 0.15, 0, 0, 0, 0.075, 0.12, 0.035); for (const sd of [-1, 1]) add(C, CG.box, strap, sd * 0.08, 0.05, 0.02, 0, 0, sd * 0.2, 0.035, 0.32, 0.26); return; }
+    const w = heavy ? 1.12 : 1; add(C, CG.box, vestM, 0, -0.04, 0.115, 0, 0, 0, 0.3 * w, 0.32, 0.055 * w); add(C, CG.box, vestM, 0, -0.04, -0.13, 0, 0, 0, 0.3 * w, 0.34, 0.055 * w);
+    for (const sd of [-1, 1]) { add(C, CG.box, vestM, sd * 0.155 * w, -0.06, -0.005, 0, 0, 0, 0.04, 0.26, 0.22); add(C, CG.box, strap, sd * 0.08, 0.13, -0.005, 0, 0, 0, 0.06, 0.04, 0.26); }
+    for (const x of [-0.08, 0, 0.08]) add(C, CG.box, pouchM, x, -0.12, 0.155, 0, 0, 0, 0.07, 0.11, 0.035);
+    if (heavy) { for (const sd of [-1, 1]) add(C, CG.box, vestM, sd * 0.21, 0.09, 0, 0, 0, sd * 0.35, 0.12, 0.05, 0.2); add(C, CG.box, vestM, 0, 0.17, 0.02, 0, 0, 0, 0.27, 0.07, 0.27); add(C, CG.box, vestM, 0, -0.27, 0.11, 0, 0, 0, 0.16, 0.12, 0.04); } };
+  const helmet = (goggles, nvg) => { const hm = Lm(F.helm, 0.75); // PASGT 'Fritz' with a desert cover / Soviet-style SSh-68 steel helmet
+    if (!g1) { add(H, CG.half, hm, 0, 0.112, -0.012, 0, 0, 0, 0.145, 0.13, 0.162); add(H, CG.cylT, hm, 0, 0.1, -0.012, 0, 0, 0, 0.152, 0.03, 0.168); add(H, CG.cyl, Lm(0x3a3226, 0.9), 0, 0.15, -0.012, 0, 0, 0, 0.142, 0.012, 0.158); }
+    else { add(H, CG.half, hm, 0, 0.118, -0.008, 0, 0, 0, 0.14, 0.135, 0.15); add(H, CG.cylT, hm, 0, 0.11, -0.008, 0, 0, 0, 0.158, 0.026, 0.166); }
+    if (goggles) { add(H, CG.box, Lm(0x1a1a1a, 0.5), 0, 0.165, 0.135, -0.3, 0, 0, 0.16, 0.035, 0.03); add(H, CG.box, PHONG({ color: 0x6a7a80, specular: 0xffffff, shininess: 80 }), 0, 0.165, 0.148, -0.3, 0, 0, 0.13, 0.025, 0.01); }
+    if (nvg) add(H, CG.box, Lm(0x1a1a1a, 0.5), 0, 0.19, 0.15, 0, 0, 0, 0.05, 0.03, 0.03); };
+  const beret = () => { const bm = Lm(F.beret || 0x3a3a30, 0.95); add(H, CG.sph, bm, s * 0.02, 0.2, -0.01, 0, 0, s * 0.22, 0.125, 0.04, 0.125); add(H, CG.cyl, Lm(0x1a1410, 0.8), 0, 0.172, -0.005, 0, 0, 0, 0.108, 0.015, 0.12); };
+  const cap = () => { const cm = Lm(F.helm, 0.95); add(H, CG.cyl, cm, 0, 0.19, -0.005, 0, 0, 0, 0.105, 0.07, 0.115); add(H, CG.box, cm, 0, 0.165, 0.12, -0.15, 0, 0, 0.17, 0.01, 0.09); };
+  const boonie = () => { const bm = Lm(g1 ? 0x48502f : 0xb4a07a, 1); add(H, CG.half, bm, 0, 0.14, -0.005, 0, 0, 0, 0.115, 0.08, 0.125); add(H, CG.cyl, bm, 0, 0.143, -0.005, 0, 0, 0, 0.19, 0.01, 0.2); };
+  const ghillie = c => { const R = seeded(c), cols = (g1 ? [0x3a4026, 0x4a4a30, 0x2e3420, 0x5a5236] : [0xa8946a, 0x8a7652, 0xc0ac80, 0x7a6644]).map(x => Lm(x, 1));
+    for (let i = 0; i < 40; i++) { const a = R() * 6.28, par = i < 14 ? H : C, r = par === H ? 0.13 + R() * 0.03 : 0.18 + R() * 0.05;
+      add(par, CG.box, cols[i % cols.length], Math.cos(a) * r, par === H ? 0.1 + R() * 0.1 : 0.05 + R() * 0.15, Math.sin(a) * r * 0.85 - 0.03, (R() - 0.5) * 0.6, -a + Math.PI / 2, (R() - 0.5) * 0.5 + 0.25, 0.04 + R() * 0.03, 0.1 + R() * 0.08, 0.012); } };
+  const radio = () => { add(C, CG.box, Lm(0x2e3026, 0.7), 0, -0.04, -0.2, 0, 0, 0, 0.2, 0.26, 0.09); add(C, CG.cyl, Lm(0x111111, 0.6), s * 0.08, 0.28, -0.2, 0, 0, 0, 0.006, 0.4, 0.006); };
+  const pack = (h = 0.3) => add(C, CG.box, Lm(g1 ? 0x45452c : 0x9a8664), 0, -0.06, -0.22, 0, 0, 0, 0.28, h, 0.13);
+  const bandolier = () => { add(C, CG.box, Lm(0x3a3022, 0.8), 0, -0.02, 0.16, 0, 0, 0.8, 0.05, 0.52, 0.03); for (let i = -2; i <= 2; i++) add(C, CG.cyl, Lm(0x6a6a40, 0.6), i * 0.042, -0.02 - i * 0.045, 0.18, Math.PI / 2, 0, 0, 0.018, 0.04, 0.018); };
+  const gasmask = () => { add(H, CG.cylT, Lm(0x22241e, 0.6), 0, 0.06, 0.11, Math.PI / 2, 0, 0, 0.05, 0.07, 0.05); for (const sd of [-1, 1]) add(H, CG.sph, PHONG({ color: 0x2a3036, specular: 0xffffff, shininess: 80 }), sd * 0.036, 0.112, 0.104, 0, 0, 0, 0.026, 0.026, 0.012); };
+  if (kind === 'knight') { vest(false); radio(); helmet(false, !g1); }                                          // Assault
+  else if (kind === 'ginger') { vest(false); if (g1) beret(); else cap(); for (const sd of [-1, 1]) add(H, CG.cyl, Lm(0x1a1a1a, 0.5), sd * 0.105, 0.1, 0, 0, 0, Math.PI / 2, 0.035, 0.025, 0.035); } // Scout: soft cap/beret + headset
+  else if (kind === 'ogre' || kind === 'troll') { vest(true); helmet(false, false); pack(0.36); }             // Heavy / Juggernaut
+  else if (kind === 'fairy' || kind === 'archer') { ghillie(kind === 'fairy' ? 11 : 23); boonie(); }          // Recon / Marksman
+  else if (kind === 'wolf') { vest(false); helmet(true, false); if (g1) gasmask(); }                          // Breacher: goggles (gas mask on the Guard)
+  else if (kind === 'witch') { vest(false); bandolier(); pack(0.3); if (g1) beret(); else helmet(false, false); } // Grenadier
+  else if (kind === 'guard') { vest(false); helmet(false, false); }
+  else if (kind === 'goblin') { vest(false); beret(); }
+  else { vest(false); helmet(false, false); }
 }
 function makeCharacter(kind, opt = {}) {
   let o = null;
@@ -3043,7 +3116,7 @@ class Enemy {
     this.state = 'hunt'; this.cover = null; this.coverT = 0; this.strafe = Math.random() < 0.5 ? 1 : -1; this.strafeT = 0; this.jumpCD = rand(1, 3);
     this.flashT = 0; this.mflash = 0; this.dead = false; this.deadT = 0; this.stuckT = 0; this.lastPos = this.pos.clone(); this.lastFired = -99; this.spawnT = 0.5;
     this.lookT = 0; this.lookYaw = 0; this.attacker = null; this.headPref = Math.random() < 0.18 * this.skill;
-    Object.assign(this, makeCharacter(T.model, { scale: T.scale, weapon: this.W.id, sash: opt.sash }));
+    Object.assign(this, makeCharacter(T.model, { scale: T.scale, weapon: this.W.id, sash: opt.sash, faction: opt.faction, seed: opt.name || T.name }));
     this.group.position.copy(this.pos); world.group.add(this.group);
     if (T.sniper) {
       const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
@@ -3374,7 +3447,7 @@ function teamSpawn(team) { const all = combatants(); if (!BD.teams) return dmSpa
 function spawnBot(st) {
   const [x, y, z] = teamSpawn(st.team);
   const k = world.nav.nearestFree(x + rand(-2, 2), z + rand(-2, 2), 6), [cx, cz] = k >= 0 ? world.nav.center(k) : [x, z];
-  const e = new Enemy('bot', cx, cz, 1, { T: st.T, name: st.name, sash: st.color, y: 0 }); e.stat = st; e.team = st.team; e.protT = game.time + 2.5; enemies.push(e);
+  const e = new Enemy('bot', cx, cz, 1, { T: st.T, name: st.name, sash: st.color, y: 0, faction: BD.teams ? st.team : hashStr(st.name) & 1 }); e.stat = st; e.team = st.team; e.protT = game.time + 2.5; enemies.push(e);
   if (BD.teams && st.team === 0) { e.tag = makeNameTag(st.name, TEAMC[0]); e.tag.position.y = 2.25 / e.s; e.inner.add(e.tag); }
 }
 function startBotMatch() {
@@ -3393,8 +3466,8 @@ function startBotMatch() {
   for (const st of BD.stats) if (!st.me && st.team !== 1) spawnBot(st);
   player.yaw = Math.atan2(player.pos.x, player.pos.z); player.protT = game.time + 2.5;
   game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock(); hudCache = {};
-  startIntro(teams ? 'TEAM DEATHMATCH' : 'FREE-FOR-ALL', teams ? `Blue (${allies + 1}) vs Red (${n - allies}) · first team to ${BD.limit} kills` : `First to ${BD.limit} kills · ${n} bots`);
-  if (!game.intro) showMsg(teams ? 'TEAM DEATHMATCH' : 'BOT DEATHMATCH', teams ? `BLUE (${allies + 1}) vs RED (${n - allies}) · FIRST TEAM TO ${BD.limit}` : `FIRST TO ${BD.limit} KILLS · ${n} BOTS`, 3.5);
+  startIntro(teams ? 'TEAM DEATHMATCH' : 'FREE-FOR-ALL', teams ? `Coalition (${allies + 1}) vs Republican Guard (${n - allies}) · first side to ${BD.limit} kills` : `First to ${BD.limit} kills · ${n} bots`);
+  if (!game.intro) showMsg(teams ? 'TEAM DEATHMATCH' : 'BOT DEATHMATCH', teams ? `COALITION (${allies + 1}) vs REPUBLICAN GUARD (${n - allies}) · FIRST TO ${BD.limit}` : `FIRST TO ${BD.limit} KILLS · ${n} BOTS`, 3.5);
 }
 function botKilled(victim, killer, head) {
   const vs = victim.stat; if (vs) vs.deaths++;
@@ -3415,7 +3488,7 @@ function botPlayerDie() {
   player.alive = false; sfx.voice('death', { self: true, pitch: settings.vpitch || 120, vol: 0.8 }); MP.respawnT = 3.5; game.deadT = 0; mouseL = mouseR = false; wst.reloading = false;
   showMsg('ELIMINATED', k ? 'by ' + k.name : '', 3); checkBotEnd();
 }
-function checkBotEnd() { if (BD.teams) { for (const t of [0, 1]) if (BD.teamKills[t] >= BD.limit) endBotMatch((t ? 'Red' : 'Blue') + ' team reached ' + BD.limit + ' kills'); return; } const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); if (top.kills >= BD.limit) endBotMatch(top.name + ' reached the kill limit'); }
+function checkBotEnd() { if (BD.teams) { for (const t of [0, 1]) if (BD.teamKills[t] >= BD.limit) endBotMatch((t ? 'The Republican Guard' : 'The Coalition') + ' reached ' + BD.limit + ' kills'); return; } const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); if (top.kills >= BD.limit) endBotMatch(top.name + ' reached the kill limit'); }
 function updateBotMatch(dt) {
   BD.matchT -= dt; if (BD.matchT <= 0) return endBotMatch('Time limit reached');
   for (let i = BD.respawn.length - 1; i >= 0; i--) { BD.respawn[i].t -= dt; if (BD.respawn[i].t <= 0) { spawnBot(BD.respawn[i].st); BD.respawn.splice(i, 1); } }
@@ -3431,7 +3504,7 @@ function endBotMatchNow(why) {
   game.state = 'mpover'; if (document.pointerLockElement) document.exitPointerLock();
   const rows = BD.stats.slice().sort((a, b) => (BD.teams ? a.team - b.team : 0) || b.kills - a.kills || a.deaths - b.deaths);
   let won;
-  if (BD.teams) { const [b, r] = BD.teamKills; won = b > r; $('mpWinner').textContent = b === r ? 'DRAW' : b > r ? 'BLUE TEAM WINS' : 'RED TEAM WINS'; $('mpWhy').textContent = `${why} · Blue ${b} – ${r} Red`; }
+  if (BD.teams) { const [b, r] = BD.teamKills; won = b > r; $('mpWinner').textContent = b === r ? 'DRAW' : b > r ? 'COALITION VICTORY' : 'REPUBLICAN GUARD VICTORY'; $('mpWhy').textContent = `${why} · Coalition ${b} – ${r} Rep. Guard`; }
   else { won = rows[0].me; $('mpWinner').textContent = rows[0].me ? 'YOU WIN!' : rows[0].name.toUpperCase() + ' WINS'; $('mpWhy').textContent = why; }
   $('mpBoard').innerHTML = botTable(rows) + `<div class="mysum">${statEnd(BD.teams ? 'TEAM DEATHMATCH' : 'BOT FFA', BD.teams && BD.teamKills[0] === BD.teamKills[1] ? 'draw' : won ? 'win' : 'loss', BD.stats[0].deaths)}</div>`; $('mpToLobby').textContent = 'BACK TO MENU';
   showScreen('mpover');
@@ -4980,8 +5053,8 @@ function updateHUD(dt) {
   const alive = enemies.filter(e => !e.dead).length;
   if ((MP.active && MP.mode !== 'surv') || game.mode === 'botdm') {
     const bd = game.mode === 'botdm', t = Math.max(0, Math.ceil(bd ? BD.matchT : MP.matchT)); setText('wavel', 'TIME'); setText('wave', t > 1e8 ? '∞' : Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'));
-    if (!bd && MP.mode === 'tdm') { const [b, r] = MP.teamScore || [0, 0], my = mpTeamOf(PLAYER_T); setText('leftl', 'BLUE' + (my === 0 ? ' · YOU' : '')); setText('left', `<span style="color:#7ac4ff">${b}</span> / ${MP.limit}`); setText('scorel', 'RED' + (my === 1 ? ' · YOU' : '')); setText('score', `<span style="color:#ff7a7a">${r}</span> / ${MP.limit}`); }
-    else if (bd && BD.teams) { setText('leftl', 'BLUE · YOU'); setText('left', `<span style="color:#7ac4ff">${BD.teamKills[0]}</span> / ${BD.limit}`); setText('scorel', 'RED'); setText('score', `<span style="color:#ff7a7a">${BD.teamKills[1]}</span> / ${BD.limit}`); }
+    if (!bd && MP.mode === 'tdm') { const [b, r] = MP.teamScore || [0, 0], my = mpTeamOf(PLAYER_T); setText('leftl', 'COALITION' + (my === 0 ? ' · YOU' : '')); setText('left', `<span style="color:#7ac4ff">${b}</span> / ${MP.limit}`); setText('scorel', 'REP. GUARD' + (my === 1 ? ' · YOU' : '')); setText('score', `<span style="color:#ff7a7a">${r}</span> / ${MP.limit}`); }
+    else if (bd && BD.teams) { setText('leftl', 'COALITION · YOU'); setText('left', `<span style="color:#7ac4ff">${BD.teamKills[0]}</span> / ${BD.limit}`); setText('scorel', 'REP. GUARD'); setText('score', `<span style="color:#ff7a7a">${BD.teamKills[1]}</span> / ${BD.limit}`); }
     else { let lead = null; for (const p of bd ? BD.stats : Object.values(MP.players)) if (!lead || p.kills > lead.kills) lead = p;
     setText('leftl', 'LEADER'); setText('left', lead ? esc(lead.name.slice(0, 10)) + ' ' + lead.kills : '–');
     setText('scorel', 'YOUR KILLS'); setText('score', (bd ? BD.stats[0].kills : game.kills) + ' / ' + (bd ? BD.limit : MP.limit)); }
@@ -5421,7 +5494,7 @@ function hostDeath(d) {
   if (MP.mode === 'tdm' && k && k.team !== v.team && k.team >= 0) MP.teamScore[k.team]++;
   const sc = {}; for (const id in MP.players) { const q = MP.players[id]; sc[id] = { kills: q.kills, deaths: q.deaths, downs: q.downs | 0, revives: q.revives | 0, score: q.score | 0 }; }
   bcast({ t: 'score', players: sc, ts: MP.teamScore });
-  if (MP.mode === 'tdm') { for (const t of [0, 1]) if (MP.teamScore[t] >= MP.limit) hostEndMatch((t ? 'Red' : 'Blue') + ' team reached ' + MP.limit + ' kills'); }
+  if (MP.mode === 'tdm') { for (const t of [0, 1]) if (MP.teamScore[t] >= MP.limit) hostEndMatch((t ? 'The Republican Guard' : 'The Coalition') + ' reached ' + MP.limit + ' kills'); }
   else if (k && k.kills >= MP.limit) hostEndMatch(k.name + ' reached the kill limit');
 }
 // ---- bots in online matches: the host runs them as Enemies, everyone else sees them as Remotes
@@ -5481,7 +5554,7 @@ function mpSpawnBot(id) {
   const p = MP.players[id]; if (!p) return; const pr = botProfile(+id.slice(4) + 3); pr.T.weapon = p.weapon || pr.T.weapon; pr.T.name = p.name;
   const avoid = [player.pos].concat(remoteList.filter(r => !r.dead).map(r => r.pos), enemies.filter(e => !e.dead).map(e => e.pos)), [x, , z] = dmSpawnPoint(avoid);
   const k = world.nav.nearestFree(x + rand(-2, 2), z + rand(-2, 2), 6), [cx, cz] = k >= 0 ? world.nav.center(k) : [x, z];
-  const e = new Enemy('bot', cx, cz, 1, { T: pr.T, name: p.name, sash: MP.mode === 'tdm' && p.team >= 0 ? TEAMC[p.team] : PCOLORS[p.color % PCOLORS.length], y: 0 }); e.netId = id; e.protT = game.time + 2.5; e.team = MP.mode === 'tdm' && p.team >= 0 ? p.team : -1; e.bot = true; e.q = 0; enemies.push(e);
+  const e = new Enemy('bot', cx, cz, 1, { T: pr.T, name: p.name, sash: MP.mode === 'tdm' && p.team >= 0 ? TEAMC[p.team] : PCOLORS[p.color % PCOLORS.length], y: 0, faction: MP.mode === 'tdm' && p.team >= 0 ? p.team : hashStr(p.name || id) & 1 }); e.netId = id; e.protT = game.time + 2.5; e.team = MP.mode === 'tdm' && p.team >= 0 ? p.team : -1; e.bot = true; e.q = 0; enemies.push(e);
 }
 function mpBotDied(e, killer, head) {
   const by = killer === PLAYER_T ? MP.myId : killer && killer.netId ? killer.netId : (e.mpAttacker || e.netId);
@@ -5518,7 +5591,7 @@ class Remote {
   constructor(id, info) {
     this.id = id; this.name = info.name; const color = MP.mode === 'tdm' && (info.team === 0 || info.team === 1) ? TEAMC[info.team] : PCOLORS[info.color % PCOLORS.length];
     const C = CLASSES[info.cls] || CLASSES.assault; this.cls = C;
-    Object.assign(this, makeCharacter(info.model || C.model, { sash: color, weapon: 'rifle' })); this.isRemote = true; this.isEnemyNpc = !!info.model;
+    Object.assign(this, makeCharacter(info.model || C.model, { sash: color, weapon: 'rifle', faction: info.model ? 1 : MP.mode === 'tdm' && info.team >= 0 ? info.team : hashStr(info.name || '') & 1, seed: (info.name || '') + (info.tag || '') })); this.isRemote = true; this.isEnemyNpc = !!info.model;
     this.baseColor = this.bodyMat.color.getHex();
     this.s = CHAR[C.model].scale; this.h = 1.82 * this.s; this.pos = new V3(0, -50, 0); this.dead = true; this.snaps = []; this.yaw = 0; this.walk = 0;
     this.flashT = 0; this.mflash = 0; this.lastFired = -99; this.deadT = 0;
@@ -5633,9 +5706,9 @@ function endMatchNow(d) {
   const rows = Object.entries(MP.players).sort((a, b) => b[1].kills - a[1].kills || a[1].deaths - b[1].deaths);
   const tdm = MP.mode === 'tdm', [tb, tr] = MP.teamScore || [0, 0], myT = mpTeamOf(PLAYER_T), tRes = tb === tr ? 'draw' : (tb > tr ? 0 : 1) === myT ? 'win' : 'loss';
   const sv = MP.mode === 'surv'; if (sv) rows.sort((a, b) => (b[1].score | 0) - (a[1].score | 0));
-  $('mpWinner').textContent = sv ? `SURVIVED ${Math.max(0, game.wave - 1)} WAVE${game.wave === 2 ? '' : 'S'}` : tdm ? (tb === tr ? 'DRAW' : tb > tr ? 'BLUE TEAM WINS' : 'RED TEAM WINS') : rows.length ? `${rows[0][1].name} WINS` : 'MATCH OVER';
+  $('mpWinner').textContent = sv ? `SURVIVED ${Math.max(0, game.wave - 1)} WAVE${game.wave === 2 ? '' : 'S'}` : tdm ? (tb === tr ? 'DRAW' : tb > tr ? 'COALITION VICTORY' : 'REPUBLICAN GUARD VICTORY') : rows.length ? `${rows[0][1].name} WINS` : 'MATCH OVER';
   $('mpWhy').textContent = d.why ? String(d.why).slice(0, 80) : '';
-  if (tdm) $('mpWhy').textContent = (d.why ? String(d.why).slice(0, 60) + ' · ' : '') + `Blue ${tb} – ${tr} Red`;
+  if (tdm) $('mpWhy').textContent = (d.why ? String(d.why).slice(0, 60) + ' · ' : '') + `Coalition ${tb} – ${tr} Rep. Guard`;
   $('mpBoard').innerHTML = scoreTable(rows) + `<div class="mysum">${statEnd(sv ? 'SURVIVAL' : 'MULTIPLAYER', sv ? 'run' : tdm ? tRes : rows.length && rows[0][0] === MP.myId ? 'win' : 'loss', Math.max(0, (MP.players[MP.myId] ? MP.players[MP.myId].deaths : 0) - (MP.botDeaths || 0)))}</div>`;
   showScreen('mpover');
 }
@@ -5803,7 +5876,7 @@ function mapLayout(i) { // top-down plan: buildings shaded by height, water, spa
   return (LAYOUT[i] = c.toDataURL());
 }
 function mapInfo(i = settings.map) { const m = MAPS[i], el = $('mapinfo'); try { (mapInfo.pre || (mapInfo.pre = {}))[i] || (mapInfo.pre[i] = Object.assign(new Image(), { src: MAPHD(i) })); } catch (e) {} if (!el) return; const lay = mapLayout(i);
-  el.innerHTML = `<div class="mitext"><b>${m.name}</b><span>${m.desc}</span><em>${m.tag}</em><small class="mileg"><i style="background:#3fa7ff"></i>Blue spawn <i style="background:#ff5a5a"></i>Red spawn <i style="background:#5dff9a"></i>Health <i style="background:#ffcf6b"></i>Ammo · lighter = taller</small></div>` + (lay ? `<img class="milay" src="${lay}" alt="">` : ''); }
+  el.innerHTML = `<div class="mitext"><b>${m.name}</b><span>${m.desc}</span><em>${m.tag}</em><small class="mileg"><i style="background:#3fa7ff"></i>Coalition spawn <i style="background:#ff5a5a"></i>Rep. Guard spawn <i style="background:#5dff9a"></i>Health <i style="background:#ffcf6b"></i>Ammo · lighter = taller</small></div>` + (lay ? `<img class="milay" src="${lay}" alt="">` : ''); }
 const TIPS = ['Crouch-walking and holding Alt are silent — sneak up for a knife backstab.', 'Listen: sprinting enemies are loud, and footsteps sound different on metal, wood and gravel.',
   'Hold G (or RB) to cook a grenade, then release to throw. Do not hold it too long.', 'Aiming down sights stops your sprint — pre-aim corners before you round them.', 'Sprint, then press C to slide into cover.',
   'Headshots deal roughly double damage. Recon operators get +20% on top.', 'The Breacher\'s heartbeat sensor shows enemies within 20 m on the radar.', 'Unsuppressed gunfire is heard by every enemy within 45 m.',
@@ -5900,7 +5973,7 @@ function buildPreview() {
   const C = cls(), lo = getLO();
   if (PV.mode === 'gun' && PV.id) { const w = WEAPONS[widx(PV.id)], ck = PV.id + JSON.stringify(settings.att[PV.id] || {}), g = (PV.gc || (PV.gc = {}))[ck] || (PV.gc[ck] = buildGun(PV.id, settings.att[PV.id] || {}, false).g); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); const box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); const h = new THREE.Group(); h.add(g); h.position.y = 1.0; PV.obj = h; PV.disc.visible = false;
     const len = box.getSize(new V3()).length(); PV.cam.position.set(0, 1.04, len * 1.45 + 0.05); PV.cam.lookAt(0, 1.0, 0); PV.label = w.name; }
-  else { const wpn = PV.weapon && widx(PV.weapon) >= 0 ? PV.weapon : lo.primary, ch = makeCharacter(C.model, { weapon: wpn }); ch.showAtt = true; setCharWeapon(ch, wpn); PV.char = ch; PV.obj = ch.group; PV.disc.visible = true; PV.label = C.name + ' · ' + WEAPONS[widx(wpn)].short; }
+  else { const wpn = PV.weapon && widx(PV.weapon) >= 0 ? PV.weapon : lo.primary, ch = makeCharacter(C.model, { weapon: wpn, faction: 0, seed: PROFILE.id }); ch.showAtt = true; setCharWeapon(ch, wpn); PV.char = ch; PV.obj = ch.group; PV.disc.visible = true; PV.label = C.name + ' · ' + WEAPONS[widx(wpn)].short; }
   PV.scene.add(PV.obj); $('pvlabel').textContent = PV.label;
 }
 function updatePreview(dt) {
@@ -5924,7 +5997,7 @@ function snap(obj, camPos, look, w = 220, h = 120) {
 function makeThumbs() { // built in small slices while the browser is idle, so the menu never freezes
   if (!PV.r) return; const jobs = [];
   for (const w of WEAPONS) jobs.push(() => { const g = buildGun(w.id, {}, false).g, box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); g.rotation.y = Math.PI / 2; const len = box.getSize(new V3()).length(); THUMBS[w.id] = snap(g, new V3(0, 0.03, len * 1.25 + 0.05), new V3(0, 0, 0)); });
-  for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0] }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.2, 3.4), new V3(0, 0.95, 0), 160, 160);  });
+  for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0], faction: 0, seed: 'class-' + k }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.2, 3.4), new V3(0, 0.95, 0), 160, 160);  });
   let i = 0; const later = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 16);
   const step = () => { const t = performance.now(); while (i < jobs.length && performance.now() - t < 10) { try { jobs[i](); } catch (e) {} i++; }
     if (i < jobs.length) { if (i % 12 < 3 && document.querySelector('.mtab.on[data-tab="loadout"]')) renderLoadout($('loadout')); later(step); }
@@ -6122,7 +6195,7 @@ refreshAvatar = () => { if (avatar && world) world.group.remove(avatar.group); a
 function updateAvatar(dt) {
   const outroShow = !!(game.outro && game.outro.t > 1.4), third = (settings.view === 'third' || (game.intro && game.intro.showAvatar) || outroShow) && (game.state === 'play' || game.state === 'paused' || game.state === 'dying');
   if (!third) { if (avatar) avatar.group.visible = false; return false; }
-  if (!avatar || avatar.cls !== settings.cls) { refreshAvatar(); avatar = makeCharacter(cls().model, { weapon: WEAPONS[wst.cur].id }); avatar.cls = settings.cls; world.group.add(avatar.group); }
+  if (!avatar || avatar.cls !== settings.cls) { refreshAvatar(); avatar = makeCharacter(cls().model, { weapon: WEAPONS[wst.cur].id, faction: MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0, seed: PROFILE.id }); avatar.cls = settings.cls; world.group.add(avatar.group); }
   setCharWeapon(avatar, WEAPONS[wst.cur].id);
   avatar.group.visible = true; avatar.group.position.set(player.pos.x, player.pos.y, player.pos.z); avatar.group.rotation.y = player.yaw + Math.PI;
   avatar.group.rotation.x = player.alive ? 0 : -Math.min(1, (game.deadT || 0) / 0.5) * 1.4;
@@ -6285,5 +6358,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { audioLab: () => ({ INSTR, SONGS, sfx, NOTE }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
