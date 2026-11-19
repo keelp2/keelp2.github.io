@@ -68,6 +68,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #onlinepanel{position:absolute;top:58px;right:300px;width:min(320px,90vw);background:rgba(10,12,16,.96);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;display:none;z-index:40;font-size:13px}#onlinepanel.on{display:block}#onlinepanel h4{margin:0 0 8px;letter-spacing:.16em;font-size:12px;color:#ffb27a}#onlinepanel .orow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)}#onlinepanel .orow small{color:#9aa3ad}#onlinepanel p{margin:8px 0 0;color:#9aa3ad;font-size:11px}
 #mtoast{position:fixed;left:50%;bottom:70px;transform:translate(-50%,10px);background:rgba(12,14,19,.94);border:1px solid #ff8a3d;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;letter-spacing:.06em;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:90}#mtoast.on{opacity:1;transform:translate(-50%,0)}
 #lvlup.on{opacity:1;transform:translate(-50%,0)}#lvlup small{display:block;font-size:11px;letter-spacing:.35em;color:#ffb27a;font-weight:800}#lvlup b{display:block;font-size:30px;font-weight:900;letter-spacing:.08em}#lvlup i{font-style:normal;font-size:12px;letter-spacing:.25em;color:#cfd6e0}
+#protcue{position:absolute;top:63%;left:0;right:0;text-align:center;font-size:12px;letter-spacing:.2em;color:#8fd4ff;text-shadow:0 0 8px rgba(80,170,255,.8),0 1px 3px #000;opacity:0;transition:opacity .25s;pointer-events:none}
 #hint{position:absolute;top:58%;left:0;right:0;text-align:center;font-size:14px;letter-spacing:.15em;color:#ffcf6b;text-shadow:0 1px 4px #000;opacity:0}
 #hp{position:absolute;left:18px;bottom:18px;padding:10px 14px;width:270px}
 #hp .lbl{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.18em;color:var(--mut)}
@@ -340,7 +341,7 @@ img.thumb.tall{height:110px;object-fit:cover}
   <div id="dnums"></div>
   <div id="msg"><h2 id="msgh"></h2><p id="msgp"></p></div>
   <div id="streak"></div>
-  <div id="hint"></div>
+  <div id="hint"></div><div id="protcue">SPAWN PROTECTED · FIRING ENDS IT</div>
   <div id="armhint">PRESS B — ARMORY (CHANGE WEAPONS)</div>
   <div id="abil" class="box"><b id="abn">STIM</b><small id="abk">READY · E</small><div id="abbar"><div id="abfill"></div></div></div>
   <div id="invp" class="box"><h4>INVENTORY</h4><div id="invlist"></div><div class="ftr"><kbd>1</kbd>/<kbd>2</kbd>/<kbd>Q</kbd>/wheel switch · <kbd>B</kbd> armory between waves</div></div>
@@ -506,7 +507,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
-<script src="game.js?v=202611230500"></script>
+<script src="game.js?v=202611190900"></script>
 <script type="module" src="lib/assets.js?v=202611182330"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>

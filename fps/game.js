@@ -1253,6 +1253,7 @@ function stairTower(L, x0, z0, s, m) {
 
 // ---------------------------------------------------------------- MAP 4: MILLBROOK VILLAGE (large, three lanes, river)
 function buildMillbrook(L) {
+  L.coverKit = 'town';
   L.edge = 'berm'; L.edgeBerm = 4.5; L.edgeW = 12; L.rockC = 0x8a8a80;
   L.hills = 4.4; L.hillScale = 34; L.hillRamp = 10; L.hillMask = (x, z) => smooth(6, 12, Math.abs(x));
   L.bounds = [-64, -48, 64, 48]; L.ground = 'grassMud'; L.groundScale = 7; L.grass = 0.9; L.flowers = 2; L.padStyle = 'mushroom'; L.big = true;
@@ -1343,6 +1344,7 @@ function doorway(L, x0, x1, z, gap0, gap1, h = 5.5, m = 'plasterB', th = 0.7) { 
 }
 function crates(L, x, z, n = 1, big = false) { const s = big ? 1.6 : 1.2; L.B(x, z, s, s, s, 0, 'crate'); if (n > 1) L.B(x + 0.05, z - 0.05, s, s, s, s, 'crate'); }
 function buildOldQuarter(L) {
+  L.coverKit = 'town';
   L.edge = 'town';
   L.postcard = { hk: 0.36, dk: 1.15 };
   L.hills = 1.8; L.hillScale = 22; L.hillFlat = 1.0; L.hillRamp = 7.5;
@@ -1351,13 +1353,19 @@ function buildOldQuarter(L) {
   L.box(-53, 0, -47, 53, 9, -46, 'plasterB'); L.box(-53, 0, 46, 53, 9, 47, 'plasterB'); L.box(-53, 0, -46, -52, 9, 46, 'plasterB'); L.box(52, 0, -46, 53, 9, 46, 'plasterB');
   // ---- building blocks that define the lanes
   solid(L, -52, -46, -30, -34, 7, 'plasterA'); solid(L, 46, -46, 52, -34, 7, 'plasterA');          // T street ends
-  solid(L, 5, -34, 30, -8, 6, 'plasterA', { roof: true });                                          // between mid and long
+  // between mid and long: a two-storey house (mid ↔ courtyard ↔ long) — upper windows watch mid; countered from both doors
+  solid(L, 5, -34, 30, -30, 6, 'plasterA'); solid(L, 5, -18, 30, -8, 6, 'plasterA', { roof: true });
+  house2(L, 5, -30, 13.5, 12, { m: 'plasterA', roofM: 'tiles', doors: { w: [-24], e: [-21] } });
+  L.box(18.5, 0, -30, 30, 3.0, -29.6, 'plasterB'); L.box(18.5, 0, -18.4, 30, 3.0, -18, 'plasterB'); // courtyard walls; opens onto long
+  crates(L, 21, -27, 2); crates(L, 26.5, -21); L.prop('keg', 22.5, 0, -20.5); L.prop('cart', 25, -26.5, 0, 1, { ry: 1.2 }); L.B(25, -26.5, 2, 3, 1.4, 0, 'wood').noRender = true;
   solid(L, 21, -8, 30, 12, 6.5, 'plasterB');                                                        // long A inner wall
   solid(L, 44, -34, 52, 12, 7, 'plasterB'); solid(L, 46, 12, 52, 33, 7, 'plasterA');               // east edge
   solid(L, 5, 6, 18, 34, 6, 'plasterA', { roof: true });                                           // between mid and A
   L.box(18, 0, 32, 24, 5.5, 33, 'plasterB'); L.box(30, 0, 32, 46, 5.5, 33, 'plasterB');            // A site north wall (CT ramp gap 24..30)
   solid(L, 30, 33, 52, 46, 8, 'plasterB'); solid(L, -52, 31, -34, 46, 8, 'plasterB');
-  solid(L, -20, -34, -5, 12, 6, 'plasterA', { roof: true });                                       // between B and mid
+  // between B and mid: tunnel ↔ mid connector house with an upper floor over both lanes
+  solid(L, -20, -34, -5, -26, 6, 'plasterA'); solid(L, -20, -14, -5, 12, 6, 'plasterA', { roof: true });
+  house2(L, -20, -26, 15, 12, { m: 'plasterB', roofM: 'tiles', doors: { w: [-20], e: [-17] } });
   solid(L, -20, 16, -5, 34, 6, 'plasterB');                                                         // between connector and CT
   L.box(-48, 0, 30, -32, 5.5, 31, 'plasterB'); L.box(-27, 0, 30, -20, 5.5, 31, 'plasterB'); solid(L, -27, 31, -20, 34, 5.5, 'plasterB'); // B site north wall + B doors gap (-32..-27)
   solid(L, -52, -34, -36, 2, 7, 'plasterB'); solid(L, -36, -34, -26, -8, 7, 'plasterA'); solid(L, -52, 2, -48, 31, 7, 'plasterA');
@@ -1456,6 +1464,7 @@ function cityBlock(L, x0, z0, x1, z1, R) {
   if (alleyX && alleyZ) { crates(L, mx, mz + 0.6); L.prop('keg', mx + 0.8, 0, mz - 0.8); }
 }
 function buildCrossroads(L) {
+  L.coverKit = 'urban';
   L.edge = 'town';
   L.backdrop = 'urban';
   L.hills = 2.6; L.hillScale = 28; L.hillRamp = 9;
@@ -1549,6 +1558,7 @@ function warehouse(L, x0, z0, w, d, o = {}) { // big shed: corrugated walls, rol
 }
 // ---------------------------------------------------------------- MAP: FREIGHT YARD (CoD-style container port, medium)
 function buildFreight(L) {
+  L.coverKit = 'yard';
   L.backdrop = 'coast';
   L.postcard = { sx: -1, sz: 1, hk: 0.14, dk: 0.85 };
   L.hills = 2.1; L.hillScale = 26; L.hillRamp = 9;
@@ -1598,6 +1608,7 @@ function buildFreight(L) {
 // MIDDLE = walled street through chokepoint gates (with vault windows as the alternate) into a fountain plaza (centre of action);
 // SOUTH = chain of market halls (close quarters). Two cross-alleys per side link the lanes for flanks; terrace edges are one-way drops.
 function buildMeridian(L) {
+  L.coverKit = 'town';
   L.hills = 0; L.backdrop = 'medi'; L.postcard = { hk: 0.34, dk: 1.05 };
   L.bounds = [-50, -34, 50, 34]; L.ground = 'cobble'; L.groundScale = 3; L.groundTint = 0xf2e6d4; L.grass = 0.08; L.noLamps = true; L.smoke = [];
   L.box(-56, -1, -40, 56, 0, 40, 'floor').noRender = true;
@@ -1648,6 +1659,7 @@ function buildMeridian(L) {
 }
 // ---------------------------------------------------------------- MAP: OASIS (golden-hour desert oasis: pond, caravanserai fort, mud-brick village, dunes)
 function buildOasis(L) {
+  L.coverKit = 'mil';
   L.edge = 'berm'; L.edgeBerm = 5; L.edgeW = 13; L.rockC = 0xc8a882;
   L.hills = 4.2; L.hillScale = 30; L.hillRamp = 10; L.backdrop = 'desert'; L.postcard = { hk: 0.26 };
   const R = seeded(7777);
@@ -1685,6 +1697,7 @@ function buildOasis(L) {
   for (const [x, z, ry] of [[-26, -22, 0.4], [28, -18, 2.2]]) { L.prop('cart', x, 0, z, 1, { ry }); L.B(x, z, 1.8, 2.8, 1.2, 0, 'wood').noRender = true; }
   // ---- west ruins & east rocky ridge
   for (const [x0, z0, x1, z1] of [[-62, 14, -50, 26], [-46, 30, -36, 40], [-64, -46, -54, -36]]) ruin(L, x0, z0, x1, z1, R);
+  watchtower(L, -40, 12, 'nx'); watchtower(L, 40, -12, 'px'); // flank-lane overwatch, each countered from the caravanserai towers & village roofs
   for (let i = 0; i < 12; i++) { const x = 52 + R() * 16, z = -40 + R() * 80, w = 3 + R() * 6, d = 3 + R() * 6, h = 1.2 + R() * 4; if (Math.abs(z - 11) < 8 && x < 63) continue; L.box(x - w / 2, 0, z - d / 2, x + w / 2, h, z + d / 2, 'cliff', { tint: 0xd8b48c }); L.prop('rock', x, h, z, 1 + R(), { sy: 0.5 }); }
   for (const [x, z, a] of [[-30, 4, 'z'], [30, -4, 'z'], [-20, 14, 'x'], [22, 12, 'x'], [-44, -8, 'x'], [44, 22, 'z']]) sandbags(L, x, z, 4, a);
   for (const [x, z, ry] of [[-30, 26, 0.8], [34, 40, 2.4]]) { const k = Math.round(ry / (Math.PI / 2)); L.B(x, z, k % 2 ? 7 : 3.6, k % 2 ? 3.6 : 7, 2.4, 0, 'carpaint').noRender = true; L.prop('tank', x, 0, z, 1, { ry: k * (Math.PI / 2) }); }
@@ -1697,6 +1710,7 @@ function buildOasis(L) {
   L.barrels = [[-12, -18], [12, 20], [-36, 18], [36, -12], [-20, 30], [20, -32]];
 }
 function buildFirebase(L) {
+  L.coverKit = 'mil';
   L.edge = 'berm'; L.edgeBerm = 6; L.edgeW = 16; L.rockC = 0xc8ac88;
   L.hills = 5.5; L.hillScale = 38; L.hillRamp = 11;
   const R = seeded(4242);
@@ -1729,6 +1743,7 @@ function buildFirebase(L) {
   // ---- east: rocky ridge with a fighting position
   for (let i = 0; i < 16; i++) { const x = 56 + R() * 36, z = -70 + R() * 140, w = 3 + R() * 7, d = 3 + R() * 7, h = 1.2 + R() * 5; L.box(x - w / 2, 0, z - d / 2, x + w / 2, h, z + d / 2, 'cliff', { tint: 0xd8bc98 }); for (let k = 0; k < 3; k++) L.prop('rock', x + rand(-w, w) * 0.6, 0, z + rand(-d, d) * 0.6, rand(1.2, 2.4), { sy: rand(0.5, 1.1), c: 0xc8ac88 }); }
   bunker(L, 66, -6, 10, 8, { w: [-2], s: [70] }, 'sandstone');
+  watchtower(L, -58, -56, 'pz'); watchtower(L, 58, 56, 'nz'); // desert lane overwatch towers (counter: compound towers, wrecks)
   // ---- open desert: wrecks, berms and nests
   for (const [x, z, ry] of [[-24, -58, 0.4], [30, 60, 2.1], [52, -50, 1.2], [-46, 62, 2.8], [12, -74, 0.2]]) { const k = Math.round(ry / (Math.PI / 2)); L.B(x, z, k % 2 ? 7 : 3.6, k % 2 ? 3.6 : 7, 2.4, 0, 'carpaint').noRender = true; L.prop('tank', x, 0, z, 1, { ry: k * (Math.PI / 2) }); if (R() < 0.6) { L.glow(x, 2.6, z, 0xff7a20, 1.6, true); L.smoke.push([x, 2.8, z]); } }
   for (const [x, z, a] of [[0, -50, 'x'], [0, 50, 'x'], [-30, -44, 'x'], [30, 44, 'x'], [44, -20, 'z'], [-46, 20, 'z'], [40, -64, 'x'], [-36, 72, 'x']]) sandbags(L, x, z, 5, a);
@@ -1772,6 +1787,7 @@ function facade(L, R, x0, z0, x1, z1, h, side) {
   if (R() < 0.5) { const c = R() < 0.5 ? a0 + 0.15 : a1 - 0.15; B(c - 0.05, c + 0.05, 0, h, 0, 0.1, 'metal'); } // drainpipe
 }
 function buildBazaar(L) {
+  L.coverKit = 'town';
   L.edge = 'town';
   L.backdrop = 'dusty';
   L.hills = 4.6; L.hillScale = 22; L.hillFlat = 0.9; L.hillRamp = 6;
@@ -2041,6 +2057,42 @@ function terrRay(ox, oy, oz, dx, dy, dz, maxT) { // first t where the ray dips u
   return -1; }
 // ---- edges: no more giant flat boundary walls. Rural/desert maps rise into a natural berm (the wall turns invisible at the ridge);
 // town maps get real building facades on the inside of their boundary.
+// Cover pass (every map): Meridian-standard rule "cover within a short sprint everywhere" + protected spawns.
+// Finds open ground with no cover within ~7.5 m and fills it with small, map-themed cover clusters; puts a
+// head-high screen between each team spawn and the map so nobody can be shot the moment they spawn.
+// Deterministic (seeded by map name) so every online client builds the identical map.
+function coverPass(L, name) {
+  const R = seeded(hashStr((name || 'map') + ':cover')), [bx0, bz0, bx1, bz1] = L.bounds, cs = 1, nx = Math.ceil((bx1 - bx0) / cs) + 1, nz = Math.ceil((bz1 - bz0) / cs) + 1, N = nx * nz;
+  const occ = new Uint8Array(N), d = new Float32Array(N), keep = new Uint8Array(N), idx = (x, z) => { const i = Math.round((x - bx0) / cs), j = Math.round((z - bz0) / cs); return i < 0 || j < 0 || i >= nx || j >= nz ? -1 : j * nx + i; };
+  const mark = (x0, z0, x1, z1, arr) => { for (let j = Math.max(0, Math.floor((z0 - bz0) / cs)); j <= Math.min(nz - 1, Math.ceil((z1 - bz0) / cs)); j++) for (let i = Math.max(0, Math.floor((x0 - bx0) / cs)); i <= Math.min(nx - 1, Math.ceil((x1 - bx0) / cs)); i++) arr[j * nx + i] = 1; };
+  for (const b of L.boxes) { if (b.y1 <= 0.5 || b.y0 > 2.4) continue; mark(b.x0, b.z0, b.x1, b.z1, occ); }
+  for (const p of L.props) if (p.k === 'tree' || p.k === 'pine' || p.k === 'palm' || p.k === 'rock' && (p.s || 1) > 1.1) mark(p.x - 0.5, p.z - 0.5, p.x + 0.5, p.z + 0.5, occ);
+  for (const [a, b, c, e] of L.water || []) mark(a - 2, b - 2, c + 2, e + 2, keep);
+  for (const [a, b, c, e] of L.keepOpen || []) mark(a, b, c, e, keep);
+  const pts = [].concat(L.enemySpawns || [], L.teamSpawns ? L.teamSpawns[0].concat(L.teamSpawns[1]) : [], L.spawn ? [[L.spawn.x, L.spawn.z]] : [], (L.pickups || []).map(p => [p[1], p[3]]), (L.barrels || []));
+  for (const [x, z] of pts) mark(x - 2.5, z - 2.5, x + 2.5, z + 2.5, keep);
+  for (const l of L.links || []) { mark(l[0] - 2.5, l[2] - 2.5, l[0] + 2.5, l[2] + 2.5, keep); mark(l[3] - 2.5, l[5] - 2.5, l[3] + 2.5, l[5] + 2.5, keep); }
+  const m = 6; for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = bx0 + i * cs, z = bz0 + j * cs; if (x < bx0 + m || x > bx1 - m || z < bz0 + m || z > bz1 - m) keep[j * nx + i] = 1; }
+  const dist = () => { for (let k = 0; k < N; k++) d[k] = occ[k] ? 0 : 1e6;
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i; let v = d[k]; if (i > 0) v = Math.min(v, d[k - 1] + 1); if (j > 0) { v = Math.min(v, d[k - nx] + 1); if (i > 0) v = Math.min(v, d[k - nx - 1] + 1.414); if (i < nx - 1) v = Math.min(v, d[k - nx + 1] + 1.414); } d[k] = v; }
+    for (let j = nz - 1; j >= 0; j--) for (let i = nx - 1; i >= 0; i--) { const k = j * nx + i; let v = d[k]; if (i < nx - 1) v = Math.min(v, d[k + 1] + 1); if (j < nz - 1) { v = Math.min(v, d[k + nx] + 1); if (i < nx - 1) v = Math.min(v, d[k + nx + 1] + 1.414); if (i > 0) v = Math.min(v, d[k + nx - 1] + 1.414); } d[k] = v; } };
+  const kit = L.coverKit || 'mil', free = (x, z, r) => { for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) { const k = idx(x + dx, z + dz); if (k < 0 || occ[k] || (keep[k] && Math.abs(dx) <= 1 && Math.abs(dz) <= 1)) return false; } return true; };
+  const piece = (x, z, axis, tall) => { // one cover piece ≤ 3 m so it sits on the slope instead of flattening it
+    const r = R(); if (tall) { crates(L, x, z, 2, kit !== 'town' && r < 0.5); }
+    else if (kit === 'mil') { if (r < 0.6) sandbags(L, x, z, 3, axis); else if (r < 0.8) L.B(x, z, axis === 'x' ? 2.8 : 1.1, axis === 'x' ? 1.1 : 2.8, 1.15, 0, 'hesco'); else crates(L, x, z, 1, true); }
+    else if (kit === 'urban' || kit === 'yard') { if (r < 0.55) barrier(L, x, z, axis); else if (r < 0.8) crates(L, x, z, r < 0.7 ? 2 : 1); else sandbags(L, x, z, 3, axis); }
+    else { if (r < 0.45) crates(L, x, z, r < 0.2 ? 2 : 1); else if (r < 0.75) { L.prop('cart', x, 0, z, 1, { ry: axis === 'x' ? Math.PI / 2 : 0 }); L.B(x, z, axis === 'x' ? 3 : 2, axis === 'x' ? 2 : 3, 1.4, 0, 'wood').noRender = true; } else L.B(x, z, axis === 'x' ? 3 : 0.6, axis === 'x' ? 0.6 : 3, 1.1, 0, 'stone'); }
+    mark(x - 2, z - 2, x + 2, z + 2, occ); };
+  // 1) spawn screens: head-high cover between each team spawn and the centre of the map
+  if (L.teamSpawns) for (const list of L.teamSpawns) for (const [sx, sz] of list) { const l = Math.hypot(sx, sz) || 1, ux = -sx / l, uz = -sz / l;
+    for (const off of [5, 6.5, 8]) { const x = Math.round(sx + ux * off), z = Math.round(sz + uz * off); if (free(x, z, 2)) { piece(x, z, Math.abs(ux) > Math.abs(uz) ? 'z' : 'x', true); const px = Math.round(x - uz * 2.6), pz = Math.round(z + ux * 2.6); if (free(px, pz, 2)) piece(px, pz, Math.abs(ux) > Math.abs(uz) ? 'z' : 'x', false); break; } } }
+  // 2) fill open ground, worst spot first
+  const gap = L.coverGap || 7.5; let placed = 0;
+  for (let it = 0; it < 90; it++) { dist(); let bk = -1, bv = gap; for (let k = 0; k < N; k++) if (!keep[k] && d[k] > bv + (R() - 0.5) * 0.6) { bv = d[k]; bk = k; } if (bk < 0) break;
+    const x = bx0 + (bk % nx) * cs, z = bz0 + Math.floor(bk / nx) * cs, axis = R() < 0.5 ? 'x' : 'z'; piece(x, z, axis, false); placed++;
+    if (R() < 0.6) { const a = R() * 6.283, x2 = Math.round(x + Math.cos(a) * 3.2), z2 = Math.round(z + Math.sin(a) * 3.2); if (free(x2, z2, 1)) piece(x2, z2, axis === 'x' ? 'z' : 'x', R() < 0.4); } }
+  L.coverPlaced = placed;
+}
 function dressEdges(L, name) {
   const [x0, z0, x1, z1] = L.bounds, R = seeded(hashStr(name + 'edges'));
   for (const b of L.boxes) { if (b.y1 - b.y0 < 3.5 || Math.max(b.x1 - b.x0, b.z1 - b.z0) < 30) continue;
@@ -2938,6 +2990,9 @@ class Enemy {
       if (los(t.x, t.y, t.z, nx, ny + 1.3 * this.s, nz)) continue;
       const d = Math.hypot(nx - this.pos.x, nz - this.pos.z) + Math.hypot(nx - this.target.pos.x, nz - this.target.pos.z) * -0.15; if (d < bd) { bd = d; best = new V3(nx, ny, nz); }
     }
+    if (this.bot) for (const n of navPosts()) { // or duck into a nearby house / up a stairwell
+      const [nx, ny, nz] = nav.nodePos(n), dd = Math.hypot(nx - this.pos.x, nz - this.pos.z); if (dd > 16 || dd < 2 || Math.abs(ny - this.pos.y) > 4.5) continue;
+      if (los(t.x, t.y, t.z, nx, ny + 1.3 * this.s, nz)) continue; const d = dd * 0.8 - 2.5 - Math.hypot(nx - this.target.pos.x, nz - this.target.pos.z) * 0.15; if (d < bd) { bd = d; best = new V3(nx, ny, nz); } }
     return best;
   }
   findLowCover() { // tuck in right behind something waist-high (crate, sandbags, low wall, car): hidden crouched, can shoot standing
@@ -3003,7 +3058,7 @@ class Enemy {
     if (this.visible && t) {
       this.investigate = null;
       if ((hurt || this.reloadT > 0) && this.state !== 'cover' && Math.random() < dt * 2 && !T.rush) { const c = this.findCover(); if (c) { this.state = 'cover'; this.cover = c; this.coverT = rand(1.4, 2.8); } }
-      if (this.state === 'cover' && this.cover) { this.setGoal(this.cover, true); const d = this.followPath(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } this.wantCrouch = 0; }
+      if (this.state === 'cover' && this.cover) { this.setGoal(this.cover, true); const d = this.followPath(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } this.wantCrouch = this.reloadT > 0 ? 1 : 0; this.coverT -= dt * (d ? 0.35 : 1); if (this.coverT <= 0 && this.reloadT <= 0) { this.state = 'engage'; this.cover = null; } } // reload behind it, then push back out
       else if (this.state === 'lowcover' && this.lcover) { const d = this.lowCoverTick(dt); if (d) { mx = d[0]; mz = d[1]; spd = T.speed; } }
       else {
         this.wantCrouch = 0; this.lcSearch = (this.lcSearch || rand(0.5, 2)) - dt;
@@ -3038,9 +3093,12 @@ class Enemy {
         let goal = this.investigate || (t ? this.lastKnown : null);
         if (!goal && this.bot) { // roam
           if ((!this.roam || this.pos.distanceTo(this.roam) < 2) && isAlly(this, PLAYER_T) && player.alive && Math.random() < 0.6) { const n = world.nav.nearestSafe(player.pos.x + rand(-6, 6), player.pos.y, player.pos.z + rand(-6, 6), 12); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } } // follow you, but only to places a body can reach and leave
-          if (!this.roam || this.pos.distanceTo(this.roam) < 2) { let n = world.nav.randomNode(); if (Math.random() < 0.35) for (let q = 0; q < 24; q++) { const m = world.nav.randomNode(); if (m >= 0 && world.nav.nodeH[m] > Math.max(2.2, n >= 0 ? world.nav.nodeH[n] : 0)) n = m; } // humans like high ground
-            if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } }
-          goal = this.roam;
+          if (this.holdT > 0 && this.roam && this.pos.distanceTo(this.roam) < 2.5) { this.holdT -= dt; if (this.lookT <= 0) this.lookT = rand(0.8, 1.6); } // holding a room / rooftop
+          else if (!this.roam || this.pos.distanceTo(this.roam) < 2) { const P = navPosts(); if (this.roam && this.roamPost && !this.holdDone) { this.holdT = rand(4, 11); this.holdDone = true; this.lookT = rand(1, 2); } else { this.holdDone = false; this.roamPost = false;
+            if (P.length && Math.random() < 0.55) { for (let q = 0; q < 6; q++) { const m = P[Math.floor(Math.random() * P.length)], [x, y, z] = world.nav.nodePos(m); if (enemies.some(o => o !== this && !o.dead && o.roam && Math.hypot(o.roam.x - x, o.roam.z - z) < 6)) continue; this.roam = new V3(x, y, z); this.roamPost = true; break; } } // go use a building / stairs / roof
+            if (!this.roamPost) { let n = world.nav.randomNode(); if (Math.random() < 0.35) for (let q = 0; q < 24; q++) { const m = world.nav.randomNode(); if (m >= 0 && world.nav.nodeH[m] > Math.max(2.2, n >= 0 ? world.nav.nodeH[n] : 0)) n = m; } // humans like high ground
+            if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } } } }
+          goal = this.holdT > 0 && this.roam && this.pos.distanceTo(this.roam) < 2.5 ? null : this.roam;
         }
         if (goal) {
           this.setGoal(goal, this.pos.distanceTo(goal) > 12); const d = this.followPath(dt); spd = T.speed * (this.run ? 1 : 0.7); wantRun = this.run;
@@ -3146,13 +3204,14 @@ class Enemy {
     }
     if (W.pellets || Math.random() < 0.45) spawnTracer(muzzle, end, 0xffc070, 700, W.pellets ? 0.016 : 0.014);
     if (this.netId && MP.active && MP.isHost && end) bcast({ t: 'shot', id: this.netId, a: v3a(muzzle), b: v3a(end), w: W.id });
-    this.mflash = 0.06; this.lastFired = game.time; this.mag--; this.recoilP += W.kick * rand(0.5, 1) * (1.4 - this.skill * 0.5);
+    this.mflash = 0.06; this.lastFired = game.time; this.protT = 0; this.mag--; this.recoilP += W.kick * rand(0.5, 1) * (1.4 - this.skill * 0.5);
     const sp = spatial(this.pos); sfx.gun(W.snd, { dist: sp.dist, pan: sp.pan, pos: sp.pos, occl: !los(camera.position.x, camera.position.y, camera.position.z, this.pos.x, this.pos.y + 1.4, this.pos.z) });
     if (this.bot) noise(this.pos, 40, this);
     if (hitP) damagePlayer(dmgP, this.pos, this, headP);
   }
   damage(d, head, impulse, attacker) {
     if (this.dead) return false;
+    if (this.protT && game.time < this.protT) return false; // fresh spawn
     this.hp -= d; this.flashT = 0.12; this.losT = 0; this.alertT = 5;
     const src = attacker === 'player' || attacker === undefined ? PLAYER_T : attacker instanceof Enemy ? attacker : null;
     if (isAlly(src, this)) { this.hp += d; return false; } // friendly fire is off
@@ -3185,19 +3244,29 @@ function botProfile(i) {
   return { name: BOT_NAMES[i % BOT_NAMES.length], cls: c, color: PCOLORS[(i + 1) % PCOLORS.length], T: { model: C.model, name: BOT_NAMES[i % BOT_NAMES.length], hp: C.hp, speed: 4.6 * C.speed, scale: CHAR[C.model].scale, weapon, sight: 90, reaction: 0.35, score: 0 } };
 }
 // Spawn selection: never in an enemy's line of sight, not too close, near teammates in TDM, and spread across the map
-function pickSpawn(foes, friends, list) {
+// Interior rooms, upper floors and rooftops worth holding: bots go there and use the stairs to get there.
+function navPosts() { const nav = world.nav; if (nav._posts) return nav._posts; const out = [], seen = new Set(), up = new V3(0, 1, 0), o = new V3();
+  const S = nav.safe || [], step = Math.max(1, Math.floor(S.length / 5000)), off = Math.floor(Math.random() * step);
+  for (let i = off; i < S.length && out.length < 400; i += step) { const n = S[i]; const [x, y, z] = nav.nodePos(n), key = Math.round(x / 4) + ',' + Math.round(y / 2) + ',' + Math.round(z / 4); if (seen.has(key)) continue; seen.add(key);
+    if (y - TH(x, z) > 2.2) { out.push(n); continue; } o.set(x, y + 1.2, z); const h = raycast(o, up, 5, false); if (h.t < 5) out.push(n); }
+  return (nav._posts = out); }
+function pickSpawn(foes, friends, list, _fb) {
+  // Anti spawn-camp: never spawn in an enemy's sight or within ~18 m of one; if every listed spawn
+  // (e.g. a TDM home base being camped) is compromised, the spawn "flips" to the safest spot on the map.
   const L = world.L, nav = world.nav, cands = (list || L.enemySpawns.concat([[L.spawn.x, L.spawn.z]], L.teamSpawns ? L.teamSpawns[0].concat(L.teamSpawns[1]) : [])).map(([x, z]) => [x, 0.05, z]);
-  for (let i = 0; i < 28; i++) { const n = nav.randomNode(); if (n < 0) continue; const [x, y, z] = nav.nodePos(n); if (y < 0.3 && nav.nodeAt(x, y, z, 1) >= 0 && nav.pathTo && Math.abs(x) < 1e4) cands.push([x, y + 0.05, z]); }
+  for (let i = 0; i < (list ? 0 : 56); i++) { const n = nav.randomNode(); if (n < 0) continue; const [x, y, z] = nav.nodePos(n); if (y < 0.3 && nav.nodeAt(x, y, z, 1) >= 0 && nav.pathTo && Math.abs(x) < 1e4) cands.push([x, y + 0.05, z]); }
   if (friends && friends.length) for (const f of friends) for (let i = 0; i < 3; i++) { const a = Math.random() * 6.28, r = rand(4, 9), k = nav.nodeAt(f.x + Math.cos(a) * r, f.y, f.z + Math.sin(a) * r, 2); if (k >= 0) { const [x, y, z] = nav.nodePos(k); cands.push([x, y + 0.05, z]); } }
-  let best = cands[0], bs = -1e9;
+  let best = cands[0], bs = -1e9, bestSafe = false;
   for (const c of cands) {
     if (!nav.freeAt(c[0], c[1], c[2])) continue;
-    let md = 1e9, seen = 0; for (const p of foes) { const d = Math.hypot(p.x - c[0], p.z - c[2]); md = Math.min(md, d); if (d < 75 && seen < 2 && los(p.x, p.y + 1.6, p.z, c[0], c[1] + 1.5, c[2])) seen++; }
-    let sc = (md < 14 ? md * 4 - 120 : Math.min(md, 50)) - seen * 70 + rand(0, 8);
+    let md = 1e9, seen = 0; for (const p of foes) { const d = Math.hypot(p.x - c[0], p.z - c[2]); md = Math.min(md, d); if (d < 90 && seen < 3 && los(p.x, p.y + 1.6, p.z, c[0], c[1] + 1.5, c[2])) seen++; }
+    const safe = md > 18 && !seen;
+    let sc = (md < 18 ? md * 4 - 140 : Math.min(md, 50)) - seen * 90 + rand(0, 8) + (safe ? 200 : 0);
     if (friends && friends.length) { let fd = 1e9; for (const f of friends) fd = Math.min(fd, Math.hypot(f.x - c[0], f.z - c[2])); sc += 30 - Math.min(fd, 60) * 0.6; }
     else if (md > 95) sc -= (md - 95) * 0.4; // FFA: near the action, not the far corner
-    if (sc > bs) { bs = sc; best = c; }
+    if (sc > bs) { bs = sc; best = c; bestSafe = safe; }
   }
+  if (!bestSafe && list && !_fb && foes.length) return pickSpawn(foes, friends, null, true); // home spawn camped → flip
   return best;
 }
 function dmSpawnPoint(avoid, near, list) { return pickSpawn(avoid, near, list); }
@@ -3217,7 +3286,7 @@ function teamSpawn(team) { const all = combatants(); if (!BD.teams) return dmSpa
 function spawnBot(st) {
   const [x, y, z] = teamSpawn(st.team);
   const k = world.nav.nearestFree(x + rand(-2, 2), z + rand(-2, 2), 6), [cx, cz] = k >= 0 ? world.nav.center(k) : [x, z];
-  const e = new Enemy('bot', cx, cz, 1, { T: st.T, name: st.name, sash: st.color, y: 0 }); e.stat = st; e.team = st.team; enemies.push(e);
+  const e = new Enemy('bot', cx, cz, 1, { T: st.T, name: st.name, sash: st.color, y: 0 }); e.stat = st; e.team = st.team; e.protT = game.time + 2.5; enemies.push(e);
   if (BD.teams && st.team === 0) { e.tag = makeNameTag(st.name, TEAMC[0]); e.tag.position.y = 2.25 / e.s; e.inner.add(e.tag); }
 }
 function startBotMatch() {
@@ -3234,7 +3303,7 @@ function startBotMatch() {
   for (const st of BD.stats) if (!st.me && st.team === 1) spawnBot(st);
   if (teams) { const [x, y, z] = teamSpawn(0); player.pos.set(x, y, z); } else { const [x, y, z] = dmSpawnPoint(enemies.map(e => e.pos)); player.pos.set(x, y, z); }
   for (const st of BD.stats) if (!st.me && st.team !== 1) spawnBot(st);
-  player.yaw = Math.atan2(player.pos.x, player.pos.z); player.protT = game.time + 1.5;
+  player.yaw = Math.atan2(player.pos.x, player.pos.z); player.protT = game.time + 2.5;
   game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock(); hudCache = {};
   startIntro(teams ? 'TEAM DEATHMATCH' : 'FREE-FOR-ALL', teams ? `Blue (${allies + 1}) vs Red (${n - allies}) · first team to ${BD.limit} kills` : `First to ${BD.limit} kills · ${n} bots`);
   if (!game.intro) showMsg(teams ? 'TEAM DEATHMATCH' : 'BOT DEATHMATCH', teams ? `BLUE (${allies + 1}) vs RED (${n - allies}) · FIRST TEAM TO ${BD.limit}` : `FIRST TO ${BD.limit} KILLS · ${n} BOTS`, 3.5);
@@ -3874,6 +3943,7 @@ function loadMap(i) {
     if (h >= 0.04 && h <= 0.35 && a >= 0.8 && b.y1 > 0.6 && !['lampglow', 'glass', 'skylight', 'carglass', 'white', 'pavement'].includes(b.m) && Math.min(b.x1 - b.x0, b.z1 - b.z0) >= 0.5) { L.decor.splice(i, 1); L.boxes.push(b); } }
   for (const pr of L.props) if (pr.k === 'cloth' || pr.k === 'stall') {} // stalls already have a solid table
   dressEdges(L, def.name);
+  coverPass(L, def.name);
   buildTerrain(L, def.name);
   buildWindows(L); // before the nav grid: bots must know intact glass and boards block a window
   world.nav = new Nav(L.boxes, L.bounds, L.links);
@@ -4114,7 +4184,7 @@ function currentSpread(w) {
 }
 function fire() {
   const w = WEAPONS[wst.cur], s = inv[wst.cur]; if (w.launcher) return fireRocket(w, s); rumble(w.vkick > 1.5 ? 0.5 : 0.25, w.vkick > 1.5 ? 0.9 : 0.35, w.vkick > 1.5 ? 140 : 70);
-  s.mag--; wst.consec++; wst.sinceShot = 0; game.shots++; wstat(w.id).shots++;
+  s.mag--; wst.consec++; wst.sinceShot = 0; game.shots++; if (player.protT > game.time) player.protT = 0; // firing ends spawn protection wstat(w.id).shots++;
   aimBasis();
   const spread = currentSpread(w), n = w.pellets || 1;
   _o.copy(camera.position);
@@ -4726,6 +4796,7 @@ function updateHUD(dt) {
   if ((MP.active && MP.mode !== 'surv') || game.mode === 'botdm') {} else if (game.phase === 'inter') { setText('leftl', 'NEXT WAVE'); setText('left', Math.ceil(Math.max(0, game.interT)) + 's'); }
   else { setText('leftl', 'HOSTILES'); setText('left', String(MP.active && !MP.isHost ? MP.zLeft | 0 : alive + game.queue.length)); }
   if ((!MP.active || MP.mode === 'surv') && game.mode !== 'botdm') setText('score', String(game.score));
+  { const pc = $('protcue'); if (pc) { const on = player.alive && player.protT > game.time; if (pc._on !== on) { pc._on = on; pc.style.opacity = on ? 1 : 0; } } }
   setText('hpn', String(Math.ceil(player.hp))); setText('regen', String(player.regenCap));
   const hpf = $('hpfill'); const hpw = (player.hp / player.maxHp * 100) + '%';
   $('shfill').style.width = (player.shield / 60 * 100) + '%';
@@ -5216,7 +5287,7 @@ function mpSpawnBot(id) {
   const p = MP.players[id]; if (!p) return; const pr = botProfile(+id.slice(4) + 3); pr.T.weapon = p.weapon || pr.T.weapon; pr.T.name = p.name;
   const avoid = [player.pos].concat(remoteList.filter(r => !r.dead).map(r => r.pos), enemies.filter(e => !e.dead).map(e => e.pos)), [x, , z] = dmSpawnPoint(avoid);
   const k = world.nav.nearestFree(x + rand(-2, 2), z + rand(-2, 2), 6), [cx, cz] = k >= 0 ? world.nav.center(k) : [x, z];
-  const e = new Enemy('bot', cx, cz, 1, { T: pr.T, name: p.name, sash: MP.mode === 'tdm' && p.team >= 0 ? TEAMC[p.team] : PCOLORS[p.color % PCOLORS.length], y: 0 }); e.netId = id; e.team = MP.mode === 'tdm' && p.team >= 0 ? p.team : -1; e.bot = true; e.q = 0; enemies.push(e);
+  const e = new Enemy('bot', cx, cz, 1, { T: pr.T, name: p.name, sash: MP.mode === 'tdm' && p.team >= 0 ? TEAMC[p.team] : PCOLORS[p.color % PCOLORS.length], y: 0 }); e.netId = id; e.protT = game.time + 2.5; e.team = MP.mode === 'tdm' && p.team >= 0 ? p.team : -1; e.bot = true; e.q = 0; enemies.push(e);
 }
 function mpBotDied(e, killer, head) {
   const by = killer === PLAYER_T ? MP.myId : killer && killer.netId ? killer.netId : (e.mpAttacker || e.netId);
@@ -5319,7 +5390,7 @@ function mpSpawnPointOld() {
 }
 function mpRespawn() { ng.on = false; ng.cook = -1; ng.throwT = 0; applyPendingClass();
   const C = cls(), [x, y, z] = mpSpawnPoint();
-  const HP0 = Math.round(C.hp * hpMul()); Object.assign(player, { maxHp: HP0, hp: HP0, regenCap: HP0, alive: true, grenades: C.nades, tacticals: 2, shield: 0, shieldT: 0, stimT: 0, crouch: 0, sliding: false, h: 1.75, onGround: false, stepSmooth: 0, pitch: 0, protT: game.time + 1.5, lastDmgT: 99 });
+  const HP0 = Math.round(C.hp * hpMul()); Object.assign(player, { maxHp: HP0, hp: HP0, regenCap: HP0, alive: true, grenades: C.nades, tacticals: 2, shield: 0, shieldT: 0, stimT: 0, crouch: 0, sliding: false, h: 1.75, onGround: false, stepSmooth: 0, pitch: 0, protT: game.time + 2.5, lastDmgT: 99 });
   player.pos.set(x, y, z); player.vel.set(0, 0, 0); player.yaw = Math.atan2(x, z); // face the map centre
   inv = WEAPONS.map(w => ({ mag: w.mag, res: w.res })); setGloves();
   wst.cur = carry[0]; wst.reloading = false; wst.switchT = 0.3; vmModels.forEach((m, i) => m.g.visible = i === wst.cur);
@@ -6010,5 +6081,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
