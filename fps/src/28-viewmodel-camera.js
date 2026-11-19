@@ -25,7 +25,7 @@ function updateCamera(dt) {
   camera.rotation.set(clamp(P.pitch + recoil.p + rand(-sh, sh) + breatheY - (P.revK || 0) * 0.55, -1.55, 1.55), P.yaw + recoil.y + rand(-sh, sh) + breathe, P.tilt + camPunch.x * 0.02 + (P.dnK || 0) * 0.22);
   if (P.dnK) camera.position.y -= P.dnK * 0.55; if (P.revK) camera.position.y -= P.revK * 0.45; // downed: on the ground, tilted · reviving: kneel over them
   if (!P.alive) deathCam(game.state === 'dying' ? 1.6 - game.dieT : (game.deadT || 0));
-  outroCam();
+  if (game.nukeEnd && !game.outro && NUKE.gz) nukeCam(); else outroCam();
   const zoom = lerp(1, w.zoom, wst.ads);
   const base = settings.fov + (P.sprinting ? 6 : 0) + (P.sliding ? 8 : 0) + (wst.lock ? 7 : 0); // melee lunge surges the view forward
   const fovT = 2 * Math.atan(Math.tan(base * Math.PI / 360) / zoom) * 180 / Math.PI;

@@ -196,7 +196,7 @@ function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.phase) return; const o = $('nuk
   if (!NUKE.hit) { if (fl) fl.style.opacity = clamp(1 - t / 0.9, 0.12, 1).toFixed(3); /* the first flash, then a glare that hangs */
     const r = NUKE.wave ? t * 55 : 0; if (NUKE.wave) { NUKE.wave.scale.setScalar(Math.max(1, r)); NUKE.wave.material.opacity = 0.75; NUKE.wave2.scale.setScalar(Math.max(1, r * 0.82)); }
     const d = Math.hypot(player.pos.x - NUKE.gz.x, player.pos.z - NUKE.gz.z); if (r >= d || t > 4.5) { NUKE.hit = true; NUKE.ht = t; game.shake = 1.8; rumble(1, 1, 1200); sfx.boom(0, 0, 3); nukeKill(); } }
-  else { const u = t - NUKE.ht; if (fl) fl.style.opacity = (u < 1.8 ? clamp(u / 0.35, 0, 1) : clamp(1 - (u - 1.8) / 1.4, 0, 1)).toFixed(3); if (NUKE.wave) NUKE.wave.scale.setScalar(t * 55); } /* the shockwave hits you: white-out, then the burning aftermath fades back in */
+  else { const u = t - NUKE.ht; if (fl) fl.style.opacity = (u < 1.5 ? clamp(u / 0.3, 0, 1) : clamp(1 - (u - 1.5) / 1.6, 0, 1)).toFixed(3); if (NUKE.wave) NUKE.wave.scale.setScalar(t * 55); } /* the shockwave hits you: white-out, then the burning aftermath fades back in */
   if (o) o.style.background = 'none';
   if (t > 9) { NUKE.phase = null; if (o) o.classList.remove('on'); for (const m of [NUKE.mush, NUKE.wave, NUKE.wave2]) if (m) scene.remove(m); NUKE.mush = NUKE.wave = NUKE.wave2 = null; } }
 function nukeDetonate() { NUKE.phase = 'blast'; NUKE.bt = 0; NUKE.hit = false; const [x0, z0, x1, z1] = world.L.bounds; NUKE.gz = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2); NUKE.gz.y = TH(NUKE.gz.x, NUKE.gz.z);
@@ -234,9 +234,13 @@ function nukeMushroom(t) {
   U.glow.position.set(0, H * 0.9, 0); U.glow.scale.setScalar(60 + 200 * heat); U.glow.material.opacity = 0.15 + 0.85 * heat; NUKE.mush.rotation.y += dt * 0.03;
   const k = clamp(t / 1.2, 0, 1) * (0.6 + 0.4 * heat); skyMat.uniforms.top.value.copy(NUKE.sky0[0]).lerp(new THREE.Color(0xb3471c), k); skyMat.uniforms.bottom.value.copy(NUKE.sky0[1]).lerp(new THREE.Color(0xffa255), k);
   if (scene.fog && NUKE.sky0[2]) scene.fog.color.copy(NUKE.sky0[2]).lerp(new THREE.Color(0xc06a34), k); }
+function nukeCam() { /* after the blast: you're knocked down, and your view turns to the mushroom cloud */
+  NUKE.camK = damp(NUKE.camK || 0, 1, 1.4, 1 / 60); const k = NUKE.camK, eye = camera.position.clone(); eye.y -= 0.7 * k; camera.position.copy(eye);
+  const q0 = camera.quaternion.clone(); camera.lookAt(NUKE.gz.x, NUKE.gz.y + 55, NUKE.gz.z); const q1 = camera.quaternion.clone(); camera.quaternion.copy(q0).slerp(q1, k); camera.rotateZ(0.12 * k); }
 function nukeKill() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId;
   game.ksKind = 'nuke'; game.ownSupport = true;
-  try { if (!MP.active) { for (const e of enemies) if (!e.dead) { e.protT = 0; e.damage(99999, false, null, mine && !isAlly(PLAYER_T, e) ? 'player' : null); } game.nukeWin = mine ? 'win' : 'loss'; if (player.alive) { BD.lastAttacker = null; player.protT = 0; game.ownSupport = false; damagePlayer(99999, null, null); } setTimeout(() => endBotMatch('Tactical nuke'), 3200); }
-    else { if (player.alive) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; player.protT = 0; game.ownSupport = false; damagePlayer(99999, null, NUKE.by); } /* nobody survives a nuke — the caller included */
-      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 3200); } } }
+  /* nobody survives a nuke, the caller included — but it's one continuous ending: no death screen, no respawn timer; the white-out fades straight into the result */
+  game.nukeEnd = true; $('hud').classList.add('nukemode'); { const o = $('nukeov'); if (o) { o.querySelector('.nk').innerHTML = ''; o.querySelector('small').textContent = ''; } } mouseL = mouseR = false; if (SURV.tgt) supportCancel();
+  try { if (!MP.active) { for (const e of enemies) if (!e.dead) { e.protT = 0; e.damage(99999, false, null, mine && !isAlly(PLAYER_T, e) ? 'player' : null); } game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 1700); }
+    else if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 1700); } }
   finally { game.ksKind = null; game.ownSupport = false; } }

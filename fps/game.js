@@ -4359,7 +4359,7 @@ function disposeGroup(g) {
 }
 let radarImg = null;
 function loadMap(i) {
-  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; game.firstBlood = false; game.lifeK = 0; game.nemesis = null; MEDALS.q.length = 0; NUKE.t = 0; NUKE.phase = null; for (const m of [NUKE.mush, NUKE.wave, NUKE.wave2]) if (m) scene.remove(m); NUKE.mush = NUKE.wave = NUKE.wave2 = null; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
+  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; game.nukeEnd = false; NUKE.camK = 0; $('hud').classList.remove('nukemode'); game.firstBlood = false; game.lifeK = 0; game.nemesis = null; MEDALS.q.length = 0; NUKE.t = 0; NUKE.phase = null; for (const m of [NUKE.mush, NUKE.wave, NUKE.wave2]) if (m) scene.remove(m); NUKE.mush = NUKE.wave = NUKE.wave2 = null; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
   if (world) { scene.remove(world.group); disposeGroup(world.group); }
   enemies = []; pickups = []; barrels = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   const def = MAPS[i], th = def.theme, L = new LevelBuilder(); def.build(L);
@@ -4625,7 +4625,7 @@ function currentSpread(w) {
   return s;
 }
 function fire() {
-  if (SURV.tgt || PRED.on) return; /* holding the tablet / flying the missile */
+  if (SURV.tgt || PRED.on || game.nukeEnd) return; /* holding the tablet / flying the missile */
   const w = WEAPONS[wst.cur], s = inv[wst.cur]; if (w.launcher) return fireRocket(w, s); rumble(w.vkick > 1.5 ? 0.5 : 0.25, w.vkick > 1.5 ? 0.9 : 0.35, w.vkick > 1.5 ? 140 : 70);
   s.mag--; wst.consec++; wst.sinceShot = 0; game.shots++; if (player.protT > game.time) player.protT = 0; // firing ends spawn protection wstat(w.id).shots++;
   aimBasis();
@@ -4966,7 +4966,7 @@ function updatePlayer(dt) {
   const P = player;
   if (game.outro && P.alive) { P.vel.x *= 0.85; P.vel.z *= 0.85; P.sprinting = false; moveBody(P, dt); return; }
   if (!P.alive) { P.vel.x *= 0.9; P.vel.z *= 0.9; P.stepSmooth = 0; moveBody(P, dt); return; }
-  let fwd = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), str = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0); if (PRED.on) fwd = str = 0; /* your body waits while you fly the missile */
+  let fwd = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), str = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0); if (PRED.on || game.nukeEnd) fwd = str = 0; /* your body waits while you fly the missile */
   if (gp.on && (gp.mx || gp.my)) { fwd = -gp.my; str = gp.mx; }
   const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
   let wx = -sy * fwd + cy * str, wz = -cy * fwd - sy * str; const wmag = Math.min(1, Math.hypot(wx, wz)); const wl = Math.hypot(wx, wz); if (wl > 0) { wx /= wl; wz /= wl; }
@@ -5068,7 +5068,7 @@ function updateCamera(dt) {
   camera.rotation.set(clamp(P.pitch + recoil.p + rand(-sh, sh) + breatheY - (P.revK || 0) * 0.55, -1.55, 1.55), P.yaw + recoil.y + rand(-sh, sh) + breathe, P.tilt + camPunch.x * 0.02 + (P.dnK || 0) * 0.22);
   if (P.dnK) camera.position.y -= P.dnK * 0.55; if (P.revK) camera.position.y -= P.revK * 0.45; // downed: on the ground, tilted · reviving: kneel over them
   if (!P.alive) deathCam(game.state === 'dying' ? 1.6 - game.dieT : (game.deadT || 0));
-  outroCam();
+  if (game.nukeEnd && !game.outro && NUKE.gz) nukeCam(); else outroCam();
   const zoom = lerp(1, w.zoom, wst.ads);
   const base = settings.fov + (P.sprinting ? 6 : 0) + (P.sliding ? 8 : 0) + (wst.lock ? 7 : 0); // melee lunge surges the view forward
   const fovT = 2 * Math.atan(Math.tan(base * Math.PI / 360) / zoom) * 180 / Math.PI;
@@ -5642,7 +5642,7 @@ function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.phase) return; const o = $('nuk
   if (!NUKE.hit) { if (fl) fl.style.opacity = clamp(1 - t / 0.9, 0.12, 1).toFixed(3); /* the first flash, then a glare that hangs */
     const r = NUKE.wave ? t * 55 : 0; if (NUKE.wave) { NUKE.wave.scale.setScalar(Math.max(1, r)); NUKE.wave.material.opacity = 0.75; NUKE.wave2.scale.setScalar(Math.max(1, r * 0.82)); }
     const d = Math.hypot(player.pos.x - NUKE.gz.x, player.pos.z - NUKE.gz.z); if (r >= d || t > 4.5) { NUKE.hit = true; NUKE.ht = t; game.shake = 1.8; rumble(1, 1, 1200); sfx.boom(0, 0, 3); nukeKill(); } }
-  else { const u = t - NUKE.ht; if (fl) fl.style.opacity = (u < 1.8 ? clamp(u / 0.35, 0, 1) : clamp(1 - (u - 1.8) / 1.4, 0, 1)).toFixed(3); if (NUKE.wave) NUKE.wave.scale.setScalar(t * 55); } /* the shockwave hits you: white-out, then the burning aftermath fades back in */
+  else { const u = t - NUKE.ht; if (fl) fl.style.opacity = (u < 1.5 ? clamp(u / 0.3, 0, 1) : clamp(1 - (u - 1.5) / 1.6, 0, 1)).toFixed(3); if (NUKE.wave) NUKE.wave.scale.setScalar(t * 55); } /* the shockwave hits you: white-out, then the burning aftermath fades back in */
   if (o) o.style.background = 'none';
   if (t > 9) { NUKE.phase = null; if (o) o.classList.remove('on'); for (const m of [NUKE.mush, NUKE.wave, NUKE.wave2]) if (m) scene.remove(m); NUKE.mush = NUKE.wave = NUKE.wave2 = null; } }
 function nukeDetonate() { NUKE.phase = 'blast'; NUKE.bt = 0; NUKE.hit = false; const [x0, z0, x1, z1] = world.L.bounds; NUKE.gz = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2); NUKE.gz.y = TH(NUKE.gz.x, NUKE.gz.z);
@@ -5680,11 +5680,15 @@ function nukeMushroom(t) {
   U.glow.position.set(0, H * 0.9, 0); U.glow.scale.setScalar(60 + 200 * heat); U.glow.material.opacity = 0.15 + 0.85 * heat; NUKE.mush.rotation.y += dt * 0.03;
   const k = clamp(t / 1.2, 0, 1) * (0.6 + 0.4 * heat); skyMat.uniforms.top.value.copy(NUKE.sky0[0]).lerp(new THREE.Color(0xb3471c), k); skyMat.uniforms.bottom.value.copy(NUKE.sky0[1]).lerp(new THREE.Color(0xffa255), k);
   if (scene.fog && NUKE.sky0[2]) scene.fog.color.copy(NUKE.sky0[2]).lerp(new THREE.Color(0xc06a34), k); }
+function nukeCam() { /* after the blast: you're knocked down, and your view turns to the mushroom cloud */
+  NUKE.camK = damp(NUKE.camK || 0, 1, 1.4, 1 / 60); const k = NUKE.camK, eye = camera.position.clone(); eye.y -= 0.7 * k; camera.position.copy(eye);
+  const q0 = camera.quaternion.clone(); camera.lookAt(NUKE.gz.x, NUKE.gz.y + 55, NUKE.gz.z); const q1 = camera.quaternion.clone(); camera.quaternion.copy(q0).slerp(q1, k); camera.rotateZ(0.12 * k); }
 function nukeKill() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId;
   game.ksKind = 'nuke'; game.ownSupport = true;
-  try { if (!MP.active) { for (const e of enemies) if (!e.dead) { e.protT = 0; e.damage(99999, false, null, mine && !isAlly(PLAYER_T, e) ? 'player' : null); } game.nukeWin = mine ? 'win' : 'loss'; if (player.alive) { BD.lastAttacker = null; player.protT = 0; game.ownSupport = false; damagePlayer(99999, null, null); } setTimeout(() => endBotMatch('Tactical nuke'), 3200); }
-    else { if (player.alive) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; player.protT = 0; game.ownSupport = false; damagePlayer(99999, null, NUKE.by); } /* nobody survives a nuke — the caller included */
-      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 3200); } } }
+  /* nobody survives a nuke, the caller included — but it's one continuous ending: no death screen, no respawn timer; the white-out fades straight into the result */
+  game.nukeEnd = true; $('hud').classList.add('nukemode'); { const o = $('nukeov'); if (o) { o.querySelector('.nk').innerHTML = ''; o.querySelector('small').textContent = ''; } } mouseL = mouseR = false; if (SURV.tgt) supportCancel();
+  try { if (!MP.active) { for (const e of enemies) if (!e.dead) { e.protT = 0; e.damage(99999, false, null, mine && !isAlly(PLAYER_T, e) ? 'player' : null); } game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 1700); }
+    else if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 1700); } }
   finally { game.ksKind = null; game.ownSupport = false; } }
 // ============================================================ FLOW
 function showScreen(id) { for (const s of ['menu', 'pause', 'over', 'armory', 'mp', 'mpover']) $(s).classList.toggle('on', s === id); $('hud').classList.toggle('on', id === null || id === 'pause'); if (id) setTimeout(syncSpins, 0); }
@@ -6601,7 +6605,8 @@ function updateOutro(dt) {
   const O = game.outro; O.t += dt;
   if (O.t > 4.4) { game.outro = null; $('outroov').className = ''; const fin = () => { if (document.pointerLockElement) document.exitPointerLock(); O.done(); const sc = document.querySelector('.screen.on .panel'); if (sc) { sc.classList.remove('fadein'); void sc.offsetWidth; sc.classList.add('fadein'); } animateXP(); }; if (POTG.on) startPotg(fin); else fin(); }
 }
-function outroCam() { // after the final moment: cut to a low, slow orbit that pulls back from your operator (no more floating off into the sky)
+function outroCam() {
+  if (game.nukeEnd && NUKE.gz) return nukeCam(); // after the final moment: cut to a low, slow orbit that pulls back from your operator (no more floating off into the sky)
   const O = game.outro; if (!O || O.t < 1.4) return; const P = player, k = smooth(1.4, 4.4, O.t), chest = new V3(P.pos.x, P.pos.y + 1.25, P.pos.z), piv = new V3(P.pos.x, P.pos.y + 1.5, P.pos.z);
   if (O.a0 === undefined) { let best = 0, bs = -1; for (let i = 0; i < 10; i++) { const a = P.yaw + (i - 4.5) * 0.45, v = new V3(-Math.sin(a) * 4.6, 0.7, -Math.cos(a) * 4.6), l = v.length(), h = raycast(piv, v.clone().divideScalar(l), l, false), sc = Math.min(1, h.t / l) - Math.abs(i - 4.5) * 0.02; if (sc > bs) { bs = sc; best = a; } } O.a0 = best; } // prefer a view of your front
   const a = O.a0 + k * 0.6, dist = lerp(2.4, 4.6, k), hgt = lerp(0.2, 0.75, k), dir = new V3(-Math.sin(a), 0, -Math.cos(a)).multiplyScalar(dist).add(new V3(0, hgt, 0)), l = dir.length(); dir.divideScalar(l);
@@ -6976,7 +6981,7 @@ function frameStep(now) {
     barrels.forEach(b => b.update(dt)); pickups.forEach(p => p.inner.rotation.y += dt);
   }
   updateEnvironment(dt);
-  if (game.state !== 'paused' && game.state !== 'over' && game.state !== 'armory') { sparks.update(dt); debris.update(dt); updateTracers(dt); updateBooms(dt); nukeTick(dt); updateMists(dt); }
+  if (game.state !== 'paused' && game.state !== 'over' && game.state !== 'armory') { sparks.update(dt); debris.update(dt); updateTracers(dt); updateBooms(dt); nukeTick(Math.min(rawDt, 0.05)); /* real time: the end-of-match slow motion must not stretch the white-out */ updateMists(dt); }
   const tB = performance.now();
   const menuFrame = game.state === 'menu' || game.state === 'mpover'; menuTick = (menuTick + 1) % 2; if (menuFrame !== menuRes) { menuRes = menuFrame; resize(); }
   if (game.state !== 'play') { placeRing(); if (game.state === 'menu') updatePrompts(); } else if (navRing.style.opacity !== '0') navRing.style.opacity = '0';
@@ -6986,7 +6991,7 @@ function frameStep(now) {
   if (composer && !menuFrame) { composer.render(dt); renderer.setRenderTarget(null); }
   else { renderer.setRenderTarget(null); renderer.clear(); renderer.render(scene, camera); } // no post-processing behind the menu
   prof.js += tB - tA; prof.n++;
-  if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third' && !(game.intro && (game.intro.showAvatar || game.intro.t < 3.95)) && !(game.outro && game.outro.t > 1.4) && !game.potg && !PRED.on) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
+  if ((game.state === 'play' || game.state === 'paused' || game.state === 'dying' || game.state === 'armory') && settings.view !== 'third' && !(game.intro && (game.intro.showAvatar || game.intro.t < 3.95)) && !(game.outro && game.outro.t > 1.4) && !game.potg && !PRED.on && !game.nukeEnd) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
 
   prof.render += performance.now() - tB;
 }
