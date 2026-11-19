@@ -3420,8 +3420,8 @@ function updateClouds(dt) {
   }
 }
 if (!CLASSES[settings.cls]) settings.cls = 'assault';
-const HEALTH = { hardcore: 40, classic: 100, core: 150 }; if (!HEALTH[settings.health]) settings.health = 'core';
-const hpMul = () => (MP.active ? (HEALTH[MP.health] || 150) : HEALTH[settings.health]) / 100; // everyone shares one value; online the host decides
+const HEALTH = { hardcore: 40, classic: 100, core: 150 }; if (settings.hv !== 2) { if (!settings.health || settings.health === 'core') settings.health = 'classic'; settings.hv = 2; } if (!HEALTH[settings.health]) settings.health = 'classic'; // classic 100 HP is the default
+const hpMul = () => (MP.active ? (HEALTH[MP.health] || 100) : HEALTH[settings.health]) / 100; // everyone shares one value; online the host decides
 const cls = () => CLASSES[settings.cls];
 function useAbility() {
   const C = cls(), P = player;
@@ -4967,7 +4967,7 @@ function updateHUD(dt) {
 }
 
 // ============================================================ FLOW
-function showScreen(id) { for (const s of ['menu', 'pause', 'over', 'armory', 'mp', 'mpover']) $(s).classList.toggle('on', s === id); $('hud').classList.toggle('on', id === null || id === 'pause'); }
+function showScreen(id) { for (const s of ['menu', 'pause', 'over', 'armory', 'mp', 'mpover']) $(s).classList.toggle('on', s === id); $('hud').classList.toggle('on', id === null || id === 'pause'); if (id) setTimeout(syncSpins, 0); }
 function survivalStart() { // MW3-style: pistol + knife, one frag, $500 — everything else is bought on the map
   SURV.cash = 500; SURV.eq = { lethal: 'frag', tactical: 'flash' }; closeBuy();
   const pi = widx('pistol'), kn = widx('knife') >= 0 ? widx('knife') : carry[2]; carry = [pi, pi, kn]; inv[pi] = { mag: WEAPONS[pi].mag, res: WEAPONS[pi].res }; rebuildViewmodels(); renderSlots();
@@ -5532,7 +5532,7 @@ function startMatch(d) { if (!d._ld) { d._ld = 1; return deploy('MULTIPLAYER · 
   sfx.init(); music.play('start'); MP.ending = false; if (!MP.isHost && typeof d.hostId === 'string') MP.hostId = d.hostId;
   MP.mode = ['ffa', 'tdm', 'surv'].includes(d.mode) ? d.mode : 'ffa'; MP.teamScore = [0, 0];
   if (d.players && typeof d.players === 'object') for (const id in d.players) if (MP.players[id] && (d.players[id].team === 0 || d.players[id].team === 1)) MP.players[id].team = d.players[id].team;
-  MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 200); MP.time = clamp(num(d.time, 480) | 0, 60, 3600); MP.health = HEALTH[d.hp] ? d.hp : 'core';
+  MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 200); MP.time = clamp(num(d.time, 480) | 0, 60, 3600); MP.health = HEALTH[d.hp] ? d.hp : 'classic';
   for (const id in MP.players) { MP.players[id].kills = 0; MP.players[id].deaths = 0; }
   if (!world || world.def !== MAPS[MP.map]) { loadMap(MP.map); world.shadows = QUALITY[settings.quality].shadows; }
   resetRun(); clearRemotes();
@@ -5734,7 +5734,7 @@ function mapLayout(i) { // top-down plan: buildings shaded by height, water, spa
   for (const [kind, x, , z] of L.pickups) dot(x, z, kind === 'health' ? '#5dff9a' : '#ffcf6b', 1.8);
   return (LAYOUT[i] = c.toDataURL());
 }
-function mapInfo(i = settings.map) { const m = MAPS[i], el = $('mapinfo'); if (!el) return; const lay = mapLayout(i);
+function mapInfo(i = settings.map) { const m = MAPS[i], el = $('mapinfo'); try { (mapInfo.pre || (mapInfo.pre = {}))[i] || (mapInfo.pre[i] = Object.assign(new Image(), { src: MAPHD(i) })); } catch (e) {} if (!el) return; const lay = mapLayout(i);
   el.innerHTML = `<div class="mitext"><b>${m.name}</b><span>${m.desc}</span><em>${m.tag}</em><small class="mileg"><i style="background:#3fa7ff"></i>Blue spawn <i style="background:#ff5a5a"></i>Red spawn <i style="background:#5dff9a"></i>Health <i style="background:#ffcf6b"></i>Ammo · lighter = taller</small></div>` + (lay ? `<img class="milay" src="${lay}" alt="">` : ''); }
 const TIPS = ['Crouch-walking and holding Alt are silent — sneak up for a knife backstab.', 'Listen: sprinting enemies are loud, and footsteps sound different on metal, wood and gravel.',
   'Hold G (or RB) to cook a grenade, then release to throw. Do not hold it too long.', 'Aiming down sights stops your sprint — pre-aim corners before you round them.', 'Sprint, then press C to slide into cover.',
@@ -5762,41 +5762,45 @@ function outroCam() { // after the final moment: cut to a low, slow orbit that p
 function animateXP() { const b = document.querySelector('#mpover .xpres u, #over .xpres u'); if (!b) return; const w = b.dataset.to || '0'; b.style.transition = 'none'; b.style.width = (b.dataset.from || 0) + '%'; requestAnimationFrame(() => { b.style.transition = 'width 1.6s cubic-bezier(.2,.8,.2,1) .4s'; b.style.width = w + '%'; }); }
 function startIntro(mode, obj) {
   if (settings.intro === false) return; const P = player;
-  game.intro = { t: 0, dur: 6.4, last: 4, yaw: P.yaw, side: Math.random() < 0.5 ? 1 : -1 };
-  game.introT = 6.4; $('hud').classList.add('cine'); $('introMap').textContent = world.def.name; $('introMode').textContent = mode; $('introObj').textContent = obj || ''; $('introov').className = 'on'; $('ifade').style.opacity = 1;
+  game.intro = { t: 0, dur: 5.4, glide: 3.0, last: 4, yaw: P.yaw };
+  game.introT = 5.4; $('hud').classList.add('cine'); $('introMap').textContent = world.def.name; $('introMode').textContent = mode; $('introObj').textContent = obj || ''; $('introov').className = 'on'; $('ifade').style.opacity = 1;
 }
-// cinematic deploy: crane over the area -> dip -> over-the-shoulder push-in on your operator -> dip -> first person, 3-2-1-GO.
-// Cuts hide every discontinuity; collision only ever shortens a smoothed boom length, so the camera never pops.
-function introShot(I, P, k, from, to, lookFrom, lookTo, dt) {
-  const piv = new V3(P.pos.x, P.pos.y + 1.6, P.pos.z), want = from.clone().lerp(to, k), dv = want.clone().sub(piv), dl = dv.length();
-  let allow = dl; if (dl > 0.05) { dv.divideScalar(dl); const h = raycast(piv, dv, dl + 0.3, false); if (h.t < dl + 0.3) allow = Math.max(0.6, h.t - 0.35); }
-  I.boom = I.boom === undefined || I.cut ? allow : Math.min(allow, damp(I.boom, allow, 3, dt)); I.cut = false;
-  camera.position.copy(piv).addScaledVector(dv, Math.min(dl, I.boom)); camera.lookAt(lookFrom.clone().lerp(lookTo, k));
-}
+// Cinematic deploy, one continuous move (no cuts): from high above the area the camera swoops down along a smooth curve and
+// settles exactly into your eyes, then 3-2-1-GO in first person. The start point is chosen for a clear line to your operator
+// (indoors it starts just under the ceiling), and collision can only shorten a smoothed distance, so it never pops.
+const _bz = (a, b, c, d, t) => { const u = 1 - t; return new V3().addScaledVector(a, u * u * u).addScaledVector(b, 3 * u * u * t).addScaledVector(c, 3 * u * t * t).addScaledVector(d, t * t * t); };
 function updateIntro(dt0) {
   const I = game.intro; if (!I) { game.introT = 0; return; }
-  const loading = $('loading').classList.contains('on'), dt = loading ? 0 : Math.min(dt0, 1 / 30); // hold until the loading screen is gone; never jump on a hitch
-  I.t += dt; game.introT = I.dur - I.t; const P = player, fx = -Math.sin(I.yaw), fz = -Math.cos(I.yaw), rx = Math.cos(I.yaw), rz = -Math.sin(I.yaw), S = I.side;
-  const at = (b, u, f, r) => new V3(P.pos.x + fx * f + rx * r * S, P.pos.y + u, P.pos.z + fz * f + rz * r * S);
-  const fade = I.t < 0.45 ? 1 - smooth(0, 0.45, I.t) : Math.max(1 - Math.abs(I.t - 2.45) / 0.22, 1 - Math.abs(I.t - 3.95) / 0.2, 0); $('ifade').style.opacity = clamp(fade, 0, 1).toFixed(3);
-  // each shot picks, once, the camera path with the clearest view from your operator (tight alleys -> high overhead; open ground -> wide arc)
-  const clear = v => { const piv = new V3(P.pos.x, P.pos.y + 1.6, P.pos.z), d = v.clone().sub(piv), l = d.length(); if (l < 0.05) return 1; const h = raycast(piv, d.divideScalar(l), l + 0.4, false); return Math.min(1, h.t / (l + 0.4)); };
-  const choose = C => { let best = C[0], bs = -1; for (const c of C) { const sc = Math.min(clear(c[0]), clear(c[1])) - (c[4] || 0); if (sc > bs) { bs = sc; best = c; } } return best; };
-  if (I.t < 2.45) { // shot 1: slow crane down toward your operator
-    if (!I.s1) { I.s1 = true; I.cut = true; const C = []; for (const sd of [1, -1]) { C.push([at(0, 8.5, -13, 7 * sd), at(0, 4.5, -8, 3.5 * sd), 0, 0, 0]); C.push([at(0, 7, -7, 5 * sd), at(0, 4, -4.5, 2.5 * sd), 0, 0, 0.05]); C.push([at(0, 9, 6, 3 * sd), at(0, 5.5, 3.5, 2 * sd), 0, 0, 0.1]); } C.push([at(0, 11, -2.5, 0.8), at(0, 6.5, -2, 0.6), 0, 0, 0.12]); I.c1 = choose(C); }
-    const k = smooth(0, 2.45, I.t) * 0.85 + I.t / 2.45 * 0.15; introShot(I, P, k, I.c1[0], I.c1[1], at(0, 0.6, 3, 0), at(0, 1.1, 1, 0), dt); camera.fov = 50; I.showAvatar = true; }
-  else if (I.t < 3.95) { // shot 2: over the shoulder, pushing in along your line of sight
-    if (!I.s2) { I.s2 = true; I.cut = true; const C = []; for (const sd of [1, -1]) { C.push([at(0, P.h + 0.12, -2.3, 0.75 * sd), at(0, P.h + 0.04, -1.45, 0.6 * sd), 0, 0, sd < 0 ? 0.02 : 0]); C.push([at(0, P.h + 0.5, -1.9, 0.45 * sd), at(0, P.h + 0.3, -1.3, 0.4 * sd), 0, 0, 0.06]); } I.c2 = choose(C); }
-    const k = smooth(2.45, 3.95, I.t); introShot(I, P, k, I.c2[0], I.c2[1], at(0, P.h - 0.2, 12, 0), at(0, P.h - 0.15, 14, 0), dt); camera.fov = lerp(55, 60, k); I.showAvatar = camera.position.distanceTo(new V3(P.pos.x, P.pos.y + 1.5, P.pos.z)) > 0.9; }
-  else { I.showAvatar = false; if (camera.fov !== settings.fov) camera.fov = settings.fov; updateCamera(dt); if ($('introov').className !== 'on cd') { $('introov').className = 'on cd'; $('hud').classList.remove('cine'); } }
+  const loading = $('loading').classList.contains('on'), dt = loading ? 0 : Math.min(dt0, 1 / 20); // hold until the loading screen is gone
+  I.t += dt; game.introT = I.dur - I.t; const P = player, fx = -Math.sin(I.yaw), fz = -Math.cos(I.yaw), rx = Math.cos(I.yaw), rz = -Math.sin(I.yaw);
+  const eye = new V3(P.pos.x, P.pos.y + P.h - 0.12, P.pos.z), at = (u, f, r) => new V3(P.pos.x + fx * f + rx * r, P.pos.y + u, P.pos.z + fz * f + rz * r);
+  $('ifade').style.opacity = clamp(1 - smooth(0, 0.6, I.t), 0, 1).toFixed(3);
+  if (!I.path) { // pick the clearest start: behind-high, either side, or (indoors) just under the ceiling
+    const up = raycast(eye, new V3(0, 1, 0), 40, false), ceil = up.t < 40 ? Math.max(0.6, up.t - 0.5) : 40;
+    const clearTo = v => { const d = v.clone().sub(eye), l = d.length(); if (l < 0.05) return 1; const h = raycast(eye, d.divideScalar(l), l + 0.5, false); return Math.min(1, h.t / (l + 0.5)); };
+    let best = null, bs = -1;
+    for (const [u, f, r, pen] of [[24, -26, 10, 0], [24, -26, -10, 0], [30, -12, 18, 0.04], [30, -12, -18, 0.04], [20, 18, 12, 0.1], [14, -14, 6, 0.06], [9, -9, 4, 0.1]]) {
+      const H = Math.min(u, ceil + (P.h - 0.12)), sc0 = at(H, f * (H / u), r * (H / u)), mid = at(H * 0.45, f * 0.35 * (H / u), r * 0.3 * (H / u));
+      const sc = Math.min(clearTo(sc0), clearTo(mid)) - pen; if (sc > bs) { bs = sc; best = sc0; } }
+    const S = best, back = new V3(fx, 0, fz);
+    I.path = [S, S.clone().lerp(eye, 0.35).setY(S.y * 0.82 + eye.y * 0.18), eye.clone().addScaledVector(back, -3.2).add(new V3(0, 1.0, 0)), eye]; I.boom = null;
+  }
+  if (I.t < I.glide) {
+    const k0 = clamp(I.t / I.glide, 0, 1), k = k0 * k0 * k0 * (k0 * (k0 * 6 - 15) + 10); // smootherstep: gentle start, gentle landing
+    const want = _bz(I.path[0], I.path[1], I.path[2], I.path[3], k), dv = want.clone().sub(eye), dl = dv.length();
+    let allow = dl; if (dl > 0.05) { dv.divideScalar(dl); const h = raycast(eye, dv, dl + 0.3, false); if (h.t < dl + 0.3) allow = Math.max(0.3, h.t - 0.3); }
+    I.boom = I.boom === null ? allow : Math.min(allow, damp(I.boom, allow, 4, dt), dl); camera.position.copy(eye).addScaledVector(dv, Math.min(dl, I.boom));
+    const look = new V3(P.pos.x, P.pos.y + 1.1, P.pos.z).lerp(eye.clone().add(new V3(fx * 12 * Math.cos(P.pitch || 0), 12 * Math.sin(P.pitch || 0), fz * 12 * Math.cos(P.pitch || 0))), smooth(0.25, 1, k)); camera.lookAt(look);
+    camera.fov = lerp(52, settings.fov, smooth(0.55, 1, k)); I.showAvatar = camera.position.distanceTo(eye) > 1.5;
+  } else { I.showAvatar = false; if (camera.fov !== settings.fov) camera.fov = settings.fov; updateCamera(dt); if ($('introov').className !== 'on cd') { $('introov').className = 'on cd'; $('hud').classList.remove('cine'); } }
   camera.updateProjectionMatrix(); sky.position.copy(camera.position);
-  const n = Math.ceil(I.dur - I.t - 0.35); if (I.t > 3.95 && n !== I.last && n >= 0 && n <= 3) { I.last = n; const el = $('introCount'); el.textContent = n > 0 ? n : 'GO'; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); sfx.play(n > 0 ? 'cd' : 'go'); if (n === 0) rumble(0.4, 0.4, 200); }
+  const n = Math.ceil(I.dur - I.t - 0.35); if (I.t > I.glide && n !== I.last && n >= 0 && n <= 3) { I.last = n; const el = $('introCount'); el.textContent = n > 0 ? n : 'GO'; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); sfx.play(n > 0 ? 'cd' : 'go'); if (n === 0) rumble(0.4, 0.4, 200); }
   if (I.t >= I.dur) { game.introT = 0; game.intro = null; $('introov').className = ''; $('hud').classList.remove('cine'); $('ifade').style.opacity = 0; }
 }
 function deploy(label, fn, mi) {
   if (mi === undefined) mi = settings.map; sfx.init(); if (game.state === 'menu') requestLock(); // pointer lock / fullscreen must start inside the click
   const m = MAPS[mi], L = $('loading'), th = MAPIMG(mi);
-  $('ldbg').style.backgroundImage = th ? `url(${th})` : 'radial-gradient(ellipse at 30% 40%,#3a4456,#0a0c10)'; $('ldmap').textContent = m.name; $('lddesc').textContent = m.desc; $('ldmode').textContent = label;
+  $('ldbg').style.backgroundImage = th ? `url(${MAPHD(mi)}), url(${th})` : 'radial-gradient(ellipse at 30% 40%,#3a4456,#0a0c10)'; $('ldmap').textContent = m.name; $('lddesc').textContent = m.desc; $('ldmode').textContent = label;
   $('ldtip').textContent = pick(TIPS); const fill = $('ldfill'); fill.style.transition = 'none'; fill.style.width = '0%'; L.classList.add('on');
   requestAnimationFrame(() => { fill.style.transition = ''; fill.style.width = '72%'; requestAnimationFrame(() => setTimeout(() => {
     const t0 = performance.now(); try { fn(); } catch (e) { console.error(e); }
@@ -5873,7 +5877,7 @@ function captureMapThumb() {
   try { const c = document.createElement('canvas'); const src = renderer.domElement, W = Math.min(1280, src.width), H = Math.round(W * src.height / src.width); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, W, H); const url = c.toDataURL('image/jpeg', 0.8); // big enough to fill the loading screen sharply
     const key = 'bp_mthumb2_' + world.def.name; try { for (const m of MAPS) localStorage.removeItem('bp_mthumb_' + m.name); localStorage.setItem(key, url); } catch (e) {} applyMapThumbs(); } catch (e) {}
 }
-const MAPIMG = i => `thumbs/${i}.jpg?v=7`; // baked aerial postcards (see postcard())
+const MAPIMG = i => `thumbs/${i}.jpg?v=7`, MAPHD = i => `thumbs/${i}_hd.jpg?v=1`; // full-res art for the loading screen (preloaded on hover/select) // baked aerial postcards (see postcard())
 function applyMapThumbs() { MAPS.forEach((m, i) => { const u = MAPIMG(i); const card = $('maps').children[i]; if (card && u) { card.style.backgroundImage = `linear-gradient(180deg,rgba(12,14,19,0) 25%,rgba(12,14,19,.55) 60%,rgba(12,14,19,.9)),url(${u})`; card.style.backgroundSize = 'cover'; card.style.backgroundPosition = 'center 68%'; } }); }
 
 // ============================================================ GAMEPAD (Xbox / PlayStation via the Gamepad API)
@@ -5979,6 +5983,7 @@ function openPicker(sp) { // CoD-style pop-out list: up/down to choose, A / clic
 }
 function closePicker() { if (!picker) return; const sp = picker.sp; picker.box.remove(); picker = null; if (gp.focus && !gp.focus.isConnected) gpFocus(sp); }
 addEventListener('mousedown', e => { if (picker && !picker.box.contains(e.target) && e.target !== picker.sp && !picker.sp.contains(e.target)) closePicker(); }, true);
+function syncSpins() { document.querySelectorAll('.spin').forEach(sp => sp._sel && spinLabel(sp)); }
 function spinLabel(sp) { const s = sp._sel, o = s.options[s.selectedIndex]; sp.querySelector('span').textContent = o ? o.textContent : ''; sp.classList.toggle('first', s.selectedIndex <= 0); sp.classList.toggle('last', s.selectedIndex >= s.options.length - 1); }
 function spinStep(sp, d) { const s = sp._sel; const n = clamp(s.selectedIndex + d, 0, s.options.length - 1); if (n === s.selectedIndex) return; s.selectedIndex = n; s.dispatchEvent(new Event('change', { bubbles: true })); spinLabel(sp); sfx.play('pickup'); }
 window.spinify = spinify;
@@ -6175,6 +6180,7 @@ function initUI() {
   botOpts(); $('botTime').value = String(settings.botTime === undefined ? 600 : settings.botTime); $('botTime').onchange = () => { settings.botTime = +$('botTime').value; saveSettings(); };
   $('health').value = settings.health; $('health').onchange = () => { settings.health = $('health').value; saveSettings(); };
   for (const [id, key, def] of [['botDiff', 'botDiff', 'normal'], ['botMode', 'botMode', 'ffa']]) { const el = $(id); el.value = settings[key] || def; el.onchange = () => { settings[key] = id === 'bots' ? +el.value : el.value; saveSettings(); }; }
+  botOpts(); setTimeout(syncSpins, 0); // labels must match the saved values
   renderLoadout($('loadout'));
   const cl = $('classes');
   const renderClasses = window.renderClassesUI = () => { cl.innerHTML = ''; for (const k in CLASSES) { const C = CLASSES[k]; const b = document.createElement('button'); b.className = 'wcard cls' + (settings.cls === k ? ' on' : '');
@@ -6208,5 +6214,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
