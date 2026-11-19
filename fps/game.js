@@ -218,7 +218,8 @@ const sfx = {
     this.sfxBus = c.createGain(); this.sfxBus.gain.value = settings.volume;
     this.musicBus = c.createGain(); this.musicBus.gain.value = settings.music;
     const comp = c.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 6; comp.attack.value = 0.002; comp.release.value = 0.18;
-    this.sfxBus.connect(comp); comp.connect(c.destination); this.musicBus.connect(c.destination);
+    const tame = c.createBiquadFilter(); tame.type = 'highshelf'; tame.frequency.value = 7500; tame.gain.value = -5; // less hiss and fizz, easier on the ears
+    this.sfxBus.connect(tame); tame.connect(comp); comp.connect(c.destination); this.musicBus.connect(c.destination);
     this.verb = c.createConvolver(); this.verb.buffer = this.impulse(2.4, 2.8); this.verbIn = c.createGain(); this.verbIn.gain.value = 0.55;
     this.verbIn.connect(this.verb); this.verb.connect(this.sfxBus);
     const len = c.sampleRate * 2, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
@@ -288,7 +289,8 @@ const sfx = {
     const lpF = (far > 0.02 ? 12000 - far * 10200 : 0) || (occ ? 14000 : 0), lp = occ ? Math.min(lpF || 14000, 1400) : lpF;
     const dest = this.chain(o.pan || 0, sup ? 0.12 : (this.indoor ? 0.55 : 0.2) + far * 0.55, lp, (o.vol === undefined ? 1 : o.vol) * (o.comp ? 1.12 : 1) * (occ ? 0.62 : 1) / (1 + d * 0.025), o.pos);
     const t = this.ctx.currentTime + (d > 12 ? Math.min(0.9, d / 343) : 0); // sound arrives after the flash
-    if (!sup) this.nz(dest, { t, dur: 0.035, type: 'highpass', f: 2600, g: P.crack * (1 - far * 0.85) * (occ ? 0.4 : 1) });
+    if (!sup) this.nz(dest, { t, dur: 0.03, type: 'bandpass', f: 3400, q: 0.8, g: P.crack * 0.8 * (1 - far * 0.85) * (occ ? 0.4 : 1) }); // crack, without the fizzy top end
+    if (!sup && d < 4) this.osc(dest, { t, type: 'sine', f: 95, f2: 38, dur: 0.11, g: 0.55 * Math.min(1.3, P.tg) }); // chest punch on your own shots
     this.nz(dest, { t, dur: sup ? P.bd * 0.6 : P.bd, type: 'lowpass', f: sup ? P.bf * 0.32 : P.bf, f2: P.bf * 0.2, g: P.bg * (sup ? 0.45 : 1), a: 0.001 });
     if (P.mf) this.nz(dest, { t: t + 0.004, dur: (sup ? 0.05 : 0.09) + P.bd * 0.4, type: 'bandpass', f: P.mf, f2: P.mf * 0.6, q: 1.3, g: P.mg * (sup ? 0.35 : 1) }); // the weapon's "bark"
     this.osc(dest, { t, type: 'sine', f: P.t0, f2: P.t1, dur: P.td, g: P.tg * (sup ? 0.35 : 1) * (1 - far * 0.5) });
@@ -344,9 +346,9 @@ const sfx = {
       case 'shell': N({ dur: 0.07, type: 'bandpass', f: 1700, q: 3, g: 0.5 }); break;
       case 'pump': N({ dur: 0.09, type: 'bandpass', f: 900, q: 2, g: 0.6 }); N({ dur: 0.09, type: 'bandpass', f: 1500, q: 2, g: 0.6, delay: 0.14 }); break;
       case 'switch': N({ dur: 0.08, type: 'bandpass', f: 1300, q: 2, g: 0.35 }); N({ dur: 0.05, type: 'bandpass', f: 2600, q: 3, g: 0.25, delay: 0.1 }); break;
-      case 'hit': N({ dur: 0.03, type: 'bandpass', f: 4200, q: 6, g: 0.5 }); T({ type: 'square', f: 1900, dur: 0.025, g: 0.06 }); break;
+      case 'hit': N({ dur: 0.018, type: 'bandpass', f: 5200, q: 4, g: 0.42 }); T({ type: 'triangle', f: 2900, f2: 2500, dur: 0.045, g: 0.13 }); T({ type: 'sine', f: 1450, dur: 0.03, g: 0.06 }); break; // crisp 'tick'
       case 'head': T({ type: 'sine', f: 2600, dur: 0.2, g: 0.3 }); N({ dur: 0.04, type: 'bandpass', f: 5000, q: 6, g: 0.5 }); break;
-      case 'kill': N({ dur: 0.06, type: 'bandpass', f: 2500, q: 3, g: 0.6 }); T({ type: 'triangle', f: 520, f2: 380, dur: 0.18, g: 0.3 }); break;
+      case 'kill': N({ dur: 0.02, type: 'bandpass', f: 4600, q: 3, g: 0.5 }); T({ type: 'triangle', f: 2300, f2: 2000, dur: 0.06, g: 0.12 }); T({ type: 'sine', f: 180, f2: 70, dur: 0.16, g: 0.5 }); N({ dur: 0.12, type: 'lowpass', f: 900, f2: 200, g: 0.35, delay: 0.005 }); break; // tick + body thump
       case 'glass': { N({ dur: 0.07, type: 'highpass', f: 2400, q: 0.6, g: 0.9 }); N({ dur: 0.25, type: 'bandpass', f: 5200, q: 1.2, g: 0.45, delay: 0.02 }); // smash, then falling shards tinkling
         for (let i = 0; i < 9; i++) T({ type: 'sine', f: rand(2800, 7200), dur: rand(0.04, 0.12), g: rand(0.03, 0.08), delay: 0.05 + i * rand(0.03, 0.07) }); N({ dur: 0.12, type: 'bandpass', f: 3800, q: 2, g: 0.25, delay: rand(0.35, 0.5) }); break; }
       case 'board': N({ dur: 0.09, type: 'bandpass', f: 900, q: 1.2, g: 0.8 }); T({ type: 'triangle', f: 190, f2: 90, dur: 0.12, g: 0.35 }); N({ dur: 0.05, type: 'bandpass', f: 2400, q: 2, g: 0.35, delay: 0.04 }); break;
@@ -411,13 +413,20 @@ const ambience = { t: 2,
   far(dist) { const a = Math.random() * 6.28, c = camera.position; return { x: c.x + Math.sin(a) * dist, y: c.y + rand(5, 40), z: c.z + Math.cos(a) * dist, a }; },
   update(dt) {
     if (!sfx.ok() || settings.ambience === false) return;
+    if (!this.wind) this.startWind();
     this.t -= dt; if (this.t > 0) return; this.t = rand(1.2, 5); const r = Math.random();
     if (r < 0.5) { const id = pick(['rifle', 'ak', 'lmg', 'smg', 'battle', 'rifle', 'lmg']), n = randi(3, 12), dist = rand(120, 320), P = this.far(dist), gap = id === 'lmg' ? 0.075 : id === 'smg' ? 0.065 : rand(0.09, 0.22);
-      for (let i = 0; i < n; i++) setTimeout(() => sfx.gun(id, { dist, pos: P, vol: 0.5 }), i * gap * 1000 * rand(0.85, 1.15)); }
+      for (let i = 0; i < n; i++) setTimeout(() => sfx.gun(id, { dist, pos: P, vol: 0.34 }), i * gap * 1000 * rand(0.85, 1.15)); }
     else if (r < 0.7) { const dist = rand(250, 600), P = this.far(dist), k = randi(1, 4); for (let i = 0; i < k; i++) setTimeout(() => sfx.boom(dist, 0, 0.7, P), i * rand(500, 1400)); } // artillery salvo
     else if (r < 0.8) { const dist = rand(150, 320), P = this.far(dist); for (let i = 0; i < 3; i++) setTimeout(() => sfx.gun('sniper', { dist, pos: P, vol: 0.45 }), i * rand(1200, 2400)); }
     else if (r < 0.9) this.flyby(true); else this.flyby(false);
   },
+  startWind() { // soft, slowly breathing wind bed under the battle (stops with the match)
+    const c = sfx.ctx, n = c.createBufferSource(), lp = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(); n.buffer = sfx.nb; n.loop = true;
+    lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 0.5; lfo.frequency.value = 0.07; lg.gain.value = 220; lfo.connect(lg); lg.connect(lp.frequency);
+    g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(0.07, c.currentTime + 3); n.connect(lp); lp.connect(g); g.connect(sfx.sfxBus); n.start(); lfo.start(); this.wind = { n, lfo, g };
+  },
+  stopWind() { const w = this.wind; if (!w) return; this.wind = null; try { const c = sfx.ctx; w.g.gain.setValueAtTime(w.g.gain.value, c.currentTime); w.g.gain.linearRampToValueAtTime(0.0001, c.currentTime + 1); w.n.stop(c.currentTime + 1.1); w.lfo.stop(c.currentTime + 1.1); } catch (e) {} },
   flyby(jet) { // a moving 3D source: the panner glides across the sky
     const c = sfx.ctx, t = c.currentTime, dur = jet ? 5 : 9, a = Math.random() * 6.28, cam = camera.position, R = jet ? 500 : 260, h = jet ? 120 : 45;
     const p = c.createPanner(); p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.rolloffFactor = 0;
@@ -476,6 +485,64 @@ const INSTR = {
   boing(dest, t, f, d, v) { const c = sfx.ctx, o = c.createOscillator(), g = c.createGain(); o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 4, t + d * 0.5); o.frequency.exponentialRampToValueAtTime(f * 1.5, t + d);
     g.gain.setValueAtTime(v * 0.35, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.05); },
 };
+// ---- rock section: distorted power-chord guitars (root + fifth + octave through an amp/cab model), picked bass, real kit
+const _dist = (() => { let cv = null; return () => { if (cv) return cv; cv = new Float32Array(2048); for (let i = 0; i < 2048; i++) { const x = i / 1024 - 1; cv[i] = Math.tanh(x * 6) * 0.9 + Math.tanh(x * 2) * 0.1; } return cv; }; })();
+Object.assign(INSTR, {
+  gtr(dest, t, f, d, v, mode) { const c = sfx.ctx, mute = mode === 'mute', pre = c.createGain(), ws = c.createWaveShaper(), hp = c.createBiquadFilter(), cab = c.createBiquadFilter(), mid = c.createBiquadFilter(), g = c.createGain();
+    pre.gain.value = mute ? 5 : 7; ws.curve = _dist(); ws.oversample = '2x'; hp.type = 'highpass'; hp.frequency.value = 85; cab.type = 'lowpass'; cab.frequency.value = mute ? 1500 : 3600; cab.Q.value = 0.9; mid.type = 'peaking'; mid.frequency.value = 750; mid.gain.value = -4; mid.Q.value = 0.8;
+    pre.connect(ws); ws.connect(hp); hp.connect(mid); mid.connect(cab); cab.connect(g); g.connect(dest);
+    const len = mute ? Math.min(d, 0.16) : d; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * (mute ? 0.085 : 0.075), t + 0.006); if (mute) g.gain.exponentialRampToValueAtTime(0.0001, t + len); else { g.gain.setValueAtTime(v * 0.07, t + len * 0.8); g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.25); }
+    for (const [m, a] of [[1, 1], [1.4983, 0.8], [2, 0.55]]) for (const det of [-7, 7]) { const o = c.createOscillator(), og = c.createGain(); o.type = 'sawtooth'; o.frequency.value = f * m; o.detune.value = det; og.gain.value = a * 0.25; o.connect(og); og.connect(pre); o.start(t); o.stop(t + len + 0.3); } },
+  bass(dest, t, f, d, v) { const c = sfx.ctx, o = c.createOscillator(), s2 = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.value = f; s2.type = 'sine'; s2.frequency.value = f / 2;
+    lp.type = 'lowpass'; lp.Q.value = 1.2; lp.frequency.setValueAtTime(1100, t); lp.frequency.exponentialRampToValueAtTime(280, t + Math.min(0.25, d)); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.32, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + d * 0.95);
+    const sg = c.createGain(); sg.gain.value = 0.6; o.connect(lp); s2.connect(sg); sg.connect(lp); lp.connect(g); g.connect(dest); for (const x of [o, s2]) { x.start(t); x.stop(t + d + 0.05); } },
+  kick2(dest, t, f, d, v) { const c = sfx.ctx, o = c.createOscillator(), g = c.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.09); g.gain.setValueAtTime(v * 0.95, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.35);
+    const n = c.createBufferSource(), bp = c.createBiquadFilter(), ng = c.createGain(); n.buffer = sfx.nb; bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 1.5; ng.gain.setValueAtTime(v * 0.18, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.012); n.connect(bp); bp.connect(ng); ng.connect(dest); n.start(t, Math.random()); n.stop(t + 0.03); },
+  snare2(dest, t, f, d, v) { const c = sfx.ctx, n = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(), o = c.createOscillator(), og = c.createGain(); n.buffer = sfx.nb; bp.type = 'bandpass'; bp.frequency.value = 1900; bp.Q.value = 0.6;
+    g.gain.setValueAtTime(v * 0.55, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.19); n.connect(bp); bp.connect(g); g.connect(dest); n.start(t, Math.random()); n.stop(t + 0.22);
+    o.type = 'triangle'; o.frequency.setValueAtTime(210, t); o.frequency.exponentialRampToValueAtTime(150, t + 0.08); og.gain.setValueAtTime(v * 0.4, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.1); o.connect(og); og.connect(dest); o.start(t); o.stop(t + 0.12); },
+  crash(dest, t, f, d, v) { const c = sfx.ctx, n = c.createBufferSource(), hp = c.createBiquadFilter(), g = c.createGain(); n.buffer = sfx.nb; n.loop = true; hp.type = 'bandpass'; hp.frequency.value = 6500; hp.Q.value = 0.5;
+    g.gain.setValueAtTime(v * 0.09, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6); n.connect(hp); hp.connect(g); g.connect(dest); n.start(t, Math.random()); n.stop(t + 1.9); },
+});
+// "Breachpoint" main theme — D minor, 140 bpm, 32 bars: string ostinato intro -> drums + chugging guitars -> brass chorus -> breakdown -> final chorus
+function rockTheme() {
+  const ev = [], R = { Dm: 38, Bb: 34, C: 36, A: 33, F: 41, Gm: 31 }, P = { Dm: [50, 53, 57], Bb: [46, 50, 53], C: [48, 52, 55], A: [45, 49, 52], F: [41, 45, 48], Gm: [43, 46, 50] };
+  const verse = ['Dm', 'Dm', 'Bb', 'C', 'Dm', 'Dm', 'Bb', 'A'], chorus = ['Dm', 'Bb', 'F', 'C', 'Dm', 'Bb', 'Gm', 'A'];
+  const bar = (i, ch, part) => { const b = i * 4, r = R[ch], n = P[ch];
+    for (const x of n) ev.push([b, 'pad', x, 4, part === 'intro' ? 1 : 0.7]);
+    for (let k = 0; k < 16; k++) if (part !== 'chorus' || k % 2 === 0) ev.push([b + k * 0.25, 'strings', [n[0] + 12, n[2] + 12, n[1] + 12, n[2] + 12][k % 4], 0.22, k % 4 === 0 ? 0.9 : 0.55]);
+    if (part === 'intro') { for (const o of [0, 1.5, 2, 3, 3.5]) ev.push([b + o, 'tomhz', o === 0 ? 92 : 110, 0.5, i % 4 === 3 ? 1 : 0.7]); if (i % 4 === 3) for (const o of [2, 2.5, 3, 3.25, 3.5, 3.75]) ev.push([b + o, 'snare2', 0, 0.2, 0.4 + o / 8]); return; }
+    const half = part === 'break';
+    for (let k = 0; k < 8; k++) ev.push([b + k * 0.5, 'hat', 0, 0.1, k % 2 ? 0.22 : 0.42]);
+    for (const o of half ? [0, 2.5] : [0, 1.5, 2, 2.75]) ev.push([b + o, 'kick2', 0, 0.3, 1]);
+    for (const o of half ? [2] : [1, 3]) ev.push([b + o, 'snare2', 0, 0.2, 1]);
+    if (part === 'chorus') { ev.push([b, 'gtr', r, 1.9, 1], [b + 2, 'gtr', r, 1.4, 0.95]); for (const o of [3.5]) ev.push([b + o, 'gtr', r, 0.5, 0.85, 'mute']); }
+    else if (half) { for (const o of [0, 0.75, 1, 1.5, 2, 2.75, 3, 3.5]) ev.push([b + o, 'gtr', r, 0.25, o % 1 ? 0.8 : 1, 'mute']); }
+    else for (let k = 0; k < 8; k++) ev.push([b + k * 0.5, 'gtr', r, 0.5, k % 2 ? 0.75 : 1, 'mute']);
+    for (let k = 0; k < 8; k++) ev.push([b + k * 0.5, 'bass', r - 12 + (k === 7 && !half ? 2 : 0), 0.45, k % 2 ? 0.7 : 1]);
+  };
+  for (let i = 0; i < 4; i++) bar(i, verse[i * 2 % 8], 'intro');
+  for (let i = 4; i < 12; i++) bar(i, verse[i - 4], 'verse');
+  for (let i = 12; i < 20; i++) bar(i, chorus[i - 12], 'chorus');
+  for (let i = 20; i < 24; i++) bar(i, ['Dm', 'Bb', 'Dm', 'A'][i - 20], 'break');
+  for (let i = 24; i < 32; i++) bar(i, chorus[i - 24], 'chorus');
+  for (const b of [16, 48, 64, 80, 96, 112]) ev.push([b, 'crash', 0, 2, b === 16 || b === 48 || b === 96 ? 1 : 0.7]);
+  const mel = [[0, 62, 3], [3, 65, 1], [4, 69, 4], [8, 67, 2], [10, 65, 2], [12, 64, 3], [15, 62, 1], [16, 62, 4], [20, 58, 2], [22, 62, 2], [24, 61, 6], [30, 57, 2]];
+  for (const st of [48, 96]) for (const [o, n, l] of mel) ev.push([st + o, 'brass', n, l, 1], [st + o, 'horn', n - 12, l, 0.7]);
+  return { bpm: 140, len: 128, loop: true, ev };
+}
+function rockSting() { const ev = [];
+  for (const o of [0, 0.5, 0.75, 1, 1.5, 1.75, 2, 2.5, 2.75]) ev.push([o, 'tomhz', 80 + o * 14, 0.4, 0.8]);
+  ev.push([3, 'crash', 0, 2, 1], [3, 'kick2', 0, 0.3, 1], [3, 'gtr', 38, 3, 1], [3, 'bass', 26, 3, 1], [3, 'brass', 62, 3, 0.9], [3, 'brass', 57, 3, 0.8], [3, 'brass', 50, 3, 0.8]);
+  for (const x of [50, 53, 57]) ev.push([3, 'pad', x, 4, 1.2]);
+  return { bpm: 120, len: 7, loop: false, ev };
+}
+function rockWin() { const ev = [];
+  [['F', 41, 0], ['C', 36, 2], ['Dm', 38, 4], ['Bb', 34, 6], ['F', 41, 8]].forEach(([ch, r, b]) => { ev.push([b, 'gtr', r, b === 8 ? 4 : 1.9, 1], [b, 'bass', r - 12, b === 8 ? 4 : 1.9, 1], [b, 'kick2', 0, 0.3, 1], [b + 1, 'snare2', 0, 0.2, 0.9]); });
+  [[0, 65], [1, 69], [2, 72], [3, 76], [4, 74], [5, 72], [6, 70], [7, 74], [8, 77]].forEach(([b, n]) => ev.push([b, 'brass', n, b === 8 ? 4 : 1, 1.05]));
+  ev.push([0, 'crash', 0, 2, 1], [8, 'crash', 0, 2, 1]); for (let k = 0; k < 16; k++) ev.push([k * 0.5, 'hat', 0, 0.1, k % 2 ? 0.5 : 0.9]);
+  return { bpm: 112, len: 13, loop: false, ev };
+}
 // Songs: list of [beat, instrument, midi, lengthInBeats, velocity, extra]
 // ---- score: cinematic military themes (synthesised: string pads, ostinato, sub bass, taiko, brass)
 const CHORDS = { Dm: [50, 53, 57], Bb: [46, 50, 53], F: [41, 45, 48], C: [48, 52, 55], Gm: [43, 46, 50], A: [45, 49, 52] };
@@ -511,7 +578,7 @@ function loseTheme() { const ev = [];
   ev.push([0, 'tomhz', 70, 1, 0.8], [6, 'tomhz', 70, 1, 0.6], [12, 'bell', 74, 3, 0.35]);
   return { bpm: 70, len: 15, loop: false, ev };
 }
-const SONGS = { title: mainTheme, start: deploySting, win: winTheme, lose: loseTheme };
+const SONGS = { title: rockTheme, start: rockSting, win: rockWin, lose: loseTheme, orchestral: mainTheme };
 const music = {
   cur: null, name: '',
   play(name) {
@@ -6097,7 +6164,7 @@ function frame(now) {
     if (player.shieldT > 0) { player.shieldT -= dt; if (player.shieldT <= 0) player.shield = 0; }
     if (player.alive) updateWeapon(dt);
     if (MP.active) updateMP(dt); else if (game.mode === 'botdm') updateBotMatch(dt); else updateWaves(dt);
-    if (game.state === 'play') ambience.update(dt);
+    if (game.state === 'play') ambience.update(dt); else if (ambience.wind) ambience.stopWind();
     enemies = enemies.filter(e => e.update(dt));
     barrels.forEach(b => b.update(dt));
     pickups = pickups.filter(p => p.update(dt, game.time));
@@ -6214,5 +6281,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { audioLab: () => ({ INSTR, SONGS, sfx, NOTE }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
