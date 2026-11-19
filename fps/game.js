@@ -4109,7 +4109,7 @@ function emblem(l, size = 44) { // evolves every level: tier colour per 10 level
 }
 function renderRank() { const L = lvlOf(STATS.xp), el = $('mrank'); if (el) el.innerHTML = `${emblem(L.l, 46)}<div class="rk"><b>${L.l}</b><small>${rankName(L.l)}</small><i><u style="width:${Math.round(L.cur / L.need * 100)}%"></u></i></div>`; }
 // ---- CLOUD ACCOUNTS (Supabase): optional. Fill fps/cloud-config.js with your project URL + publishable (anon) key.
-var CLOUD = { sb: null, user: null, state: 'off', msg: '', t: 0, busy: false };
+var CLOUD = { sb: null, user: null, state: 'off', msg: '', t: 0, busy: false, fromLink: /access_token|[?&]code=|type=magiclink|type=signup/.test(location.hash + location.search) };
 const cloudCfg = () => { const c = window.BP_SUPA; return c && c.url && c.key ? c : null; };
 function loadSupa() { return window.supabase && window.supabase.createClient ? Promise.resolve() : new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/supabase.js?v=2.45.4'; sc.onload = res; sc.onerror = () => rej(new Error('Could not load the sign-in library')); document.head.appendChild(sc); }); }
 async function cloudInit() {
@@ -4131,7 +4131,7 @@ async function cloudPull() {
       PROFILE.id = /^[0-9a-f]{32}$/.test(data.player_id) ? data.player_id : PROFILE.id; PROFILE.tag = cleanTag(data.tag) || PROFILE.tag; settings.name = cleanName(data.name); saveSettings();
       if ((data.xp | 0) >= (STATS.xp | 0) && data.stats && data.stats.pvp) replaceStats(data.stats); else await cloudPush(true);
     }
-    PROFILE.cloud = u.id; saveProfile(); CLOUD.state = 'on'; CLOUD.t = Date.now();
+    PROFILE.cloud = u.id; saveProfile(); CLOUD.state = 'on'; CLOUD.t = Date.now(); if (CLOUD.fromLink) { CLOUD.fromLink = false; welcomeBack(!data); }
   } catch (e) { CLOUD.state = 'error'; CLOUD.msg = e.message || String(e); }
   renderCareer(); renderRank(); try { menuRefresh(); } catch (e) {}
 }
@@ -4146,9 +4146,19 @@ async function cloudSignIn(kind, email) {
   try {
     if (kind === 'google') { const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: to } }); if (error) throw error; }
     else { if (!/^\S+@\S+\.\S+$/.test(email || '')) { CLOUD.msg = 'Enter a valid email address.'; renderCareer(); return; }
-      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: to } }); if (error) throw error; CLOUD.state = 'sent'; CLOUD.msg = 'Check your email for a sign-in link, then open it in this browser.'; }
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: to } }); if (error) throw error; CLOUD.state = 'sent'; CLOUD.msg = 'Orders sent! Look for an email from "Supabase Auth" titled "Your sign-in link" (check spam), then open it in this browser.'; }
   } catch (e) { CLOUD.state = 'error'; CLOUD.msg = e.message || String(e); }
   renderCareer();
+}
+function welcomeBack(first) { // the branded landing after the (plain) sign-in email: rank, name, #TAG, then into the menu
+  const L = lvlOf(STATS.xp), el = document.createElement('div'); el.id = 'welcome';
+  el.innerHTML = `<div class="wb"><small>${first ? 'ENLISTMENT CONFIRMED' : 'IDENTITY CONFIRMED'}</small><h1>${first ? 'WELCOME TO THE LATRINE,' : 'WELCOME BACK,'}<br><span>${esc(cleanName(settings.name).toUpperCase())}<em>#${PROFILE.tag}</em></span></h1>
+    <div class="wrank">${emblem(L.l, 72)}<div><b>LEVEL ${L.l}</b><i>${rankName(L.l)}</i></div></div>
+    <p>${first ? 'Your profile is now saved to your account. Sign in on any device to bring it with you.' : 'Your rank, stats and loadouts are synced to this device.'}</p><button class="pbtn" id="wbGo">REPORT FOR DUTY ›</button><u>— Sgt. Stinky, Recruitment Office 💩</u></div>`;
+  document.body.appendChild(el); requestAnimationFrame(() => el.classList.add('on'));
+  const close = () => { if (!el.isConnected) return; el.classList.remove('on'); setTimeout(() => el.remove(), 400); };
+  el.querySelector('#wbGo').onclick = close; el.addEventListener('click', e => { if (e.target === el) close(); }); setTimeout(close, 9000);
+  try { sfx.play('levelup'); } catch (e) {}
 }
 async function cloudSignOut() { try { await cloudPush(true); await CLOUD.sb.auth.signOut(); } catch (e) {} CLOUD.user = null; CLOUD.state = 'off'; delete PROFILE.cloud; saveProfile(); renderCareer(); }
 // export / import: move a guest profile to another device without an account
@@ -6378,5 +6388,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
