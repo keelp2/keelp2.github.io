@@ -19,7 +19,7 @@ function addFeed(html, hs, mine) {
   setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 6000);
 }
 // killer [WEAPON] (◎ = headshot) victim
-const KS_FEED = { air: 'AIRSTRIKE', air3: 'CARPET BOMBING', pred: 'PREDATOR MISSILE', heli: 'ATTACK HELICOPTER' };
+const KS_FEED = { air: 'AIRSTRIKE', air3: 'CARPET BOMBING', pred: 'PREDATOR MISSILE', heli: 'ATTACK HELICOPTER', nuke: 'TACTICAL NUKE' };
 const killLabel = () => game.ksKind ? game.ksKind : game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short; /* what the local player's kill is credited to, for the feed */
 const wShort = id => { if (KS_FEED[id]) return id; const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
 function hitCap(w, head) { const W = typeof w === 'string' && WEAPONS.find(x => x.id === w); if (!W || W.melee || W.launcher) return 250; return Math.ceil(W.dmg * (W.pellets || 1) * (head ? (W.head || 2) * 1.2 : 1) * 1.1) + 1; }

@@ -6,9 +6,11 @@ var KS_DEFS = {
   pred: { n: 5, name: 'PREDATOR MISSILE', desc: 'Fly a missile down from the sky: steer it, boost it, hit them' },
   air: { n: 6, name: 'PRECISION AIRSTRIKE', desc: 'Pick a spot on your tablet: 3 jets drop heavy bombs on it' },
   air3: { n: 8, name: 'CARPET BOMBING', desc: 'Lay a run on your tablet: a bomber walks 9 bombs down it' },
-  heli: { n: 10, name: 'ATTACK HELICOPTER', desc: 'A gunship circles the map for 45 s and hunts enemies' } };
-var KS_ORDER = ['uav', 'pred', 'air', 'air3', 'heli'], KS_DEFAULT = ['uav', 'pred', 'air'];
+  heli: { n: 10, name: 'ATTACK HELICOPTER', desc: 'A gunship hunts enemies for 60 s — they can shoot it down' },
+  nuke: { n: 25, name: 'TACTICAL NUKE', desc: '10 seconds after launch, everyone else dies and the match ends. You win.' } };
+var KS_ORDER = ['uav', 'pred', 'air', 'air3', 'heli', 'nuke'], KS_DEFAULT = ['uav', 'pred', 'air'];
 Object.assign(KS_ICON, {
+  nuke: '<svg viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="12" r="2.2"/><path d="M12 9.4 9.4 4.9A8 8 0 0 1 14.6 4.9z"/><path d="M14.3 13.3l5.2-.1a8 8 0 0 1-2.6 4.5z"/><path d="M9.7 13.3 7.1 17.7a8 8 0 0 1-2.6-4.5z"/></g><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
   pred: '<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M12 1.5c1.6 1.5 2.3 3.6 2.3 6v9.2l2.2 2.3v2.5l-2.6-1.4h-3.8l-2.6 1.4V19l2.2-2.3V7.5c0-2.4.7-4.5 2.3-6z"/><path d="M10.6 22h2.8l-1.4 1.5z" opacity=".7"/></g></svg>',
   heli: '<svg viewBox="0 0 24 24"><g fill="currentColor"><rect x="2" y="3.2" width="20" height="1.6" rx=".8"/><rect x="11.3" y="4" width="1.4" height="3"/><path d="M5 9.5c0-1.4 1.6-2.5 4-2.5h4.5c2.6 0 4.5 1.6 4.5 3.6v1.9c0 1-.8 1.5-1.8 1.5H8.5C6.4 14 5 12.2 5 9.5z"/><rect x="17" y="10" width="5.5" height="1.5" rx=".7"/><path d="M7 16h11l1 1.4H6z"/><rect x="9" y="14" width="1.2" height="2"/><rect x="15" y="14" width="1.2" height="2"/></g></svg>' });
 Object.assign(KS_FEED, { pred: 'PREDATOR MISSILE', heli: 'ATTACK HELICOPTER' });
@@ -60,12 +62,13 @@ function callAirstrike(at, kind, owner, pts, heading) {
   const ground = (x, z) => { const h = raycast(new V3(x, 80, z), new V3(0, -1, 0), 100, false); return h.t < 100 ? 80 - h.t + 0.2 : TH(x, z) + 0.3; }; /* the first thing a falling bomb meets: a roof, a walkway, the street */
   if (!pts) { pts = []; for (let i = 0; i < n; i++) { const p = at.clone().addScaledVector(dir, carpet ? (i - (n - 1) / 2) * 5 : (i - 1) * 4.5); const sc = carpet ? 1.3 : 2.2; p.x += rand(-sc, sc); p.z += rand(-sc, sc); p.y = ground(p.x, p.z); pts.push(p); } }
   if (mine && MP.active) netSend({ t: 'air', k: kind, pts: pts.map(v3a), h: [Math.round(dir.x * 1000) / 1000, Math.round(dir.z * 1000) / 1000] });
-  const R = pred ? 9 : carpet ? 6 : 8.5, DMG = pred ? 320 : carpet ? 160 : 260, t0 = pred ? 0 : carpet ? 3.2 : 2.6, step = carpet ? 0.22 : 0.16;
+  if (mine || owner) potgEvent('ks', { k: kind, pts: pts.map(v3a), h: [dir.x, dir.z] }); /* the replay re-flies the planes */
+  const R = pred ? 9 : carpet ? 7.5 : 8.5, DMG = pred ? 320 : carpet ? 230 : 260, t0 = pred ? 0 : carpet ? 3.2 : 2.6, step = carpet ? 0.22 : 0.16;
   const mid = pts[Math.floor(pts.length / 2)];
   if (carpet) { flyover(mid, dir, t0 + step * (pts.length - 1) / 2, 46, 55, true); pts.forEach((p, i) => dropBomb(p, t0 + i * step, false, dir)); ambience.flyby && ambience.flyby(true); }
   else if (!pred) { [-9, 0, 9].forEach((sd, j) => flyover(mid, dir, t0 - 0.9 + j * 0.12, 34 + j * 2, 110, false, sd)); pts.forEach((p, i) => dropBomb(p, t0 + i * step, true, dir)); ambience.flyby && ambience.flyby(true); }
   pts.forEach((p, i) => setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; game.ownSupport = mine; game.ksKind = kind;
-    try { explosion(p, R, DMG, mine ? 'player' : owner); bigFireball(p, !carpet); } finally { game.ownSupport = false; game.ksKind = null; } }, (t0 + i * step) * 1000));
+    try { explosion(p, R, DMG, mine ? 'player' : owner); bigFireball(p, !carpet); const gy = TH(p.x, p.z) + 0.3; if (!pred && p.y - gy > 2.2) explosion(new V3(p.x, gy, p.z), R * 0.85, DMG * 0.85, mine ? 'player' : owner); /* bombs punch through to the street below */ } finally { game.ownSupport = false; game.ksKind = null; } }, (t0 + i * step) * 1000));
 }
 
 // ---- Predator missile: you ride it down. Mouse / stick steer, click / RT boosts, it hits whatever it meets.
@@ -87,19 +90,19 @@ function predEnd(boom) {
 }
 function predTick(dt) {
   if (!PRED.on) return; const P = PRED; if (!player.alive || game.state !== 'play') return predEnd(false);
-  P.t += dt; if (mouseL || (gp.on && gp.fire)) P.boost = true;
+  P.t += dt; if (mouseL || (gp.on && (gp.fire || gp.aBtn))) P.boost = true;
   const sp = P.boost ? 95 : 32, d = new V3(Math.sin(P.yaw) * Math.cos(P.pitch), Math.sin(P.pitch), Math.cos(P.yaw) * Math.cos(P.pitch)), step = sp * dt;
   const h = raycast(P.pos, d, step + 0.5, false), hitW = h.t < step + 0.49; let hitE = null; /* a miss reports the full ray length */
   for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead) continue; if (Math.hypot(e.pos.x - P.pos.x, e.pos.y + 1 - P.pos.y, e.pos.z - P.pos.z) < 1.6 + step) hitE = e; }
   if (hitW || hitE || P.pos.y + d.y * step < TH(P.pos.x, P.pos.z) + 0.3 || P.t > P.life) { if (hitW) P.pos.addScaledVector(d, Math.max(0, h.t - 0.2)); return predEnd(true); }
   P.pos.addScaledVector(d, step); P.g.position.copy(P.pos); P.g.lookAt(P.pos.clone().add(d)); P.flame.scale.setScalar(P.boost ? 1.8 + Math.random() * 0.4 : 1 + Math.random() * 0.2);
   P.trail -= dt; if (P.trail <= 0) { P.trail = 0.02; debris.emit && debris.emit(P.pos.x - d.x * 3, P.pos.y - d.y * 3, P.pos.z - d.z * 3, rand(-0.3, 0.3), rand(0.2, 0.6), rand(-0.3, 0.3), 0.75, 0.75, 0.72, 1.2, 0.05); }
-  camera.position.copy(P.pos).addScaledVector(d, 0.3); /* the nose camera: trail and body stay behind you */ camera.lookAt(P.pos.clone().addScaledVector(d, 10)); camera.fov = 62; camera.updateProjectionMatrix(); sky.position.copy(camera.position);
+  camera.position.copy(P.pos).addScaledVector(d, 0.3); /* the nose camera: trail and body stay behind you */ camera.lookAt(P.pos.clone().addScaledVector(d, 10)); camera.fov = 62; camera.updateProjectionMatrix(); camera.updateMatrixWorld(); sky.position.copy(camera.position); /* projecting the target boxes needs this frame's camera */
   const ov = $('predov'); if (!ov) return; ov.querySelector('.pbar u').style.width = (100 * (1 - P.t / P.life)).toFixed(1) + '%';
   setHTML(ov.querySelector('.ptop span'), `ALT ${Math.max(0, Math.round(P.pos.y - TH(P.pos.x, P.pos.z)))} m${P.boost ? ' · BOOST' : ''}`);
-  setHTML(ov.querySelector('.phelp'), P.boost ? 'BOOSTING' : (gp.on ? '<kbd>STICKS</kbd> steer · <kbd class="big">RT</kbd> boost' : '<kbd>MOUSE</kbd> steer · <kbd class="big">CLICK</kbd> boost'));
+  setHTML(ov.querySelector('.phelp'), P.boost ? 'BOOSTING' : (gp.on ? '<kbd>STICKS</kbd> steer · <kbd class="kbig">A</kbd> / <kbd>RT</kbd> boost' : '<kbd>MOUSE</kbd> steer · <kbd class="kbig">CLICK</kbd> boost'));
   let html = ''; for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead || isAlly(PLAYER_T, e)) continue; const v = new V3(e.pos.x, e.pos.y + 1, e.pos.z).project(camera); if (v.z > 1 || Math.abs(v.x) > 1 || Math.abs(v.y) > 1) continue;
-    html += `<i style="left:${((v.x * 0.5 + 0.5) * 100).toFixed(2)}%;top:${((-v.y * 0.5 + 0.5) * 100).toFixed(2)}%"></i>`; } /* thermal: every enemy boxed in red */
+    const sz = clamp(1400 / Math.max(8, e.pos.distanceTo(P.pos)), 16, 70); html += `<i style="left:${((v.x * 0.5 + 0.5) * 100).toFixed(2)}%;top:${((-v.y * 0.5 + 0.5) * 100).toFixed(2)}%;width:${sz.toFixed(0)}px;height:${(sz * 1.5).toFixed(0)}px"></i>`; } /* thermal: every enemy boxed in red */
   const bx = ov.querySelector('.pbox'); if (bx._h !== html) { bx._h = html; bx.innerHTML = html; }
 }
 
@@ -118,15 +121,32 @@ function makeHeli() { const g = new THREE.Group(), body = ksMat(0x3c4434, 0.6, 0
   g.userData = { rotor, tr }; g.traverse(m => { if (m.isMesh) m.castShadow = true; }); return g; }
 function heliStart() {
   SURV.support.shift(); const [x0, z0, x1, z1] = world.L.bounds, c = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2);
-  const g = makeHeli(); scene.add(g); Object.assign(HELI, { on: true, g, c, r: Math.max(18, Math.min(x1 - x0, z1 - z0) * 0.32), ang: Math.atan2(player.pos.z - c.z, player.pos.x - c.x), t: 45, burst: 0, cd: 1.5, tgt: null, look: 0, send: 0, snd: 0, pos: new V3(), st: { shots: 0, hits: 0, seen: 0, blind: 0 } });
-  showHint('ATTACK HELICOPTER INBOUND', '#ff6b5a'); sfx.play('wave');
+  const g = makeHeli(); scene.add(g); Object.assign(HELI, { on: true, g, c, r: Math.max(18, Math.min(x1 - x0, z1 - z0) * 0.32), ang: Math.atan2(player.pos.z - c.z, player.pos.x - c.x), t: 60, hp: 1800, burst: 0, cd: 1.5, tgt: null, look: 0, send: 0, snd: 0, pos: new V3(), st: { shots: 0, hits: 0, seen: 0, blind: 0 }, aa: new Map() });
+  showHint('ATTACK HELICOPTER INBOUND · 60 s', '#ff6b5a'); sfx.play('wave');
 }
+function heliTakeFire(dt) { /* offline: bots with nothing better to shoot put rounds into your gunship */
+  const H = HELI; if (MP.active) return;
+  for (const e of enemies) { if (e.dead || isAlly(PLAYER_T, e) || !e.W || (e.state === 'engage' && H.tgt !== e)) continue; /* idle bots, and whoever it is shooting at, fire back */ const d = e.pos.distanceTo(H.pos); if (d > 70) continue;
+    let a = H.aa.get(e) || 0; a -= dt; if (a > 0) { H.aa.set(e, a); continue; } a = 0.45; H.aa.set(e, a);
+    if (Math.random() > 0.4 || !los(e.pos.x, e.pos.y + 1.5, e.pos.z, H.pos.x, H.pos.y, H.pos.z)) continue;
+    const from = new V3(e.pos.x, e.pos.y + 1.45, e.pos.z); for (let k = 0; k < 3 && HELI.on; k++) { const to = HELI.pos.clone().add(new V3(rand(-2.5, 2.5), rand(-1.5, 1.5), rand(-2.5, 2.5))); spawnTracer(from, to, 0xffd27a, 700, 0.014); if (Math.random() < 0.5) heliDamage(14, null); } }
+}
+function heliDamage(d, by) { const H = HELI; if (!H.on) return; H.hp -= d; sparks.burst(H.pos.x, H.pos.y, H.pos.z, 3, 4, 1, 0.8, 0.4, 0.25, 1); if (H.hp <= 0) heliDown(by); }
+function heliDown(by) { const H = HELI, g = H.g, p = H.pos.clone(); H.on = false; if (MP.active) netSend({ t: 'heli', end: 1, down: 1, by: by || '' });
+  showHint('YOUR ATTACK HELICOPTER WAS SHOT DOWN', '#ff6b5a'); feedLine(by ? pname(by) : 'Enemy fire', null, 'heli', false, 'Attack Helicopter', null, true); heliCrash(g, p); }
+function heliCrash(g, p) { let vy = 0, t = 0; const spin = rand(2.5, 4); sparks.burst(p.x, p.y, p.z, 20, 8, 1, 0.6, 0.2, 0.6, 1); /* spirals down smoking, then a fireball where it lands */
+  KSFX.push(dt => { t += dt; vy -= 9.81 * dt; g.position.y += vy * dt; g.rotation.y += spin * dt * 2; g.rotation.z = Math.sin(t * 3) * 0.3; g.userData.rotor.rotation.y += dt * 10;
+    debris.emit && debris.emit(g.position.x, g.position.y, g.position.z, rand(-0.5, 0.5), rand(0.5, 1.5), rand(-0.5, 0.5), 0.2, 0.2, 0.2, 2, 0.05);
+    if (g.position.y <= TH(g.position.x, g.position.z) + 1 || t > 6) { scene.remove(g); const q = g.position.clone(); q.y = TH(q.x, q.z) + 0.5; const sp = spatial(q); sfx.boom(sp.dist, sp.pan, 1, sp.pos); bigFireball(q, true); return false; } return true; }); }
+/* a remote player's gunship: your rounds / rockets hit it if they pass within its body */
+function heliGhostHit(o, dir, maxT) { for (const id in HELI.ghosts) { if (isAlly(PLAYER_T, id)) continue; const c = HELI.ghosts[id].g.position, w = c.clone().sub(o), along = w.dot(dir); if (along < 0 || along > maxT) continue; if (w.addScaledVector(dir, -along).length() < 2.6) return { id, t: along }; } return null; }
 function heliTick(dt) {
   for (const id in HELI.ghosts) { const G = HELI.ghosts[id]; G.age += dt; G.g.position.lerp(G.p, 1 - Math.exp(-dt * 6)); G.g.rotation.y += angDiff(G.g.rotation.y, G.yaw) * (1 - Math.exp(-dt * 6)); G.g.userData.rotor.rotation.y += dt * 30; if (G.age > 2) { scene.remove(G.g); delete HELI.ghosts[id]; } }
-  if (!HELI.on) return; const H = HELI; H.t -= dt; if (H.t <= 0 || game.state !== 'play' && game.state !== 'dying') { scene.remove(H.g); H.on = false; if (MP.active) netSend({ t: 'heli', end: 1 }); return; }
+  if (!HELI.on) return; const H = HELI; H.t -= dt; if (H.t <= 0 || game.state !== 'play' && game.state !== 'dying') { if (H.t <= 0) showHint('ATTACK HELICOPTER LEAVING', '#ffcf6b'); scene.remove(H.g); H.on = false; if (MP.active) netSend({ t: 'heli', end: 1 }); return; }
   H.ang += dt * 0.16; const ground = TH(H.c.x + Math.cos(H.ang) * H.r, H.c.z + Math.sin(H.ang) * H.r);
   H.pos.set(H.c.x + Math.cos(H.ang) * H.r, Math.max(ground, 0) + 24 + Math.sin(H.t * 0.9) * 1.2, H.c.z + Math.sin(H.ang) * H.r);
-  if (H.t > 43) H.pos.y += (H.t - 43) * 30; /* swoops in */
+  if (H.t > 58) H.pos.y += (H.t - 58) * 30; /* swoops in */
+  heliTakeFire(dt);
   H.g.position.copy(H.pos); const tg = H.tgt && !H.tgt.dead ? H.tgt : null, faceYaw = tg ? Math.atan2(tg.pos.x - H.pos.x, tg.pos.z - H.pos.z) : H.ang + Math.PI;
   H.g.rotation.y += angDiff(H.g.rotation.y, faceYaw) * (1 - Math.exp(-dt * 3)); H.g.rotation.x = 0.12; H.g.userData.rotor.rotation.y += dt * 32; H.g.userData.tr.rotation.x += dt * 50;
   H.snd -= dt; if (H.snd <= 0) { H.snd = 0.11; const sp = spatial(H.pos); sfx.play('heli', { pan: sp.pan, pos: sp.pos, vol: Math.max(0.15, sp.vol) }); }
@@ -137,16 +157,17 @@ function heliTick(dt) {
     if (!cur || H.lost > 0.6) { if (best !== H.tgt) { H.tgt = best; H.lost = 0; if (best) H.cd = Math.max(H.cd, 0.5); } } } /* sticks with a target until it drops or slips out of sight: damage isn't wasted across several people who then heal */
   if (tg) H.st.seen += dt; else H.st.blind += dt;
   H.cd -= dt; if (!tg || H.cd > 0) return;
-  H.burst = (H.burst || 0) + dt; if (H.burst > 1.1) { H.burst = 0; H.cd = rand(0.9, 1.5); return; }
+  H.burst = (H.burst || 0) + dt; if (H.burst > 1.1) { H.burst = 0; H.cd = rand(1.5, 2.3); return; }
   H.fire = (H.fire || 0) - dt; if (H.fire > 0) return; H.fire = 0.075;
   const mz = H.g.localToWorld(new V3(0, -1.1, 3)), aim = new V3(tg.pos.x + rand(-0.9, 0.9), tg.pos.y + rand(0.3, 1.7), tg.pos.z + rand(-0.9, 0.9)), dirv = aim.clone().sub(mz), L = dirv.length(); dirv.divideScalar(L);
   const h = raycast(mz, dirv, L + 1, false); const end = mz.clone().addScaledVector(dirv, Math.min(h.t, L + 1)); spawnTracer(mz, end, 0xffc070, 600, 0.03); H.st.shots++;
   if (MP.active) netSend({ t: 'shot', a: v3a(mz), b: v3a(end), w: 'heli' });
   { const sp = spatial(mz); sfx.gun('lmg', { dist: sp.dist, pan: sp.pan, pos: sp.pos, vol: 0.7 }); }
-  if (h.t >= L - 0.4 && Math.hypot(end.x - tg.pos.x, end.z - tg.pos.z) < 0.75) { H.st.hits++; game.ksKind = 'heli'; try { bloodHit(end.clone(), dirv.clone(), false); tg.damage(24, false, { x: dirv.x * 2, z: dirv.z * 2 }, 'player'); } finally { game.ksKind = null; } }
+  if (h.t >= L - 0.4 && Math.hypot(end.x - tg.pos.x, end.z - tg.pos.z) < 0.75) { H.st.hits++; game.ksKind = 'heli'; try { bloodHit(end.clone(), dirv.clone(), false); tg.damage(20, false, { x: dirv.x * 2, z: dirv.z * 2 }, 'player'); } finally { game.ksKind = null; } }
   else impactFx && impactFx(end, -dirv.x, -dirv.y, -dirv.z, h.box, false);
 }
-function heliGhost(id, d) { if (d.end) { const G = HELI.ghosts[id]; if (G) { scene.remove(G.g); delete HELI.ghosts[id]; } return; } const p = arrV3(d.p); if (!p) return;
+function heliGhost(id, d) { if (d.hit && d.to === MP.myId) { heliDamage(clamp(num(d.hit), 0, 1000), id); return; } if (d.hit) return;
+  if (d.end) { const G = HELI.ghosts[id]; if (G) { if (d.down) { heliCrash(G.g, G.g.position.clone()); feedLine(d.by ? pname(d.by) : 'Someone', null, 'heli', false, 'Attack Helicopter', null, d.by === MP.myId); if (d.by === MP.myId) { gainXP(150, 'HELICOPTER DOWN'); showHint('ATTACK HELICOPTER DESTROYED', '#9cff8a'); } } else scene.remove(G.g); delete HELI.ghosts[id]; } return; } const p = arrV3(d.p); if (!p) return;
   let G = HELI.ghosts[id]; if (!G) { G = HELI.ghosts[id] = { g: makeHeli(), p: p.clone(), yaw: 0, age: 0 }; G.g.position.copy(p); scene.add(G.g); showHint('ENEMY ATTACK HELICOPTER', '#ff6b5a'); }
   G.p.copy(p); G.yaw = num(d.y, 0); G.age = 0; }
 
@@ -160,3 +181,19 @@ function ksLoadoutPanel(right, lo, rerender) {
     grid.appendChild(b); }
   right.appendChild(grid);
 }
+
+// ---- Tactical nuke: a 10 s countdown everyone sees, then a white-out; everyone but the caller (and their team) dies and the match ends
+const NUKE = { t: 0, by: null };
+function nukeLaunch(by) { if (NUKE.t > 0) return; NUKE.t = 10; NUKE.by = by; NUKE.beep = 0; if (by === 'me' || by === MP.myId) { if (MP.active) netSend({ t: 'nuke' }); }
+  let o = $('nukeov'); if (!o) { o = document.createElement('div'); o.id = 'nukeov'; o.innerHTML = '<i class="nk"></i><b></b><small></small><div class="flash"></div>'; $('hud').appendChild(o); }
+  o.querySelector('.nk').innerHTML = KS_ICON.nuke; o.querySelector('small').textContent = (by === 'me' || by === MP.myId) ? 'YOU LAUNCHED A TACTICAL NUKE' : (pname(by) || 'AN ENEMY').toUpperCase() + ' LAUNCHED A TACTICAL NUKE'; o.classList.add('on'); o.querySelector('.flash').style.opacity = 0; }
+function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.fade) return; const o = $('nukeov');
+  if (NUKE.t > 0) { NUKE.t -= dt; NUKE.beep -= dt; if (NUKE.beep <= 0) { NUKE.beep = 1; sfx.play('nukeSiren'); } if (o) setHTML(o.querySelector('b'), String(Math.max(0, Math.ceil(NUKE.t))));
+    if (NUKE.t <= 0) { NUKE.fade = 3.5; nukeBlast(); } return; }
+  NUKE.fade -= dt; if (o) { o.querySelector('.flash').style.opacity = clamp(NUKE.fade / 2.5, 0, 1); if (NUKE.fade <= 0) { o.classList.remove('on'); NUKE.fade = 0; } } }
+function nukeBlast() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId, o = $('nukeov'); if (o) o.querySelector('.flash').style.opacity = 1; sfx.boom(0, 0, 3); game.shake = 1.6; rumble(1, 1, 1500);
+  game.ksKind = 'nuke'; game.ownSupport = true;
+  try { if (!MP.active) { for (const e of enemies) if (!e.dead && !isAlly(PLAYER_T, e)) { e.protT = 0; e.damage(99999, false, null, mine ? 'player' : null); } if (!mine && player.alive) damagePlayer(99999, null, null); game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 2600); }
+    else { if (!mine && player.alive && !isAlly(PLAYER_T, NUKE.by)) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; damagePlayer(99999, null, NUKE.by); }
+      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId && !isAlly(NUKE.by, e)) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 2600); } } }
+  finally { game.ksKind = null; game.ownSupport = false; } }

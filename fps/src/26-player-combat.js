@@ -126,6 +126,7 @@ function fire() {
       _hp.copy(origin).addScaledVector(_d, hit.t);
       const dist = travelled + hit.t; if (!firstEnd) firstEnd = _hp.clone();
       if ((i < 3 || n === 1) && (w.pellets || wst.consec % (w.auto ? 3 : 1) === 1 || !w.auto)) spawnTracer(i === 0 ? muzzleW : origin, _hp, 0xffd890, 850, 0.011);
+      { const hh = MP.active && heliGhostHit(origin, _d, hit.t); if (hh) { netSend({ t: 'heli', hit: Math.round(w.dmg * (w.pellets ? 0.6 : 1)), to: hh.id }); hitMarker(false, false); const sp = origin.clone().addScaledVector(_d, hh.t); sparks.burst(sp.x, sp.y, sp.z, 4, 4, 1, 0.8, 0.4, 0.25, 1); break; } } /* enemy attack helicopter */
       if (hit.enemy && isAlly(PLAYER_T, hit.enemy)) break; // teammate: no friendly fire
       if (hit.enemy) {
         const [r0, r1, rmin] = w.range; const fall = dist <= r0 ? 1 : dist >= r1 ? rmin : lerp(1, rmin, (dist - r0) / (r1 - r0));
@@ -229,6 +230,7 @@ function updateRockets(dt) {
     const hit = raycast(r.pos, dir, step + 0.1, false); let hitT = hit.t < step + 0.099 ? hit.t : Infinity;
     for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead || e === r.owner || (e.id !== undefined && e.id === r.owner)) continue; const c = new V3(e.pos.x, e.pos.y + e.h * 0.55, e.pos.z), d = c.clone().sub(r.pos), along = d.dot(dir); if (along < 0 || along > step + 0.5) continue; if (d.clone().addScaledVector(dir, -along).length() < 0.6) hitT = Math.min(hitT, along); }
     if (r.owner !== 'player' && r.owner !== MP.myId && player.alive) { const c = new V3(player.pos.x, player.pos.y + 1, player.pos.z), d = c.clone().sub(r.pos), along = d.dot(dir); if (along > 0 && along < step + 0.5 && d.clone().addScaledVector(dir, -along).length() < 0.6) hitT = Math.min(hitT, along); }
+    if ((r.owner === 'player' || r.owner === MP.myId) && MP.active) { const hh = heliGhostHit(r.pos, dir, step + 0.5); if (hh) { netSend({ t: 'heli', hit: 1000, to: hh.id }); hitMarker(true, false); hitT = Math.min(hitT, hh.t); } } /* a rocket into a gunship: two take it down */
     if (hitT <= step + 0.1 || r.t <= 0 || r.pos.y < -5) {
       const at = r.pos.clone().addScaledVector(dir, Math.max(0, Math.min(hitT, step) - 0.15)); fx.remove(r.g); rockets.splice(i, 1);
       explosion(at, 7, 220, r.owner === 'player' ? 'player' : r.owner); game.shake = Math.min(1.4, game.shake + 0.5); continue;

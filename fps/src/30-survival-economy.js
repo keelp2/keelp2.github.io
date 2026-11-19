@@ -63,11 +63,12 @@ const pvpOn = () => game.mode === 'botdm' || (MP.active && MP.mode !== 'surv');
 const supOn = () => survOn() || pvpOn();
 /* button prompts for whichever device you are using (CoD-style): a big key cap, or a drawn D-pad with the right arm lit */
 const DPAD_R = '<svg class="dpad" viewBox="0 0 30 30"><path d="M11 2h8v9h9v8h-9v9h-8v-9H2v-8h9z" fill="rgba(255,255,255,.32)" stroke="#fff" stroke-width="1.4"/><path d="M19 11h9v8h-9z" fill="#ffcf6b"/><path d="M22 12.5l4 2.5-4 2.5z" fill="#111"/></svg>';
-const supKey = () => gp.on ? DPAD_R : '<kbd class="big">Z</kbd>';
-const supFire = () => gp.on ? '<kbd class="big">RT</kbd>' : '<kbd class="big">CLICK</kbd>';
+const supKey = () => gp.on ? DPAD_R : '<kbd class="kbig">Z</kbd>';
+const supFire = () => gp.on ? '<kbd class="kbig">RT</kbd>' : '<kbd class="kbig">CLICK</kbd>';
 const supBack = () => gp.on ? '<kbd>B</kbd>' : '<kbd>RIGHT-CLICK</kbd>';
 function ksKill() { if (!pvpOn() || game.ksKind) return; game.ks = (game.ks || 0) + 1; /* a killstreak's own kills don't feed the next one */
-  for (const [id, n, name, desc] of STREAKS()) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); } }
+  const L = STREAKS(); for (const [id, n, name, desc] of L) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); }
+  if (L.length && game.ks >= L[L.length - 1][1]) game.ks = 0; /* top streak earned: the counter starts over, so you can earn them again without dying */ }
 function ksReset() { game.ks = 0; }
 function ksBanner(id, name, desc) { let b = $('ksbanner'); if (!b) { b = document.createElement('div'); b.id = 'ksbanner'; $('hud').appendChild(b); }
   b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc}</em></div><div class="kskey">${supKey()}<small>${gp.on ? 'D-PAD RIGHT' : 'PRESS'}</small></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
@@ -78,6 +79,7 @@ function supportStart() { /* CoD-style: pull up the tablet, pick the spot on the
   if (!supOn() || !player.alive || game.state !== 'play') return; if (SURV.tgt) return supportCancel(); if (!SURV.support.length) { showHint(survOn() ? 'NO AIR SUPPORT · BUY IT AT THE RED ARMORY' : 'NO KILLSTREAK READY · ' + STREAKS()[0][1] + ' KILLS IN A ROW FOR ' + STREAKS()[0][2], '#ff6b5a'); return; }
   if (SURV.support[0] === 'uav') { SURV.support.shift(); game.uavT = 30; showHint('UAV ONLINE', '#7ac4ff'); sfx.play('wave'); ambience.flyby && ambience.flyby(false); return; }
   if (SURV.support[0] === 'pred') { if (SURV.open) closeBuy(); return predStart(); }
+  if (SURV.support[0] === 'nuke') { SURV.support.shift(); return nukeLaunch(MP.active ? MP.myId : 'me'); }
   if (SURV.support[0] === 'heli') { if (HELI.on) { showHint('YOUR HELICOPTER IS STILL UP', '#ffcf6b'); return; } return heliStart(); }
   if (SURV.open) closeBuy(); const [x0, z0, x1, z1] = world.L.bounds; aimBasis(); const h = raycast(camera.position, _f, 120, false), at = camera.position.clone().addScaledVector(_f, Math.min(h.t, 35));
   SURV.tgt = { id: SURV.support[0], x: clamp(at.x, x0, x1), z: clamp(at.z, z0, z1), ang: Math.atan2(_f.x, _f.z), r0: !!mouseR, l0: !!mouseL, t: 0 }; mouseL = mL = false; wst.adsOn = false;
@@ -98,8 +100,13 @@ function tabletDraw() {
   g.save(); g.globalAlpha = 0.9; g.filter = 'saturate(0.35) brightness(1.15)'; g.drawImage(radarImg.c, X(radarImg.x0), Z(radarImg.z0), radarImg.c.width / radarImg.RS * k, radarImg.c.height / radarImg.RS * k); g.restore();
   g.strokeStyle = 'rgba(120,255,170,0.08)'; g.lineWidth = 1; for (let i = 0; i <= W; i += W / 16) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, W); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); }
   const dot = (x, z, col, r) => { g.fillStyle = col; g.beginPath(); g.arc(X(x), Z(z), r, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.5; g.stroke(); };
-  for (const e of enemies) { if (e.dead) continue; if (isAlly(PLAYER_T, e)) { dot(e.pos.x, e.pos.z, '#4fb4ff', 5); continue; } if (game.time - e.lastFired < 2 || game.uavT > 0 || player.pulseT > 0) dot(e.pos.x, e.pos.z, '#ff3b30', 6); }
-  for (const r of remoteList) { if (r.dead) continue; if (isAlly(PLAYER_T, r)) { dot(r.pos.x, r.pos.z, '#4fb4ff', 5); continue; } if (game.time - r.lastFired < 2 || game.uavT > 0 || player.pulseT > 0) dot(r.pos.x, r.pos.z, '#ff3b30', 6); }
+  /* CoD intel: anyone on the radar (shooting unsuppressed / UAV) or in sight of you or a teammate shows live; others fade at their last-known spot */
+  if (!T.seen) T.seen = new Map(); T.scan = (T.scan || 0) - 1; const eyes = [new V3(player.pos.x, player.pos.y + 1.6, player.pos.z)].concat([...enemies, ...remoteList].filter(a => !a.dead && isAlly(PLAYER_T, a)).map(a => new V3(a.pos.x, a.pos.y + 1.6, a.pos.z)));
+  for (const e of [...enemies, ...remoteList]) { if (e.dead) { T.seen.delete(e); continue; } if (isAlly(PLAYER_T, e)) { dot(e.pos.x, e.pos.z, '#4fb4ff', 5); continue; }
+    let live = game.time - e.lastFired < 2 || game.uavT > 0 || player.pulseT > 0; if (!live && T.scan <= 0) live = eyes.some(o => o.distanceTo(e.pos) < 90 && los(o.x, o.y, o.z, e.pos.x, e.pos.y + 1.3, e.pos.z)); else if (!live) live = T.seen.has(e) && game.time - T.seen.get(e).t < 0.3;
+    if (live) { T.seen.set(e, { t: game.time, x: e.pos.x, z: e.pos.z }); dot(e.pos.x, e.pos.z, '#ff3b30', 6); }
+    else { const k = T.seen.get(e); if (k && game.time - k.t < 5) { g.globalAlpha = 1 - (game.time - k.t) / 5; g.strokeStyle = '#ff3b30'; g.lineWidth = 2; g.beginPath(); g.arc(X(k.x), Z(k.z), 6, 0, 7); g.stroke(); g.globalAlpha = 1; } } }
+  if (T.scan <= 0) T.scan = 8;
   { const px = X(player.pos.x), pz = Z(player.pos.z), fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw); g.save(); g.translate(px, pz); g.rotate(Math.atan2(fx, -fz)); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(0, 4); g.lineTo(-7, 8); g.closePath(); g.fill(); g.restore(); }
   const tx = X(T.x), tz = Z(T.z), pulse = 0.5 + 0.5 * Math.sin(T.t * 6);
   if (T.id === 'air3') { /* the bombing run: a runway strip along the heading, chevrons pointing the way the jets fly */
@@ -114,17 +121,17 @@ function tabletDraw() {
   g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, W - 26, W, 26); g.fillStyle = '#9cffb4'; g.font = '600 13px Inter, Arial, sans-serif'; g.fillText(`GRID ${String.fromCharCode(65 + clamp(Math.floor((T.x - x0) / (x1 - x0) * 8), 0, 7))}${1 + clamp(Math.floor((T.z - z0) / (z1 - z0) * 8), 0, 7)} · ${Math.round(Math.hypot(T.x - player.pos.x, T.z - player.pos.z))} m from you`, 10, W - 9);
 }
 function supportTick(dt) {
-  ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
+  nukeTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
   const T = SURV.tgt; let tile = $('suptile'); if (!tile) { tile = document.createElement('div'); tile.id = 'suptile'; $('hud').appendChild(tile); }
   const n = SURV.support.length, nm = id => (KS_DEFS[id] || KS_DEFS.air).name; if (game.uavT > 0) game.uavT -= dt; ksTrack();
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
   tile.style.display = supOn() && n && !T ? 'block' : 'none';
   if (T && (!player.alive || game.state !== 'play')) { supportCancel(); return; }
-  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${{ uav: 'press to launch', pred: 'press to fly it', heli: 'press to call it in' }[SURV.support[0]] || 'press to open the tablet'}</small>`); return; }
+  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${{ uav: 'press to launch', pred: 'press to fly it', heli: 'press to call it in', nuke: 'press to launch' }[SURV.support[0]] || 'press to open the tablet'}</small>`); return; }
   T.t += dt; const tb = $('tablet'), car = T.id === 'air3';
-  setHTML(tb.querySelector('.ttop b'), nm(T.id)); setHTML(tb.querySelector('.ttop span'), game.uavT > 0 ? 'UAV LINK ACTIVE' : 'RED = ENEMY SEEN ON RADAR');
-  setHTML(tb.querySelector('.thelp'), gp.on ? `<kbd>L-stick</kbd> move${car ? ' · <kbd>LB</kbd><kbd>RB</kbd> rotate the run' : ''} · <kbd class="big">RT</kbd> call it in · <kbd>B</kbd> cancel`
-    : `<kbd>MOUSE</kbd> move${car ? ' · <kbd>WHEEL</kbd> / <kbd>Q</kbd><kbd>E</kbd> rotate the run' : ''} · <kbd class="big">CLICK</kbd> call it in · <kbd>RIGHT-CLICK</kbd> / <kbd>Z</kbd> cancel`);
+  setHTML(tb.querySelector('.ttop b'), nm(T.id)); setHTML(tb.querySelector('.ttop span'), game.uavT > 0 ? 'UAV LINK ACTIVE · ALL ENEMIES' : 'RED = SPOTTED · RINGS = LAST SEEN');
+  setHTML(tb.querySelector('.thelp'), gp.on ? `<kbd>L-stick</kbd> move${car ? ' · <kbd>LB</kbd><kbd>RB</kbd> rotate the run' : ''} · <kbd class="kbig">A</kbd> call it in · <kbd>B</kbd> cancel`
+    : `<kbd>MOUSE</kbd> move${car ? ' · <kbd>WHEEL</kbd> / <kbd>Q</kbd><kbd>E</kbd> rotate the run' : ''} · <kbd class="kbig">CLICK</kbd> call it in · <kbd>RIGHT-CLICK</kbd> / <kbd>Z</kbd> cancel`);
   if (!mouseR) T.r0 = false; if (mouseR && !T.r0) { supportCancel(); mouseR = mR = false; wst.adsOn = false; return; }
   if (!mouseL) T.l0 = false; if (mouseL && !T.l0) { mouseL = mL = false; tabletConfirm(); return; }
   tabletDraw();

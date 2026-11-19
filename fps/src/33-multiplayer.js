@@ -153,7 +153,7 @@ function hostRecv(from, d) {
   if (d.t === 'po') { const rtt = performance.now() - num(d.c, 0); if (rtt >= 0 && rtt < 5000) { const p = MP.players[from]; p.ping = p.ping ? lerp(p.ping, rtt, 0.3) : rtt; } return; }
   if (d.t === 'pickreq') return hostPick(from, d.k);
   if (d.t === 'down' && MP.players[from]) { coopStat(from, 'downs'); } if (d.t === 'revive' && MP.players[from]) { coopStat(from, 'revives'); }
-  if (!['st', 'shot', 'hit', 'hm', 'pane', 'die', 'nade', 'rocket', 'down', 'revive', 'rvp', 'air', 'heli'].includes(d.t)) return;
+  if (!['st', 'shot', 'hit', 'hm', 'pane', 'die', 'nade', 'rocket', 'down', 'revive', 'rvp', 'air', 'heli', 'nuke'].includes(d.t)) return;
   bcast(d, from, d.t === 'st');
   if (d.t === 'die') hostDeath(d);
   handleGame(d);
@@ -218,6 +218,7 @@ function handleGame(d) {
     case 'rocket': { const p = arrV3(d.p), v = arrV3(d.v); if (p && v && v.length() < 80) { spawnRocket(p, v, d.id); const sp = spatial(p); sfx.boom(sp.dist + 4, sp.pan, 0.3); } break; }
     case 'air': { const pts = Array.isArray(d.pts) ? d.pts.slice(0, 9).map(arrV3).filter(Boolean) : []; if (pts.length) { const k = KS_DEFS[d.k] && d.k !== 'uav' && d.k !== 'heli' ? d.k : d.c ? 'air3' : 'air', hd = Array.isArray(d.h) ? new V3(num(d.h[0]), 0, num(d.h[1])) : null; callAirstrike(pts[0], k, d.id, pts, hd && hd.length() > 0.1 ? hd : null); } break; }
     case 'heli': heliGhost(d.id, d); break;
+    case 'nuke': if (MP.mode !== 'surv') nukeLaunch(d.id); break;
     case 'nade': {
       const p = arrV3(d.p), v = arrV3(d.v); if (!p || !v) break;
       const kind = EQUIP[d.k] ? d.k : 'frag', nm = nadeMesh(kind); nm.g.position.copy(p); fx.add(nm.g);
@@ -436,13 +437,14 @@ function startMatch(d) { if (!d._ld) { d._ld = 1; return deploy('MULTIPLAYER · 
   game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock(); $('ping').style.display = 'block';
   startIntro('MULTIPLAYER DEATHMATCH', `First to ${MP.limit} kills`); if (!game.intro) showMsg('DEATHMATCH', `FIRST TO ${MP.limit} KILLS`, 3); sfx.play('wave');
 }
-function hostEndMatch(why) {
+function hostEndMatch(why, nuke) {
   if (!MP.isHost || !MP.active || MP.ending) return; MP.ending = true;
-  const msg = { t: 'end', why, players: MP.players }; bcast(msg); endMatch(msg);
+  const msg = { t: 'end', why, players: MP.players, nuke: nuke || undefined }; bcast(msg); endMatch(msg);
 }
 function endMatch(d) {
   if (!MP.active || game.outro) return; const ps = d.players && typeof d.players === 'object' ? d.players : MP.players;
   const top = Object.entries(ps).sort((a, b) => (num(b[1].kills) - num(a[1].kills)))[0];
+  if (typeof d.nuke === 'string') return startOutro(d.nuke === MP.myId || isAlly(PLAYER_T, d.nuke) ? 'win' : 'loss', 'Tactical nuke', () => endMatchNow(d));
   if (MP.mode === 'tdm') { const [b, r] = MP.teamScore || [0, 0], my = mpTeamOf(PLAYER_T); return startOutro(b === r ? 'draw' : (b > r ? 0 : 1) === my ? 'win' : 'loss', d.why ? String(d.why).slice(0, 80) : '', () => endMatchNow(d)); }
   startOutro(top && top[0] === MP.myId ? 'win' : 'loss', d.why ? String(d.why).slice(0, 80) : '', () => endMatchNow(d));
 }

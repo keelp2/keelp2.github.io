@@ -188,6 +188,7 @@ const sfx = {
       case 'eRifle': return this.gun('rifle', o); case 'eShotgun': return this.gun('shotgun', o); case 'eHeavy': return this.gun('lmg', o); case 'eSniper': return this.gun('sniper', o);
       case 'pistol': case 'revolver': case 'rifle': case 'ak': case 'smg': case 'lmg': case 'shotgun': case 'dmr': case 'sniper': return this.gun(n, o);
       case 'charge': T({ type: 'sine', f: 600, f2: 1800, dur: 1.0, g: 0.18, a: 0.3 }); break;
+      case 'nukeSiren': T({ type: 'sawtooth', f: 420, f2: 760, dur: 0.5, g: 0.09 }); T({ type: 'sawtooth', f: 760, f2: 420, dur: 0.45, g: 0.09, delay: 0.5 }); break;
       case 'heli': N({ dur: 0.09, type: 'lowpass', f: 260, f2: 90, g: 0.55 }); T({ f: 58, f2: 38, dur: 0.08, g: 0.35 }); break; // rotor thump
       case 'empty': N({ dur: 0.035, type: 'bandpass', f: 3500, q: 6, g: 0.4 }); break;
       case 'magout': N({ dur: 0.07, type: 'bandpass', f: 1800, q: 4, g: 0.45 }); N({ dur: 0.12, type: 'bandpass', f: 900, q: 2, g: 0.2, delay: 0.05 }); break;

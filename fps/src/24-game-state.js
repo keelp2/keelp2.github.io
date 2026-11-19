@@ -165,7 +165,7 @@ function disposeGroup(g) {
 }
 let radarImg = null;
 function loadMap(i) {
-  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
+  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; NUKE.t = 0; NUKE.fade = 0; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
   if (world) { scene.remove(world.group); disposeGroup(world.group); }
   enemies = []; pickups = []; barrels = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   const def = MAPS[i], th = def.theme, L = new LevelBuilder(); def.build(L);

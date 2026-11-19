@@ -99,7 +99,7 @@ function updateBotMatch(dt) {
 }
 function endBotMatch(why) {
   if (game.outro || (game.state !== 'play' && game.state !== 'paused')) return;
-  let res; if (BD.teams) { const [b, r] = BD.teamKills; res = b === r ? 'draw' : b > r ? 'win' : 'loss'; } else { const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); res = top.me ? 'win' : 'loss'; }
+  let res; if (game.nukeWin) res = game.nukeWin; else if (BD.teams) { const [b, r] = BD.teamKills; res = b === r ? 'draw' : b > r ? 'win' : 'loss'; } else { const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); res = top.me ? 'win' : 'loss'; }
   startOutro(res, why, () => endBotMatchNow(why));
 }
 function endBotMatchNow(why) {

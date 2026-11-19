@@ -6,8 +6,8 @@ const POTG = { on: false, t: 0, acc: 0, frames: [], ev: [], actors: {}, names: {
 function potgReset() { const on = game.mode === 'botdm' || (MP.active && MP.mode !== 'surv'); Object.assign(POTG, { on, t: 0, acc: 0, frames: [], ev: [], actors: {}, names: {}, nid: 0 }); }
 function potgActor(id, info) { if (!POTG.actors[id]) { POTG.actors[id] = info; for (const n of info.names) POTG.names[n] = id; } }
 function potgRecord(dt) {
-  if (!POTG.on || game.outro || game.introT > 0) return; POTG.t += dt; POTG.acc += dt; if (POTG.acc < 0.05) return; POTG.acc = 0;
-  if (POTG.frames.length > 20 * 900) POTG.frames.splice(0, 20 * 60); // keep at most 15 minutes
+  if (!POTG.on || game.outro || game.introT > 0) return; POTG.t += dt; POTG.acc += dt; if (POTG.acc < 1 / 30) return; POTG.acc -= 1 / 30; if (POTG.acc > 0.1) POTG.acc = 0; /* 30 Hz: smooth enough to replay a flick */
+  if (POTG.frames.length > 30 * 900) POTG.frames.splice(0, 30 * 60); // keep at most 15 minutes
   const a = [], myTeam = MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0;
   potgActor('me', { names: ['You', cleanName(settings.name)], name: cleanName(settings.name) + '#' + PROFILE.tag, kind: cls().model, faction: myTeam, seed: PROFILE.id, human: true });
   a.push(['me', player.pos.x, player.pos.y, player.pos.z, player.yaw + Math.PI, player.pitch || 0, player.alive ? 1 : 0, WEAPONS[wst.cur].id, Math.round(wst.ads * 10) / 10, Math.round((player.crouch || 0) * 10) / 10, player.sliding ? 1 : 0]);
@@ -17,7 +17,8 @@ function potgRecord(dt) {
     a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, r.weaponId || 'rifle', r.lastAd || 0, r.lastH ? clamp((1.75 - r.lastH) / 0.6, 0, 1) : 0, r.lastSl || 0]); }
   { const A = POTG.actors.me; (A.att || (A.att = {}))[WEAPONS[wst.cur].id] = Object.assign({}, settings.att[WEAPONS[wst.cur].id]); }
   for (const r of remoteList) if (r.att && r.weaponId) { const A = POTG.actors['r' + r.id]; if (A) (A.att || (A.att = {}))[r.weaponId] = r.att; }
-  POTG.frames.push({ t: POTG.t, a });
+  const k = []; if (HELI.on) k.push(['h', HELI.pos.x, HELI.pos.y, HELI.pos.z, HELI.g.rotation.y]); for (const id in HELI.ghosts) { const G = HELI.ghosts[id].g; k.push(['h', G.position.x, G.position.y, G.position.z, G.rotation.y]); } if (PRED.on) k.push(['p', PRED.pos.x, PRED.pos.y, PRED.pos.z, PRED.yaw, PRED.pitch]);
+  POTG.frames.push(k.length ? { t: POTG.t, a, k } : { t: POTG.t, a });
 }
 const potgEvent = (type, o) => { if (POTG.on && !game.outro && game.state === 'play' && !game.potg) POTG.ev.push(Object.assign({ t: POTG.t, type }, o)); };
 function potgPick() { // CoD-style scoring: kills, headshots, kill chains, long shots, the match winner; online, real players beat bots
@@ -80,9 +81,14 @@ function updatePotg(dt) {
       spawnTracer(mine && G.vm ? G.vm.localToWorld(new V3(0, 0.03, -0.75)) : new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
     else if (e.type === 'blood') { bloodHit(new V3(...e.p), new V3(...e.d), !!e.h); const L = G.lastTr; if (L && e.t - L.t < 0.15 && Math.hypot(e.p[0] - L.b[0], e.p[1] - L.b[1], e.p[2] - L.b[2]) < 1.6) { hitMarker(false, !!e.h); G.lastTr = null; } }
     else if (e.type === 'imp') impactFx(new V3(...e.p), e.n[0], e.n[1], e.n[2], e.b, false);
+    else if (e.type === 'ks') { const pts = e.pts.map(q => new V3(q[0], q[1], q[2])), dir = new V3(e.h[0], 0, e.h[1]), mid = pts[Math.floor(pts.length / 2)], carpet = e.k === 'air3';
+      if (e.k === 'air' || carpet) { const t0 = carpet ? 3.2 : 2.6, st = carpet ? 0.22 : 0.16; if (carpet) flyover(mid, dir, t0 + st * (pts.length - 1) / 2, 46, 55, true); else [-9, 0, 9].forEach((sd, j) => flyover(mid, dir, t0 - 0.9 + j * 0.12, 34 + j * 2, 110, false, sd)); pts.forEach((p, i) => dropBomb(p, t0 + i * st, !carpet, dir)); } }
     else if (e.type === 'boom') { sfx.boom(Math.hypot(e.p[0] - cp.x, e.p[2] - cp.z), 0, 1, { x: e.p[0], y: e.p[1], z: e.p[2] }); debris.burst(e.p[0], e.p[1] + 0.3, e.p[2], 24, 9, 1, 0.75, 0.4, 0.9, 1); }
     else if (e.type === 'kill' && e.vn != null && !(POTG.names[e.k] === G.B.id)) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, false);
-    if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { if (e.vn != null) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, true); hitMarker(true, !!e.h); G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } if (e.h) sfx.play('hmhead'); } }
+    if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { if (e.vn != null) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, true); hitMarker(true, !!e.h); G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); if (c.animate) c.animate([{ transform: 'scale(1.35)', opacity: 0 }, { transform: 'scale(1)', opacity: 1, offset: 0.14 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: 1600, easing: 'ease-out' }); else { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } /* no forced layout mid-frame (that was a replay hitch) */ } if (e.h) sfx.play('hmhead'); } }
+  ksFxTick(dt * slow); { const K0 = f0.k || [], K1 = f1.k || K0; G.kfx = G.kfx || []; let hi = 0; /* gunships and missiles, straight from the recording */
+    for (let j = 0; j < K0.length; j++) { const a = K0[j], b2 = K1.find(x => x[0] === a[0]) || a; if (a[0] !== 'h') continue; let m = G.kfx[hi]; if (!m) { m = G.kfx[hi] = makeHeli(); scene.add(m); } m.visible = true; m.position.set(lerp(a[1], b2[1], k), lerp(a[2], b2[2], k), lerp(a[3], b2[3], k)); m.rotation.set(0.12, a[4] + angDiff(a[4], b2[4]) * k, 0); m.userData.rotor.rotation.y += dt * 30; hi++; }
+    for (let j = hi; j < G.kfx.length; j++) G.kfx[j].visible = false; }
   const H = G.hero; if (!H) return; // through the hero's eyes, with their gun in hand
   const eye = new V3(H.x, H.y + 1.62 - 0.55 * H.crouch - 0.2 * (H.slide || 0), H.z), Wp = WEAPONS[widx(G.vmId || 'rifle')] || WEAPONS[0], ads = H.ads > 0.5 ? 1 : H.ads * 2, scoped = !!Wp.scope && H.ads > 0.85; // exactly what they saw: same aim, stance and zoom
   camera.position.copy(eye); camera.lookAt(eye.x + Math.sin(H.yaw) * 20 * Math.cos(H.pitch), eye.y + Math.sin(H.pitch) * 20, eye.z + Math.cos(H.yaw) * 20 * Math.cos(H.pitch));
@@ -91,6 +97,10 @@ function updatePotg(dt) {
   camera.fov = settings.fov / lerp(1, Wp.zoom || 1.3, ads); camera.updateProjectionMatrix(); sky.position.copy(camera.position);
   const sc = $('potgScope'); if (sc) sc.style.opacity = scoped ? 1 : 0; G.xh = settings.xhair === 'none' ? 0 : Math.max(0, 1 - H.ads * 1.6) * (G.spd > 5.5 && H.ads < 0.2 ? 0.3 : 1); $('xh').style.opacity = G.xh; if (!G.killcam) hitTick(dt);
   const hg = G.ghosts[G.B.id]; if (hg) hg.group.visible = false;
+  if (!G.warm && G.vm) { G.warm = true; /* compile every shader the replay will draw now, not mid-clip (first draws stall the GPU) */
+    try { const hid = []; for (const id in G.ghosts) { const g = G.ghosts[id].group; if (!g.visible) { g.visible = true; hid.push(g); } } for (const m of G.kfx || []) if (!m.visible) { m.visible = true; hid.push(m); }
+      const hm = makeHeli(), jt = makeJet(false), bm = makeJet(true), bb = makeBomb(true); for (const o of [hm, jt, bm, bb]) { o.position.copy(camera.position).add(new V3(0, -50, 0)); scene.add(o); }
+      renderer.compile(scene, camera); for (const o of [hm, jt, bm, bb]) scene.remove(o); for (const g of hid) g.visible = false; } catch (e) {} }
   if (G.vm) { G.kick = Math.max(0, (G.kick || 0) - dt * 9); const bob = Math.sin(G.real * 9) * 0.004 * Math.min(1, (G.spd || 0) / 3);
     const hp = Wp.hip || [0.12, -0.13, -0.36], ap = Wp.adsPos || [0, -0.07, -0.3], aa = H.ads; G.vm.visible = !scoped;
     G.vm.position.copy(camera.position); G.vm.quaternion.copy(camera.quaternion); G.vm.translateX(lerp(hp[0], ap[0], aa)); G.vm.translateY(lerp(hp[1], ap[1], aa) + bob * (1 - aa) - G.kick * 0.01); G.vm.translateZ(lerp(hp[2], ap[2], aa) + G.kick * 0.05); G.vm.rotateX(G.kick * 0.08 * (1 - 0.6 * aa)); }
@@ -100,7 +110,7 @@ function potgViewmodel(G, id, att) { // the hero's weapon, held in first person 
   try { const gm = buildGun(id, att || {}, true), g = new THREE.Group(); gm.g.traverse(m => { if (m.isMesh) { m.frustumCulled = false; m.renderOrder = 10; } }); g.add(gm.g); g.userData.flash = gm.flash; if (gm.flash) gm.flash.visible = false; scene.add(g); G.vm = g; } catch (e) { G.vm = null; }
 }
 function endPotg() {
-  const G = game.potg; if (!G) return; game.potg = null; G.unbind && G.unbind(); if (G.vm) scene.remove(G.vm);
+  const G = game.potg; if (!G) return; if (G.kfx) for (const m of G.kfx) scene.remove(m); game.potg = null; G.unbind && G.unbind(); if (G.vm) scene.remove(G.vm);
   for (const id in G.ghosts) { const g = G.ghosts[id].group; if (g.parent) g.parent.remove(g); } for (const o of G.hidden) o.group.visible = true;
   $('xh').style.opacity = 0; hud.hitT = 0; $('hit').style.opacity = 0;
   const ov = $('potgov'); if (ov) ov.className = ''; $('hud').classList.remove('cine'); $('hud').classList.remove('potgmode'); $('hud').classList.remove('kcmode');

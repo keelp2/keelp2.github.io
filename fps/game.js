@@ -379,6 +379,7 @@ const sfx = {
       case 'eRifle': return this.gun('rifle', o); case 'eShotgun': return this.gun('shotgun', o); case 'eHeavy': return this.gun('lmg', o); case 'eSniper': return this.gun('sniper', o);
       case 'pistol': case 'revolver': case 'rifle': case 'ak': case 'smg': case 'lmg': case 'shotgun': case 'dmr': case 'sniper': return this.gun(n, o);
       case 'charge': T({ type: 'sine', f: 600, f2: 1800, dur: 1.0, g: 0.18, a: 0.3 }); break;
+      case 'nukeSiren': T({ type: 'sawtooth', f: 420, f2: 760, dur: 0.5, g: 0.09 }); T({ type: 'sawtooth', f: 760, f2: 420, dur: 0.45, g: 0.09, delay: 0.5 }); break;
       case 'heli': N({ dur: 0.09, type: 'lowpass', f: 260, f2: 90, g: 0.55 }); T({ f: 58, f2: 38, dur: 0.08, g: 0.35 }); break; // rotor thump
       case 'empty': N({ dur: 0.035, type: 'bandpass', f: 3500, q: 6, g: 0.4 }); break;
       case 'magout': N({ dur: 0.07, type: 'bandpass', f: 1800, q: 4, g: 0.45 }); N({ dur: 0.12, type: 'bandpass', f: 900, q: 2, g: 0.2, delay: 0.05 }); break;
@@ -3646,7 +3647,7 @@ function updateBotMatch(dt) {
 }
 function endBotMatch(why) {
   if (game.outro || (game.state !== 'play' && game.state !== 'paused')) return;
-  let res; if (BD.teams) { const [b, r] = BD.teamKills; res = b === r ? 'draw' : b > r ? 'win' : 'loss'; } else { const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); res = top.me ? 'win' : 'loss'; }
+  let res; if (game.nukeWin) res = game.nukeWin; else if (BD.teams) { const [b, r] = BD.teamKills; res = b === r ? 'draw' : b > r ? 'win' : 'loss'; } else { const top = BD.stats.reduce((a, b) => (b.kills > a.kills ? b : a)); res = top.me ? 'win' : 'loss'; }
   startOutro(res, why, () => endBotMatchNow(why));
 }
 function endBotMatchNow(why) {
@@ -4351,7 +4352,7 @@ function disposeGroup(g) {
 }
 let radarImg = null;
 function loadMap(i) {
-  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
+  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; NUKE.t = 0; NUKE.fade = 0; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
   if (world) { scene.remove(world.group); disposeGroup(world.group); }
   enemies = []; pickups = []; barrels = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   const def = MAPS[i], th = def.theme, L = new LevelBuilder(); def.build(L);
@@ -4640,6 +4641,7 @@ function fire() {
       _hp.copy(origin).addScaledVector(_d, hit.t);
       const dist = travelled + hit.t; if (!firstEnd) firstEnd = _hp.clone();
       if ((i < 3 || n === 1) && (w.pellets || wst.consec % (w.auto ? 3 : 1) === 1 || !w.auto)) spawnTracer(i === 0 ? muzzleW : origin, _hp, 0xffd890, 850, 0.011);
+      { const hh = MP.active && heliGhostHit(origin, _d, hit.t); if (hh) { netSend({ t: 'heli', hit: Math.round(w.dmg * (w.pellets ? 0.6 : 1)), to: hh.id }); hitMarker(false, false); const sp = origin.clone().addScaledVector(_d, hh.t); sparks.burst(sp.x, sp.y, sp.z, 4, 4, 1, 0.8, 0.4, 0.25, 1); break; } } /* enemy attack helicopter */
       if (hit.enemy && isAlly(PLAYER_T, hit.enemy)) break; // teammate: no friendly fire
       if (hit.enemy) {
         const [r0, r1, rmin] = w.range; const fall = dist <= r0 ? 1 : dist >= r1 ? rmin : lerp(1, rmin, (dist - r0) / (r1 - r0));
@@ -4743,6 +4745,7 @@ function updateRockets(dt) {
     const hit = raycast(r.pos, dir, step + 0.1, false); let hitT = hit.t < step + 0.099 ? hit.t : Infinity;
     for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead || e === r.owner || (e.id !== undefined && e.id === r.owner)) continue; const c = new V3(e.pos.x, e.pos.y + e.h * 0.55, e.pos.z), d = c.clone().sub(r.pos), along = d.dot(dir); if (along < 0 || along > step + 0.5) continue; if (d.clone().addScaledVector(dir, -along).length() < 0.6) hitT = Math.min(hitT, along); }
     if (r.owner !== 'player' && r.owner !== MP.myId && player.alive) { const c = new V3(player.pos.x, player.pos.y + 1, player.pos.z), d = c.clone().sub(r.pos), along = d.dot(dir); if (along > 0 && along < step + 0.5 && d.clone().addScaledVector(dir, -along).length() < 0.6) hitT = Math.min(hitT, along); }
+    if ((r.owner === 'player' || r.owner === MP.myId) && MP.active) { const hh = heliGhostHit(r.pos, dir, step + 0.5); if (hh) { netSend({ t: 'heli', hit: 1000, to: hh.id }); hitMarker(true, false); hitT = Math.min(hitT, hh.t); } } /* a rocket into a gunship: two take it down */
     if (hitT <= step + 0.1 || r.t <= 0 || r.pos.y < -5) {
       const at = r.pos.clone().addScaledVector(dir, Math.max(0, Math.min(hitT, step) - 0.15)); fx.remove(r.g); rockets.splice(i, 1);
       explosion(at, 7, 220, r.owner === 'player' ? 'player' : r.owner); game.shake = Math.min(1.4, game.shake + 0.5); continue;
@@ -5136,7 +5139,7 @@ function addFeed(html, hs, mine) {
   setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 6000);
 }
 // killer [WEAPON] (◎ = headshot) victim
-const KS_FEED = { air: 'AIRSTRIKE', air3: 'CARPET BOMBING', pred: 'PREDATOR MISSILE', heli: 'ATTACK HELICOPTER' };
+const KS_FEED = { air: 'AIRSTRIKE', air3: 'CARPET BOMBING', pred: 'PREDATOR MISSILE', heli: 'ATTACK HELICOPTER', nuke: 'TACTICAL NUKE' };
 const killLabel = () => game.ksKind ? game.ksKind : game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short; /* what the local player's kill is credited to, for the feed */
 const wShort = id => { if (KS_FEED[id]) return id; const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
 function hitCap(w, head) { const W = typeof w === 'string' && WEAPONS.find(x => x.id === w); if (!W || W.melee || W.launcher) return 250; return Math.ceil(W.dmg * (W.pellets || 1) * (head ? (W.head || 2) * 1.2 : 1) * 1.1) + 1; }
@@ -5244,11 +5247,12 @@ const pvpOn = () => game.mode === 'botdm' || (MP.active && MP.mode !== 'surv');
 const supOn = () => survOn() || pvpOn();
 /* button prompts for whichever device you are using (CoD-style): a big key cap, or a drawn D-pad with the right arm lit */
 const DPAD_R = '<svg class="dpad" viewBox="0 0 30 30"><path d="M11 2h8v9h9v8h-9v9h-8v-9H2v-8h9z" fill="rgba(255,255,255,.32)" stroke="#fff" stroke-width="1.4"/><path d="M19 11h9v8h-9z" fill="#ffcf6b"/><path d="M22 12.5l4 2.5-4 2.5z" fill="#111"/></svg>';
-const supKey = () => gp.on ? DPAD_R : '<kbd class="big">Z</kbd>';
-const supFire = () => gp.on ? '<kbd class="big">RT</kbd>' : '<kbd class="big">CLICK</kbd>';
+const supKey = () => gp.on ? DPAD_R : '<kbd class="kbig">Z</kbd>';
+const supFire = () => gp.on ? '<kbd class="kbig">RT</kbd>' : '<kbd class="kbig">CLICK</kbd>';
 const supBack = () => gp.on ? '<kbd>B</kbd>' : '<kbd>RIGHT-CLICK</kbd>';
 function ksKill() { if (!pvpOn() || game.ksKind) return; game.ks = (game.ks || 0) + 1; /* a killstreak's own kills don't feed the next one */
-  for (const [id, n, name, desc] of STREAKS()) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); } }
+  const L = STREAKS(); for (const [id, n, name, desc] of L) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); }
+  if (L.length && game.ks >= L[L.length - 1][1]) game.ks = 0; /* top streak earned: the counter starts over, so you can earn them again without dying */ }
 function ksReset() { game.ks = 0; }
 function ksBanner(id, name, desc) { let b = $('ksbanner'); if (!b) { b = document.createElement('div'); b.id = 'ksbanner'; $('hud').appendChild(b); }
   b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc}</em></div><div class="kskey">${supKey()}<small>${gp.on ? 'D-PAD RIGHT' : 'PRESS'}</small></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
@@ -5259,6 +5263,7 @@ function supportStart() { /* CoD-style: pull up the tablet, pick the spot on the
   if (!supOn() || !player.alive || game.state !== 'play') return; if (SURV.tgt) return supportCancel(); if (!SURV.support.length) { showHint(survOn() ? 'NO AIR SUPPORT · BUY IT AT THE RED ARMORY' : 'NO KILLSTREAK READY · ' + STREAKS()[0][1] + ' KILLS IN A ROW FOR ' + STREAKS()[0][2], '#ff6b5a'); return; }
   if (SURV.support[0] === 'uav') { SURV.support.shift(); game.uavT = 30; showHint('UAV ONLINE', '#7ac4ff'); sfx.play('wave'); ambience.flyby && ambience.flyby(false); return; }
   if (SURV.support[0] === 'pred') { if (SURV.open) closeBuy(); return predStart(); }
+  if (SURV.support[0] === 'nuke') { SURV.support.shift(); return nukeLaunch(MP.active ? MP.myId : 'me'); }
   if (SURV.support[0] === 'heli') { if (HELI.on) { showHint('YOUR HELICOPTER IS STILL UP', '#ffcf6b'); return; } return heliStart(); }
   if (SURV.open) closeBuy(); const [x0, z0, x1, z1] = world.L.bounds; aimBasis(); const h = raycast(camera.position, _f, 120, false), at = camera.position.clone().addScaledVector(_f, Math.min(h.t, 35));
   SURV.tgt = { id: SURV.support[0], x: clamp(at.x, x0, x1), z: clamp(at.z, z0, z1), ang: Math.atan2(_f.x, _f.z), r0: !!mouseR, l0: !!mouseL, t: 0 }; mouseL = mL = false; wst.adsOn = false;
@@ -5279,8 +5284,13 @@ function tabletDraw() {
   g.save(); g.globalAlpha = 0.9; g.filter = 'saturate(0.35) brightness(1.15)'; g.drawImage(radarImg.c, X(radarImg.x0), Z(radarImg.z0), radarImg.c.width / radarImg.RS * k, radarImg.c.height / radarImg.RS * k); g.restore();
   g.strokeStyle = 'rgba(120,255,170,0.08)'; g.lineWidth = 1; for (let i = 0; i <= W; i += W / 16) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, W); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); }
   const dot = (x, z, col, r) => { g.fillStyle = col; g.beginPath(); g.arc(X(x), Z(z), r, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.5; g.stroke(); };
-  for (const e of enemies) { if (e.dead) continue; if (isAlly(PLAYER_T, e)) { dot(e.pos.x, e.pos.z, '#4fb4ff', 5); continue; } if (game.time - e.lastFired < 2 || game.uavT > 0 || player.pulseT > 0) dot(e.pos.x, e.pos.z, '#ff3b30', 6); }
-  for (const r of remoteList) { if (r.dead) continue; if (isAlly(PLAYER_T, r)) { dot(r.pos.x, r.pos.z, '#4fb4ff', 5); continue; } if (game.time - r.lastFired < 2 || game.uavT > 0 || player.pulseT > 0) dot(r.pos.x, r.pos.z, '#ff3b30', 6); }
+  /* CoD intel: anyone on the radar (shooting unsuppressed / UAV) or in sight of you or a teammate shows live; others fade at their last-known spot */
+  if (!T.seen) T.seen = new Map(); T.scan = (T.scan || 0) - 1; const eyes = [new V3(player.pos.x, player.pos.y + 1.6, player.pos.z)].concat([...enemies, ...remoteList].filter(a => !a.dead && isAlly(PLAYER_T, a)).map(a => new V3(a.pos.x, a.pos.y + 1.6, a.pos.z)));
+  for (const e of [...enemies, ...remoteList]) { if (e.dead) { T.seen.delete(e); continue; } if (isAlly(PLAYER_T, e)) { dot(e.pos.x, e.pos.z, '#4fb4ff', 5); continue; }
+    let live = game.time - e.lastFired < 2 || game.uavT > 0 || player.pulseT > 0; if (!live && T.scan <= 0) live = eyes.some(o => o.distanceTo(e.pos) < 90 && los(o.x, o.y, o.z, e.pos.x, e.pos.y + 1.3, e.pos.z)); else if (!live) live = T.seen.has(e) && game.time - T.seen.get(e).t < 0.3;
+    if (live) { T.seen.set(e, { t: game.time, x: e.pos.x, z: e.pos.z }); dot(e.pos.x, e.pos.z, '#ff3b30', 6); }
+    else { const k = T.seen.get(e); if (k && game.time - k.t < 5) { g.globalAlpha = 1 - (game.time - k.t) / 5; g.strokeStyle = '#ff3b30'; g.lineWidth = 2; g.beginPath(); g.arc(X(k.x), Z(k.z), 6, 0, 7); g.stroke(); g.globalAlpha = 1; } } }
+  if (T.scan <= 0) T.scan = 8;
   { const px = X(player.pos.x), pz = Z(player.pos.z), fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw); g.save(); g.translate(px, pz); g.rotate(Math.atan2(fx, -fz)); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(0, 4); g.lineTo(-7, 8); g.closePath(); g.fill(); g.restore(); }
   const tx = X(T.x), tz = Z(T.z), pulse = 0.5 + 0.5 * Math.sin(T.t * 6);
   if (T.id === 'air3') { /* the bombing run: a runway strip along the heading, chevrons pointing the way the jets fly */
@@ -5295,17 +5305,17 @@ function tabletDraw() {
   g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, W - 26, W, 26); g.fillStyle = '#9cffb4'; g.font = '600 13px Inter, Arial, sans-serif'; g.fillText(`GRID ${String.fromCharCode(65 + clamp(Math.floor((T.x - x0) / (x1 - x0) * 8), 0, 7))}${1 + clamp(Math.floor((T.z - z0) / (z1 - z0) * 8), 0, 7)} · ${Math.round(Math.hypot(T.x - player.pos.x, T.z - player.pos.z))} m from you`, 10, W - 9);
 }
 function supportTick(dt) {
-  ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
+  nukeTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
   const T = SURV.tgt; let tile = $('suptile'); if (!tile) { tile = document.createElement('div'); tile.id = 'suptile'; $('hud').appendChild(tile); }
   const n = SURV.support.length, nm = id => (KS_DEFS[id] || KS_DEFS.air).name; if (game.uavT > 0) game.uavT -= dt; ksTrack();
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
   tile.style.display = supOn() && n && !T ? 'block' : 'none';
   if (T && (!player.alive || game.state !== 'play')) { supportCancel(); return; }
-  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${{ uav: 'press to launch', pred: 'press to fly it', heli: 'press to call it in' }[SURV.support[0]] || 'press to open the tablet'}</small>`); return; }
+  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${{ uav: 'press to launch', pred: 'press to fly it', heli: 'press to call it in', nuke: 'press to launch' }[SURV.support[0]] || 'press to open the tablet'}</small>`); return; }
   T.t += dt; const tb = $('tablet'), car = T.id === 'air3';
-  setHTML(tb.querySelector('.ttop b'), nm(T.id)); setHTML(tb.querySelector('.ttop span'), game.uavT > 0 ? 'UAV LINK ACTIVE' : 'RED = ENEMY SEEN ON RADAR');
-  setHTML(tb.querySelector('.thelp'), gp.on ? `<kbd>L-stick</kbd> move${car ? ' · <kbd>LB</kbd><kbd>RB</kbd> rotate the run' : ''} · <kbd class="big">RT</kbd> call it in · <kbd>B</kbd> cancel`
-    : `<kbd>MOUSE</kbd> move${car ? ' · <kbd>WHEEL</kbd> / <kbd>Q</kbd><kbd>E</kbd> rotate the run' : ''} · <kbd class="big">CLICK</kbd> call it in · <kbd>RIGHT-CLICK</kbd> / <kbd>Z</kbd> cancel`);
+  setHTML(tb.querySelector('.ttop b'), nm(T.id)); setHTML(tb.querySelector('.ttop span'), game.uavT > 0 ? 'UAV LINK ACTIVE · ALL ENEMIES' : 'RED = SPOTTED · RINGS = LAST SEEN');
+  setHTML(tb.querySelector('.thelp'), gp.on ? `<kbd>L-stick</kbd> move${car ? ' · <kbd>LB</kbd><kbd>RB</kbd> rotate the run' : ''} · <kbd class="kbig">A</kbd> call it in · <kbd>B</kbd> cancel`
+    : `<kbd>MOUSE</kbd> move${car ? ' · <kbd>WHEEL</kbd> / <kbd>Q</kbd><kbd>E</kbd> rotate the run' : ''} · <kbd class="kbig">CLICK</kbd> call it in · <kbd>RIGHT-CLICK</kbd> / <kbd>Z</kbd> cancel`);
   if (!mouseR) T.r0 = false; if (mouseR && !T.r0) { supportCancel(); mouseR = mR = false; wst.adsOn = false; return; }
   if (!mouseL) T.l0 = false; if (mouseL && !T.l0) { mouseL = mL = false; tabletConfirm(); return; }
   tabletDraw();
@@ -5391,9 +5401,11 @@ var KS_DEFS = {
   pred: { n: 5, name: 'PREDATOR MISSILE', desc: 'Fly a missile down from the sky: steer it, boost it, hit them' },
   air: { n: 6, name: 'PRECISION AIRSTRIKE', desc: 'Pick a spot on your tablet: 3 jets drop heavy bombs on it' },
   air3: { n: 8, name: 'CARPET BOMBING', desc: 'Lay a run on your tablet: a bomber walks 9 bombs down it' },
-  heli: { n: 10, name: 'ATTACK HELICOPTER', desc: 'A gunship circles the map for 45 s and hunts enemies' } };
-var KS_ORDER = ['uav', 'pred', 'air', 'air3', 'heli'], KS_DEFAULT = ['uav', 'pred', 'air'];
+  heli: { n: 10, name: 'ATTACK HELICOPTER', desc: 'A gunship hunts enemies for 60 s — they can shoot it down' },
+  nuke: { n: 25, name: 'TACTICAL NUKE', desc: '10 seconds after launch, everyone else dies and the match ends. You win.' } };
+var KS_ORDER = ['uav', 'pred', 'air', 'air3', 'heli', 'nuke'], KS_DEFAULT = ['uav', 'pred', 'air'];
 Object.assign(KS_ICON, {
+  nuke: '<svg viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="12" r="2.2"/><path d="M12 9.4 9.4 4.9A8 8 0 0 1 14.6 4.9z"/><path d="M14.3 13.3l5.2-.1a8 8 0 0 1-2.6 4.5z"/><path d="M9.7 13.3 7.1 17.7a8 8 0 0 1-2.6-4.5z"/></g><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
   pred: '<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M12 1.5c1.6 1.5 2.3 3.6 2.3 6v9.2l2.2 2.3v2.5l-2.6-1.4h-3.8l-2.6 1.4V19l2.2-2.3V7.5c0-2.4.7-4.5 2.3-6z"/><path d="M10.6 22h2.8l-1.4 1.5z" opacity=".7"/></g></svg>',
   heli: '<svg viewBox="0 0 24 24"><g fill="currentColor"><rect x="2" y="3.2" width="20" height="1.6" rx=".8"/><rect x="11.3" y="4" width="1.4" height="3"/><path d="M5 9.5c0-1.4 1.6-2.5 4-2.5h4.5c2.6 0 4.5 1.6 4.5 3.6v1.9c0 1-.8 1.5-1.8 1.5H8.5C6.4 14 5 12.2 5 9.5z"/><rect x="17" y="10" width="5.5" height="1.5" rx=".7"/><path d="M7 16h11l1 1.4H6z"/><rect x="9" y="14" width="1.2" height="2"/><rect x="15" y="14" width="1.2" height="2"/></g></svg>' });
 Object.assign(KS_FEED, { pred: 'PREDATOR MISSILE', heli: 'ATTACK HELICOPTER' });
@@ -5445,12 +5457,13 @@ function callAirstrike(at, kind, owner, pts, heading) {
   const ground = (x, z) => { const h = raycast(new V3(x, 80, z), new V3(0, -1, 0), 100, false); return h.t < 100 ? 80 - h.t + 0.2 : TH(x, z) + 0.3; }; /* the first thing a falling bomb meets: a roof, a walkway, the street */
   if (!pts) { pts = []; for (let i = 0; i < n; i++) { const p = at.clone().addScaledVector(dir, carpet ? (i - (n - 1) / 2) * 5 : (i - 1) * 4.5); const sc = carpet ? 1.3 : 2.2; p.x += rand(-sc, sc); p.z += rand(-sc, sc); p.y = ground(p.x, p.z); pts.push(p); } }
   if (mine && MP.active) netSend({ t: 'air', k: kind, pts: pts.map(v3a), h: [Math.round(dir.x * 1000) / 1000, Math.round(dir.z * 1000) / 1000] });
-  const R = pred ? 9 : carpet ? 6 : 8.5, DMG = pred ? 320 : carpet ? 160 : 260, t0 = pred ? 0 : carpet ? 3.2 : 2.6, step = carpet ? 0.22 : 0.16;
+  if (mine || owner) potgEvent('ks', { k: kind, pts: pts.map(v3a), h: [dir.x, dir.z] }); /* the replay re-flies the planes */
+  const R = pred ? 9 : carpet ? 7.5 : 8.5, DMG = pred ? 320 : carpet ? 230 : 260, t0 = pred ? 0 : carpet ? 3.2 : 2.6, step = carpet ? 0.22 : 0.16;
   const mid = pts[Math.floor(pts.length / 2)];
   if (carpet) { flyover(mid, dir, t0 + step * (pts.length - 1) / 2, 46, 55, true); pts.forEach((p, i) => dropBomb(p, t0 + i * step, false, dir)); ambience.flyby && ambience.flyby(true); }
   else if (!pred) { [-9, 0, 9].forEach((sd, j) => flyover(mid, dir, t0 - 0.9 + j * 0.12, 34 + j * 2, 110, false, sd)); pts.forEach((p, i) => dropBomb(p, t0 + i * step, true, dir)); ambience.flyby && ambience.flyby(true); }
   pts.forEach((p, i) => setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; game.ownSupport = mine; game.ksKind = kind;
-    try { explosion(p, R, DMG, mine ? 'player' : owner); bigFireball(p, !carpet); } finally { game.ownSupport = false; game.ksKind = null; } }, (t0 + i * step) * 1000));
+    try { explosion(p, R, DMG, mine ? 'player' : owner); bigFireball(p, !carpet); const gy = TH(p.x, p.z) + 0.3; if (!pred && p.y - gy > 2.2) explosion(new V3(p.x, gy, p.z), R * 0.85, DMG * 0.85, mine ? 'player' : owner); /* bombs punch through to the street below */ } finally { game.ownSupport = false; game.ksKind = null; } }, (t0 + i * step) * 1000));
 }
 
 // ---- Predator missile: you ride it down. Mouse / stick steer, click / RT boosts, it hits whatever it meets.
@@ -5472,19 +5485,19 @@ function predEnd(boom) {
 }
 function predTick(dt) {
   if (!PRED.on) return; const P = PRED; if (!player.alive || game.state !== 'play') return predEnd(false);
-  P.t += dt; if (mouseL || (gp.on && gp.fire)) P.boost = true;
+  P.t += dt; if (mouseL || (gp.on && (gp.fire || gp.aBtn))) P.boost = true;
   const sp = P.boost ? 95 : 32, d = new V3(Math.sin(P.yaw) * Math.cos(P.pitch), Math.sin(P.pitch), Math.cos(P.yaw) * Math.cos(P.pitch)), step = sp * dt;
   const h = raycast(P.pos, d, step + 0.5, false), hitW = h.t < step + 0.49; let hitE = null; /* a miss reports the full ray length */
   for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead) continue; if (Math.hypot(e.pos.x - P.pos.x, e.pos.y + 1 - P.pos.y, e.pos.z - P.pos.z) < 1.6 + step) hitE = e; }
   if (hitW || hitE || P.pos.y + d.y * step < TH(P.pos.x, P.pos.z) + 0.3 || P.t > P.life) { if (hitW) P.pos.addScaledVector(d, Math.max(0, h.t - 0.2)); return predEnd(true); }
   P.pos.addScaledVector(d, step); P.g.position.copy(P.pos); P.g.lookAt(P.pos.clone().add(d)); P.flame.scale.setScalar(P.boost ? 1.8 + Math.random() * 0.4 : 1 + Math.random() * 0.2);
   P.trail -= dt; if (P.trail <= 0) { P.trail = 0.02; debris.emit && debris.emit(P.pos.x - d.x * 3, P.pos.y - d.y * 3, P.pos.z - d.z * 3, rand(-0.3, 0.3), rand(0.2, 0.6), rand(-0.3, 0.3), 0.75, 0.75, 0.72, 1.2, 0.05); }
-  camera.position.copy(P.pos).addScaledVector(d, 0.3); /* the nose camera: trail and body stay behind you */ camera.lookAt(P.pos.clone().addScaledVector(d, 10)); camera.fov = 62; camera.updateProjectionMatrix(); sky.position.copy(camera.position);
+  camera.position.copy(P.pos).addScaledVector(d, 0.3); /* the nose camera: trail and body stay behind you */ camera.lookAt(P.pos.clone().addScaledVector(d, 10)); camera.fov = 62; camera.updateProjectionMatrix(); camera.updateMatrixWorld(); sky.position.copy(camera.position); /* projecting the target boxes needs this frame's camera */
   const ov = $('predov'); if (!ov) return; ov.querySelector('.pbar u').style.width = (100 * (1 - P.t / P.life)).toFixed(1) + '%';
   setHTML(ov.querySelector('.ptop span'), `ALT ${Math.max(0, Math.round(P.pos.y - TH(P.pos.x, P.pos.z)))} m${P.boost ? ' · BOOST' : ''}`);
-  setHTML(ov.querySelector('.phelp'), P.boost ? 'BOOSTING' : (gp.on ? '<kbd>STICKS</kbd> steer · <kbd class="big">RT</kbd> boost' : '<kbd>MOUSE</kbd> steer · <kbd class="big">CLICK</kbd> boost'));
+  setHTML(ov.querySelector('.phelp'), P.boost ? 'BOOSTING' : (gp.on ? '<kbd>STICKS</kbd> steer · <kbd class="kbig">A</kbd> / <kbd>RT</kbd> boost' : '<kbd>MOUSE</kbd> steer · <kbd class="kbig">CLICK</kbd> boost'));
   let html = ''; for (const list of [enemies, remoteList]) for (const e of list) { if (e.dead || isAlly(PLAYER_T, e)) continue; const v = new V3(e.pos.x, e.pos.y + 1, e.pos.z).project(camera); if (v.z > 1 || Math.abs(v.x) > 1 || Math.abs(v.y) > 1) continue;
-    html += `<i style="left:${((v.x * 0.5 + 0.5) * 100).toFixed(2)}%;top:${((-v.y * 0.5 + 0.5) * 100).toFixed(2)}%"></i>`; } /* thermal: every enemy boxed in red */
+    const sz = clamp(1400 / Math.max(8, e.pos.distanceTo(P.pos)), 16, 70); html += `<i style="left:${((v.x * 0.5 + 0.5) * 100).toFixed(2)}%;top:${((-v.y * 0.5 + 0.5) * 100).toFixed(2)}%;width:${sz.toFixed(0)}px;height:${(sz * 1.5).toFixed(0)}px"></i>`; } /* thermal: every enemy boxed in red */
   const bx = ov.querySelector('.pbox'); if (bx._h !== html) { bx._h = html; bx.innerHTML = html; }
 }
 
@@ -5503,15 +5516,32 @@ function makeHeli() { const g = new THREE.Group(), body = ksMat(0x3c4434, 0.6, 0
   g.userData = { rotor, tr }; g.traverse(m => { if (m.isMesh) m.castShadow = true; }); return g; }
 function heliStart() {
   SURV.support.shift(); const [x0, z0, x1, z1] = world.L.bounds, c = new V3((x0 + x1) / 2, 0, (z0 + z1) / 2);
-  const g = makeHeli(); scene.add(g); Object.assign(HELI, { on: true, g, c, r: Math.max(18, Math.min(x1 - x0, z1 - z0) * 0.32), ang: Math.atan2(player.pos.z - c.z, player.pos.x - c.x), t: 45, burst: 0, cd: 1.5, tgt: null, look: 0, send: 0, snd: 0, pos: new V3(), st: { shots: 0, hits: 0, seen: 0, blind: 0 } });
-  showHint('ATTACK HELICOPTER INBOUND', '#ff6b5a'); sfx.play('wave');
+  const g = makeHeli(); scene.add(g); Object.assign(HELI, { on: true, g, c, r: Math.max(18, Math.min(x1 - x0, z1 - z0) * 0.32), ang: Math.atan2(player.pos.z - c.z, player.pos.x - c.x), t: 60, hp: 1800, burst: 0, cd: 1.5, tgt: null, look: 0, send: 0, snd: 0, pos: new V3(), st: { shots: 0, hits: 0, seen: 0, blind: 0 }, aa: new Map() });
+  showHint('ATTACK HELICOPTER INBOUND · 60 s', '#ff6b5a'); sfx.play('wave');
 }
+function heliTakeFire(dt) { /* offline: bots with nothing better to shoot put rounds into your gunship */
+  const H = HELI; if (MP.active) return;
+  for (const e of enemies) { if (e.dead || isAlly(PLAYER_T, e) || !e.W || (e.state === 'engage' && H.tgt !== e)) continue; /* idle bots, and whoever it is shooting at, fire back */ const d = e.pos.distanceTo(H.pos); if (d > 70) continue;
+    let a = H.aa.get(e) || 0; a -= dt; if (a > 0) { H.aa.set(e, a); continue; } a = 0.45; H.aa.set(e, a);
+    if (Math.random() > 0.4 || !los(e.pos.x, e.pos.y + 1.5, e.pos.z, H.pos.x, H.pos.y, H.pos.z)) continue;
+    const from = new V3(e.pos.x, e.pos.y + 1.45, e.pos.z); for (let k = 0; k < 3 && HELI.on; k++) { const to = HELI.pos.clone().add(new V3(rand(-2.5, 2.5), rand(-1.5, 1.5), rand(-2.5, 2.5))); spawnTracer(from, to, 0xffd27a, 700, 0.014); if (Math.random() < 0.5) heliDamage(14, null); } }
+}
+function heliDamage(d, by) { const H = HELI; if (!H.on) return; H.hp -= d; sparks.burst(H.pos.x, H.pos.y, H.pos.z, 3, 4, 1, 0.8, 0.4, 0.25, 1); if (H.hp <= 0) heliDown(by); }
+function heliDown(by) { const H = HELI, g = H.g, p = H.pos.clone(); H.on = false; if (MP.active) netSend({ t: 'heli', end: 1, down: 1, by: by || '' });
+  showHint('YOUR ATTACK HELICOPTER WAS SHOT DOWN', '#ff6b5a'); feedLine(by ? pname(by) : 'Enemy fire', null, 'heli', false, 'Attack Helicopter', null, true); heliCrash(g, p); }
+function heliCrash(g, p) { let vy = 0, t = 0; const spin = rand(2.5, 4); sparks.burst(p.x, p.y, p.z, 20, 8, 1, 0.6, 0.2, 0.6, 1); /* spirals down smoking, then a fireball where it lands */
+  KSFX.push(dt => { t += dt; vy -= 9.81 * dt; g.position.y += vy * dt; g.rotation.y += spin * dt * 2; g.rotation.z = Math.sin(t * 3) * 0.3; g.userData.rotor.rotation.y += dt * 10;
+    debris.emit && debris.emit(g.position.x, g.position.y, g.position.z, rand(-0.5, 0.5), rand(0.5, 1.5), rand(-0.5, 0.5), 0.2, 0.2, 0.2, 2, 0.05);
+    if (g.position.y <= TH(g.position.x, g.position.z) + 1 || t > 6) { scene.remove(g); const q = g.position.clone(); q.y = TH(q.x, q.z) + 0.5; const sp = spatial(q); sfx.boom(sp.dist, sp.pan, 1, sp.pos); bigFireball(q, true); return false; } return true; }); }
+/* a remote player's gunship: your rounds / rockets hit it if they pass within its body */
+function heliGhostHit(o, dir, maxT) { for (const id in HELI.ghosts) { if (isAlly(PLAYER_T, id)) continue; const c = HELI.ghosts[id].g.position, w = c.clone().sub(o), along = w.dot(dir); if (along < 0 || along > maxT) continue; if (w.addScaledVector(dir, -along).length() < 2.6) return { id, t: along }; } return null; }
 function heliTick(dt) {
   for (const id in HELI.ghosts) { const G = HELI.ghosts[id]; G.age += dt; G.g.position.lerp(G.p, 1 - Math.exp(-dt * 6)); G.g.rotation.y += angDiff(G.g.rotation.y, G.yaw) * (1 - Math.exp(-dt * 6)); G.g.userData.rotor.rotation.y += dt * 30; if (G.age > 2) { scene.remove(G.g); delete HELI.ghosts[id]; } }
-  if (!HELI.on) return; const H = HELI; H.t -= dt; if (H.t <= 0 || game.state !== 'play' && game.state !== 'dying') { scene.remove(H.g); H.on = false; if (MP.active) netSend({ t: 'heli', end: 1 }); return; }
+  if (!HELI.on) return; const H = HELI; H.t -= dt; if (H.t <= 0 || game.state !== 'play' && game.state !== 'dying') { if (H.t <= 0) showHint('ATTACK HELICOPTER LEAVING', '#ffcf6b'); scene.remove(H.g); H.on = false; if (MP.active) netSend({ t: 'heli', end: 1 }); return; }
   H.ang += dt * 0.16; const ground = TH(H.c.x + Math.cos(H.ang) * H.r, H.c.z + Math.sin(H.ang) * H.r);
   H.pos.set(H.c.x + Math.cos(H.ang) * H.r, Math.max(ground, 0) + 24 + Math.sin(H.t * 0.9) * 1.2, H.c.z + Math.sin(H.ang) * H.r);
-  if (H.t > 43) H.pos.y += (H.t - 43) * 30; /* swoops in */
+  if (H.t > 58) H.pos.y += (H.t - 58) * 30; /* swoops in */
+  heliTakeFire(dt);
   H.g.position.copy(H.pos); const tg = H.tgt && !H.tgt.dead ? H.tgt : null, faceYaw = tg ? Math.atan2(tg.pos.x - H.pos.x, tg.pos.z - H.pos.z) : H.ang + Math.PI;
   H.g.rotation.y += angDiff(H.g.rotation.y, faceYaw) * (1 - Math.exp(-dt * 3)); H.g.rotation.x = 0.12; H.g.userData.rotor.rotation.y += dt * 32; H.g.userData.tr.rotation.x += dt * 50;
   H.snd -= dt; if (H.snd <= 0) { H.snd = 0.11; const sp = spatial(H.pos); sfx.play('heli', { pan: sp.pan, pos: sp.pos, vol: Math.max(0.15, sp.vol) }); }
@@ -5522,16 +5552,17 @@ function heliTick(dt) {
     if (!cur || H.lost > 0.6) { if (best !== H.tgt) { H.tgt = best; H.lost = 0; if (best) H.cd = Math.max(H.cd, 0.5); } } } /* sticks with a target until it drops or slips out of sight: damage isn't wasted across several people who then heal */
   if (tg) H.st.seen += dt; else H.st.blind += dt;
   H.cd -= dt; if (!tg || H.cd > 0) return;
-  H.burst = (H.burst || 0) + dt; if (H.burst > 1.1) { H.burst = 0; H.cd = rand(0.9, 1.5); return; }
+  H.burst = (H.burst || 0) + dt; if (H.burst > 1.1) { H.burst = 0; H.cd = rand(1.5, 2.3); return; }
   H.fire = (H.fire || 0) - dt; if (H.fire > 0) return; H.fire = 0.075;
   const mz = H.g.localToWorld(new V3(0, -1.1, 3)), aim = new V3(tg.pos.x + rand(-0.9, 0.9), tg.pos.y + rand(0.3, 1.7), tg.pos.z + rand(-0.9, 0.9)), dirv = aim.clone().sub(mz), L = dirv.length(); dirv.divideScalar(L);
   const h = raycast(mz, dirv, L + 1, false); const end = mz.clone().addScaledVector(dirv, Math.min(h.t, L + 1)); spawnTracer(mz, end, 0xffc070, 600, 0.03); H.st.shots++;
   if (MP.active) netSend({ t: 'shot', a: v3a(mz), b: v3a(end), w: 'heli' });
   { const sp = spatial(mz); sfx.gun('lmg', { dist: sp.dist, pan: sp.pan, pos: sp.pos, vol: 0.7 }); }
-  if (h.t >= L - 0.4 && Math.hypot(end.x - tg.pos.x, end.z - tg.pos.z) < 0.75) { H.st.hits++; game.ksKind = 'heli'; try { bloodHit(end.clone(), dirv.clone(), false); tg.damage(24, false, { x: dirv.x * 2, z: dirv.z * 2 }, 'player'); } finally { game.ksKind = null; } }
+  if (h.t >= L - 0.4 && Math.hypot(end.x - tg.pos.x, end.z - tg.pos.z) < 0.75) { H.st.hits++; game.ksKind = 'heli'; try { bloodHit(end.clone(), dirv.clone(), false); tg.damage(20, false, { x: dirv.x * 2, z: dirv.z * 2 }, 'player'); } finally { game.ksKind = null; } }
   else impactFx && impactFx(end, -dirv.x, -dirv.y, -dirv.z, h.box, false);
 }
-function heliGhost(id, d) { if (d.end) { const G = HELI.ghosts[id]; if (G) { scene.remove(G.g); delete HELI.ghosts[id]; } return; } const p = arrV3(d.p); if (!p) return;
+function heliGhost(id, d) { if (d.hit && d.to === MP.myId) { heliDamage(clamp(num(d.hit), 0, 1000), id); return; } if (d.hit) return;
+  if (d.end) { const G = HELI.ghosts[id]; if (G) { if (d.down) { heliCrash(G.g, G.g.position.clone()); feedLine(d.by ? pname(d.by) : 'Someone', null, 'heli', false, 'Attack Helicopter', null, d.by === MP.myId); if (d.by === MP.myId) { gainXP(150, 'HELICOPTER DOWN'); showHint('ATTACK HELICOPTER DESTROYED', '#9cff8a'); } } else scene.remove(G.g); delete HELI.ghosts[id]; } return; } const p = arrV3(d.p); if (!p) return;
   let G = HELI.ghosts[id]; if (!G) { G = HELI.ghosts[id] = { g: makeHeli(), p: p.clone(), yaw: 0, age: 0 }; G.g.position.copy(p); scene.add(G.g); showHint('ENEMY ATTACK HELICOPTER', '#ff6b5a'); }
   G.p.copy(p); G.yaw = num(d.y, 0); G.age = 0; }
 
@@ -5545,6 +5576,22 @@ function ksLoadoutPanel(right, lo, rerender) {
     grid.appendChild(b); }
   right.appendChild(grid);
 }
+
+// ---- Tactical nuke: a 10 s countdown everyone sees, then a white-out; everyone but the caller (and their team) dies and the match ends
+const NUKE = { t: 0, by: null };
+function nukeLaunch(by) { if (NUKE.t > 0) return; NUKE.t = 10; NUKE.by = by; NUKE.beep = 0; if (by === 'me' || by === MP.myId) { if (MP.active) netSend({ t: 'nuke' }); }
+  let o = $('nukeov'); if (!o) { o = document.createElement('div'); o.id = 'nukeov'; o.innerHTML = '<i class="nk"></i><b></b><small></small><div class="flash"></div>'; $('hud').appendChild(o); }
+  o.querySelector('.nk').innerHTML = KS_ICON.nuke; o.querySelector('small').textContent = (by === 'me' || by === MP.myId) ? 'YOU LAUNCHED A TACTICAL NUKE' : (pname(by) || 'AN ENEMY').toUpperCase() + ' LAUNCHED A TACTICAL NUKE'; o.classList.add('on'); o.querySelector('.flash').style.opacity = 0; }
+function nukeTick(dt) { if (NUKE.t <= 0 && !NUKE.fade) return; const o = $('nukeov');
+  if (NUKE.t > 0) { NUKE.t -= dt; NUKE.beep -= dt; if (NUKE.beep <= 0) { NUKE.beep = 1; sfx.play('nukeSiren'); } if (o) setHTML(o.querySelector('b'), String(Math.max(0, Math.ceil(NUKE.t))));
+    if (NUKE.t <= 0) { NUKE.fade = 3.5; nukeBlast(); } return; }
+  NUKE.fade -= dt; if (o) { o.querySelector('.flash').style.opacity = clamp(NUKE.fade / 2.5, 0, 1); if (NUKE.fade <= 0) { o.classList.remove('on'); NUKE.fade = 0; } } }
+function nukeBlast() { const mine = NUKE.by === 'me' || NUKE.by === MP.myId, o = $('nukeov'); if (o) o.querySelector('.flash').style.opacity = 1; sfx.boom(0, 0, 3); game.shake = 1.6; rumble(1, 1, 1500);
+  game.ksKind = 'nuke'; game.ownSupport = true;
+  try { if (!MP.active) { for (const e of enemies) if (!e.dead && !isAlly(PLAYER_T, e)) { e.protT = 0; e.damage(99999, false, null, mine ? 'player' : null); } if (!mine && player.alive) damagePlayer(99999, null, null); game.nukeWin = mine ? 'win' : 'loss'; setTimeout(() => endBotMatch('Tactical nuke'), 2600); }
+    else { if (!mine && player.alive && !isAlly(PLAYER_T, NUKE.by)) { MP.lastAttacker = NUKE.by; MP.lastAttackT = game.time; MP.lastWeapon = 'nuke'; damagePlayer(99999, null, NUKE.by); }
+      if (MP.isHost) { for (const e of enemies) if (!e.dead && e.netId && !isAlly(NUKE.by, e)) { e.mpAttacker = NUKE.by; e.damage(99999, false, null, null); } setTimeout(() => hostEndMatch('Tactical nuke', NUKE.by), 2600); } } }
+  finally { game.ksKind = null; game.ownSupport = false; } }
 // ============================================================ FLOW
 function showScreen(id) { for (const s of ['menu', 'pause', 'over', 'armory', 'mp', 'mpover']) $(s).classList.toggle('on', s === id); $('hud').classList.toggle('on', id === null || id === 'pause'); if (id) setTimeout(syncSpins, 0); }
 function survivalStart() { // MW3-style: pistol + knife, one frag, $500 — everything else is bought on the map
@@ -5849,7 +5896,7 @@ function hostRecv(from, d) {
   if (d.t === 'po') { const rtt = performance.now() - num(d.c, 0); if (rtt >= 0 && rtt < 5000) { const p = MP.players[from]; p.ping = p.ping ? lerp(p.ping, rtt, 0.3) : rtt; } return; }
   if (d.t === 'pickreq') return hostPick(from, d.k);
   if (d.t === 'down' && MP.players[from]) { coopStat(from, 'downs'); } if (d.t === 'revive' && MP.players[from]) { coopStat(from, 'revives'); }
-  if (!['st', 'shot', 'hit', 'hm', 'pane', 'die', 'nade', 'rocket', 'down', 'revive', 'rvp', 'air', 'heli'].includes(d.t)) return;
+  if (!['st', 'shot', 'hit', 'hm', 'pane', 'die', 'nade', 'rocket', 'down', 'revive', 'rvp', 'air', 'heli', 'nuke'].includes(d.t)) return;
   bcast(d, from, d.t === 'st');
   if (d.t === 'die') hostDeath(d);
   handleGame(d);
@@ -5914,6 +5961,7 @@ function handleGame(d) {
     case 'rocket': { const p = arrV3(d.p), v = arrV3(d.v); if (p && v && v.length() < 80) { spawnRocket(p, v, d.id); const sp = spatial(p); sfx.boom(sp.dist + 4, sp.pan, 0.3); } break; }
     case 'air': { const pts = Array.isArray(d.pts) ? d.pts.slice(0, 9).map(arrV3).filter(Boolean) : []; if (pts.length) { const k = KS_DEFS[d.k] && d.k !== 'uav' && d.k !== 'heli' ? d.k : d.c ? 'air3' : 'air', hd = Array.isArray(d.h) ? new V3(num(d.h[0]), 0, num(d.h[1])) : null; callAirstrike(pts[0], k, d.id, pts, hd && hd.length() > 0.1 ? hd : null); } break; }
     case 'heli': heliGhost(d.id, d); break;
+    case 'nuke': if (MP.mode !== 'surv') nukeLaunch(d.id); break;
     case 'nade': {
       const p = arrV3(d.p), v = arrV3(d.v); if (!p || !v) break;
       const kind = EQUIP[d.k] ? d.k : 'frag', nm = nadeMesh(kind); nm.g.position.copy(p); fx.add(nm.g);
@@ -6132,13 +6180,14 @@ function startMatch(d) { if (!d._ld) { d._ld = 1; return deploy('MULTIPLAYER · 
   game.state = 'play'; showScreen(null); camera.fov = settings.fov; requestLock(); $('ping').style.display = 'block';
   startIntro('MULTIPLAYER DEATHMATCH', `First to ${MP.limit} kills`); if (!game.intro) showMsg('DEATHMATCH', `FIRST TO ${MP.limit} KILLS`, 3); sfx.play('wave');
 }
-function hostEndMatch(why) {
+function hostEndMatch(why, nuke) {
   if (!MP.isHost || !MP.active || MP.ending) return; MP.ending = true;
-  const msg = { t: 'end', why, players: MP.players }; bcast(msg); endMatch(msg);
+  const msg = { t: 'end', why, players: MP.players, nuke: nuke || undefined }; bcast(msg); endMatch(msg);
 }
 function endMatch(d) {
   if (!MP.active || game.outro) return; const ps = d.players && typeof d.players === 'object' ? d.players : MP.players;
   const top = Object.entries(ps).sort((a, b) => (num(b[1].kills) - num(a[1].kills)))[0];
+  if (typeof d.nuke === 'string') return startOutro(d.nuke === MP.myId || isAlly(PLAYER_T, d.nuke) ? 'win' : 'loss', 'Tactical nuke', () => endMatchNow(d));
   if (MP.mode === 'tdm') { const [b, r] = MP.teamScore || [0, 0], my = mpTeamOf(PLAYER_T); return startOutro(b === r ? 'draw' : (b > r ? 0 : 1) === my ? 'win' : 'loss', d.why ? String(d.why).slice(0, 80) : '', () => endMatchNow(d)); }
   startOutro(top && top[0] === MP.myId ? 'win' : 'loss', d.why ? String(d.why).slice(0, 80) : '', () => endMatchNow(d));
 }
@@ -6336,8 +6385,8 @@ const POTG = { on: false, t: 0, acc: 0, frames: [], ev: [], actors: {}, names: {
 function potgReset() { const on = game.mode === 'botdm' || (MP.active && MP.mode !== 'surv'); Object.assign(POTG, { on, t: 0, acc: 0, frames: [], ev: [], actors: {}, names: {}, nid: 0 }); }
 function potgActor(id, info) { if (!POTG.actors[id]) { POTG.actors[id] = info; for (const n of info.names) POTG.names[n] = id; } }
 function potgRecord(dt) {
-  if (!POTG.on || game.outro || game.introT > 0) return; POTG.t += dt; POTG.acc += dt; if (POTG.acc < 0.05) return; POTG.acc = 0;
-  if (POTG.frames.length > 20 * 900) POTG.frames.splice(0, 20 * 60); // keep at most 15 minutes
+  if (!POTG.on || game.outro || game.introT > 0) return; POTG.t += dt; POTG.acc += dt; if (POTG.acc < 1 / 30) return; POTG.acc -= 1 / 30; if (POTG.acc > 0.1) POTG.acc = 0; /* 30 Hz: smooth enough to replay a flick */
+  if (POTG.frames.length > 30 * 900) POTG.frames.splice(0, 30 * 60); // keep at most 15 minutes
   const a = [], myTeam = MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0;
   potgActor('me', { names: ['You', cleanName(settings.name)], name: cleanName(settings.name) + '#' + PROFILE.tag, kind: cls().model, faction: myTeam, seed: PROFILE.id, human: true });
   a.push(['me', player.pos.x, player.pos.y, player.pos.z, player.yaw + Math.PI, player.pitch || 0, player.alive ? 1 : 0, WEAPONS[wst.cur].id, Math.round(wst.ads * 10) / 10, Math.round((player.crouch || 0) * 10) / 10, player.sliding ? 1 : 0]);
@@ -6347,7 +6396,8 @@ function potgRecord(dt) {
     a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, r.weaponId || 'rifle', r.lastAd || 0, r.lastH ? clamp((1.75 - r.lastH) / 0.6, 0, 1) : 0, r.lastSl || 0]); }
   { const A = POTG.actors.me; (A.att || (A.att = {}))[WEAPONS[wst.cur].id] = Object.assign({}, settings.att[WEAPONS[wst.cur].id]); }
   for (const r of remoteList) if (r.att && r.weaponId) { const A = POTG.actors['r' + r.id]; if (A) (A.att || (A.att = {}))[r.weaponId] = r.att; }
-  POTG.frames.push({ t: POTG.t, a });
+  const k = []; if (HELI.on) k.push(['h', HELI.pos.x, HELI.pos.y, HELI.pos.z, HELI.g.rotation.y]); for (const id in HELI.ghosts) { const G = HELI.ghosts[id].g; k.push(['h', G.position.x, G.position.y, G.position.z, G.rotation.y]); } if (PRED.on) k.push(['p', PRED.pos.x, PRED.pos.y, PRED.pos.z, PRED.yaw, PRED.pitch]);
+  POTG.frames.push(k.length ? { t: POTG.t, a, k } : { t: POTG.t, a });
 }
 const potgEvent = (type, o) => { if (POTG.on && !game.outro && game.state === 'play' && !game.potg) POTG.ev.push(Object.assign({ t: POTG.t, type }, o)); };
 function potgPick() { // CoD-style scoring: kills, headshots, kill chains, long shots, the match winner; online, real players beat bots
@@ -6410,9 +6460,14 @@ function updatePotg(dt) {
       spawnTracer(mine && G.vm ? G.vm.localToWorld(new V3(0, 0.03, -0.75)) : new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
     else if (e.type === 'blood') { bloodHit(new V3(...e.p), new V3(...e.d), !!e.h); const L = G.lastTr; if (L && e.t - L.t < 0.15 && Math.hypot(e.p[0] - L.b[0], e.p[1] - L.b[1], e.p[2] - L.b[2]) < 1.6) { hitMarker(false, !!e.h); G.lastTr = null; } }
     else if (e.type === 'imp') impactFx(new V3(...e.p), e.n[0], e.n[1], e.n[2], e.b, false);
+    else if (e.type === 'ks') { const pts = e.pts.map(q => new V3(q[0], q[1], q[2])), dir = new V3(e.h[0], 0, e.h[1]), mid = pts[Math.floor(pts.length / 2)], carpet = e.k === 'air3';
+      if (e.k === 'air' || carpet) { const t0 = carpet ? 3.2 : 2.6, st = carpet ? 0.22 : 0.16; if (carpet) flyover(mid, dir, t0 + st * (pts.length - 1) / 2, 46, 55, true); else [-9, 0, 9].forEach((sd, j) => flyover(mid, dir, t0 - 0.9 + j * 0.12, 34 + j * 2, 110, false, sd)); pts.forEach((p, i) => dropBomb(p, t0 + i * st, !carpet, dir)); } }
     else if (e.type === 'boom') { sfx.boom(Math.hypot(e.p[0] - cp.x, e.p[2] - cp.z), 0, 1, { x: e.p[0], y: e.p[1], z: e.p[2] }); debris.burst(e.p[0], e.p[1] + 0.3, e.p[2], 24, 9, 1, 0.75, 0.4, 0.9, 1); }
     else if (e.type === 'kill' && e.vn != null && !(POTG.names[e.k] === G.B.id)) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, false);
-    if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { if (e.vn != null) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, true); hitMarker(true, !!e.h); G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } if (e.h) sfx.play('hmhead'); } }
+    if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { if (e.vn != null) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, true); hitMarker(true, !!e.h); G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); if (c.animate) c.animate([{ transform: 'scale(1.35)', opacity: 0 }, { transform: 'scale(1)', opacity: 1, offset: 0.14 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: 1600, easing: 'ease-out' }); else { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } /* no forced layout mid-frame (that was a replay hitch) */ } if (e.h) sfx.play('hmhead'); } }
+  ksFxTick(dt * slow); { const K0 = f0.k || [], K1 = f1.k || K0; G.kfx = G.kfx || []; let hi = 0; /* gunships and missiles, straight from the recording */
+    for (let j = 0; j < K0.length; j++) { const a = K0[j], b2 = K1.find(x => x[0] === a[0]) || a; if (a[0] !== 'h') continue; let m = G.kfx[hi]; if (!m) { m = G.kfx[hi] = makeHeli(); scene.add(m); } m.visible = true; m.position.set(lerp(a[1], b2[1], k), lerp(a[2], b2[2], k), lerp(a[3], b2[3], k)); m.rotation.set(0.12, a[4] + angDiff(a[4], b2[4]) * k, 0); m.userData.rotor.rotation.y += dt * 30; hi++; }
+    for (let j = hi; j < G.kfx.length; j++) G.kfx[j].visible = false; }
   const H = G.hero; if (!H) return; // through the hero's eyes, with their gun in hand
   const eye = new V3(H.x, H.y + 1.62 - 0.55 * H.crouch - 0.2 * (H.slide || 0), H.z), Wp = WEAPONS[widx(G.vmId || 'rifle')] || WEAPONS[0], ads = H.ads > 0.5 ? 1 : H.ads * 2, scoped = !!Wp.scope && H.ads > 0.85; // exactly what they saw: same aim, stance and zoom
   camera.position.copy(eye); camera.lookAt(eye.x + Math.sin(H.yaw) * 20 * Math.cos(H.pitch), eye.y + Math.sin(H.pitch) * 20, eye.z + Math.cos(H.yaw) * 20 * Math.cos(H.pitch));
@@ -6421,6 +6476,10 @@ function updatePotg(dt) {
   camera.fov = settings.fov / lerp(1, Wp.zoom || 1.3, ads); camera.updateProjectionMatrix(); sky.position.copy(camera.position);
   const sc = $('potgScope'); if (sc) sc.style.opacity = scoped ? 1 : 0; G.xh = settings.xhair === 'none' ? 0 : Math.max(0, 1 - H.ads * 1.6) * (G.spd > 5.5 && H.ads < 0.2 ? 0.3 : 1); $('xh').style.opacity = G.xh; if (!G.killcam) hitTick(dt);
   const hg = G.ghosts[G.B.id]; if (hg) hg.group.visible = false;
+  if (!G.warm && G.vm) { G.warm = true; /* compile every shader the replay will draw now, not mid-clip (first draws stall the GPU) */
+    try { const hid = []; for (const id in G.ghosts) { const g = G.ghosts[id].group; if (!g.visible) { g.visible = true; hid.push(g); } } for (const m of G.kfx || []) if (!m.visible) { m.visible = true; hid.push(m); }
+      const hm = makeHeli(), jt = makeJet(false), bm = makeJet(true), bb = makeBomb(true); for (const o of [hm, jt, bm, bb]) { o.position.copy(camera.position).add(new V3(0, -50, 0)); scene.add(o); }
+      renderer.compile(scene, camera); for (const o of [hm, jt, bm, bb]) scene.remove(o); for (const g of hid) g.visible = false; } catch (e) {} }
   if (G.vm) { G.kick = Math.max(0, (G.kick || 0) - dt * 9); const bob = Math.sin(G.real * 9) * 0.004 * Math.min(1, (G.spd || 0) / 3);
     const hp = Wp.hip || [0.12, -0.13, -0.36], ap = Wp.adsPos || [0, -0.07, -0.3], aa = H.ads; G.vm.visible = !scoped;
     G.vm.position.copy(camera.position); G.vm.quaternion.copy(camera.quaternion); G.vm.translateX(lerp(hp[0], ap[0], aa)); G.vm.translateY(lerp(hp[1], ap[1], aa) + bob * (1 - aa) - G.kick * 0.01); G.vm.translateZ(lerp(hp[2], ap[2], aa) + G.kick * 0.05); G.vm.rotateX(G.kick * 0.08 * (1 - 0.6 * aa)); }
@@ -6430,7 +6489,7 @@ function potgViewmodel(G, id, att) { // the hero's weapon, held in first person 
   try { const gm = buildGun(id, att || {}, true), g = new THREE.Group(); gm.g.traverse(m => { if (m.isMesh) { m.frustumCulled = false; m.renderOrder = 10; } }); g.add(gm.g); g.userData.flash = gm.flash; if (gm.flash) gm.flash.visible = false; scene.add(g); G.vm = g; } catch (e) { G.vm = null; }
 }
 function endPotg() {
-  const G = game.potg; if (!G) return; game.potg = null; G.unbind && G.unbind(); if (G.vm) scene.remove(G.vm);
+  const G = game.potg; if (!G) return; if (G.kfx) for (const m of G.kfx) scene.remove(m); game.potg = null; G.unbind && G.unbind(); if (G.vm) scene.remove(G.vm);
   for (const id in G.ghosts) { const g = G.ghosts[id].group; if (g.parent) g.parent.remove(g); } for (const o of G.hidden) o.group.visible = true;
   $('xh').style.opacity = 0; hud.hitT = 0; $('hit').style.opacity = 0;
   const ov = $('potgov'); if (ov) ov.className = ''; $('hud').classList.remove('cine'); $('hud').classList.remove('potgmode'); $('hud').classList.remove('kcmode');
@@ -6598,8 +6657,8 @@ function pollGamepad(dt) {
   const dz = v => (Math.abs(v) < 0.14 ? 0 : (v - Math.sign(v) * 0.14) / 0.86), b = i => !!(g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > 0.35)), pr = i => b(i) && !gp.prev[i], rl = i => !b(i) && gp.prev[i]; gp.held = [0, 1, 2, 3].map(b);
   gp.mx = dz(g.axes[0] || 0); gp.my = dz(g.axes[1] || 0);
   const lx = dz(g.axes[2] || 0), ly = dz(g.axes[3] || 0);
-  if (game.state === 'play' && PRED.on) { predSteer((gp.mx + lx) * dt * 1.9, (gp.my + ly) * dt * 1.9 * (settings.invertY ? -1 : 1)); gp.fire = b(7); gp.mx = gp.my = 0; gp.ads = false; mouseL = mL; mouseR = mR; gp.prev = g.buttons.map((x, i) => b(i)); return; }
-  if (game.state === 'play' && SURV.tgt) { const sp = tabletScale() * 0.55 * dt; tabletMove((gp.mx + lx) * sp, (gp.my + ly) * sp); if (b(4)) tabletRotate(-2.4 * dt); if (b(5)) tabletRotate(2.4 * dt); if (pr(7)) tabletConfirm(); if (pr(1) || pr(15)) supportCancel();
+  if (game.state === 'play' && PRED.on) { predSteer((gp.mx + lx) * dt * 1.9, (gp.my + ly) * dt * 1.9 * (settings.invertY ? -1 : 1)); gp.fire = b(7); gp.aBtn = b(0); gp.mx = gp.my = 0; gp.ads = false; mouseL = mL; mouseR = mR; gp.prev = g.buttons.map((x, i) => b(i)); return; }
+  if (game.state === 'play' && SURV.tgt) { const sp = tabletScale() * 0.55 * dt; tabletMove((gp.mx + lx) * sp, (gp.my + ly) * sp); if (b(4)) tabletRotate(-2.4 * dt); if (b(5)) tabletRotate(2.4 * dt); if (pr(0) || pr(7)) tabletConfirm(); if (pr(1) || pr(15)) supportCancel();
     gp.mx = gp.my = 0; gp.fire = gp.ads = false; mouseL = mL; mouseR = mR; gp.prev = g.buttons.map((x, i) => b(i)); return; }
   if (game.state === 'play') {
     gpFocus(null);
@@ -6920,5 +6979,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); setTimeout(() => { if (game.state === 'menu') music.play('title'); }, 100); /* no music once a match is on */ removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { ksLab: () => ({ PRED, HELI, predTick, heliTick, ksFxTick, supportStart, predSteer }), cam: () => camera, gpRef: () => gp, tracerRef: () => tracers, survLab: () => ({ SURV, openBuy, buyItem, supportStart, supportTick, nearStation }), mouse: (l, r) => { mouseL = mL = !!l; mouseR = mR = !!r; }, gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR, SLIDE }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { ksLab: () => ({ PRED, HELI, NUKE, nukeLaunch, callAirstrike, heliDamage, predTick, heliTick, ksFxTick, supportStart, predSteer }), cam: () => camera, gpRef: () => gp, tracerRef: () => tracers, survLab: () => ({ SURV, openBuy, buyItem, supportStart, supportTick, nearStation }), mouse: (l, r) => { mouseL = mL = !!l; mouseR = mR = !!r; }, gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR, SLIDE }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
