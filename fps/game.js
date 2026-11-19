@@ -213,6 +213,24 @@ for (const [k, mf, mg] of [['pistol', 1900, 0.3], ['revolver', 900, 0.45], ['rif
 const SAMPLES = {}, GUNALIAS = { battle: 'ak', bullpup: 'rifle', hyper: 'smg', ump45: 'smg', autosg: 'shotgun', fifty: 'sniper', mpistol: 'smg', revolver: 'pistol', dmr: 'sniper' };
 function loadSamples(c) { fetch('audio/sfx/manifest.json?v=' + (window.BP_AUDIO_V || 1)).then(r => r.ok ? r.json() : null).then(m => { if (!m) return;
   for (const [key, files] of Object.entries(m)) for (const f of [].concat(files)) fetch('audio/sfx/' + f).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(ab => c.decodeAudioData(ab)).then(buf => (SAMPLES[key] || (SAMPLES[key] = [])).push(buf)).catch(() => {}); }).catch(() => {}); }
+// Hit-marker sounds, CoD-style: a dry, high-transient plastic/metal "tick" with a little body thud under it.
+// Modal synthesis: a few exponentially damped resonances struck at t=0 plus a sub-millisecond noise click.
+function hmSynth(kind, sr, seed) {
+  let r = seed * 9301 + 49297; const rnd = () => { r = (r * 16807) % 2147483647; return r / 2147483647; };
+  const pv = 1 + (rnd() - 0.5) * 0.06, len = Math.round(sr * (kind === 'hmhead' ? 0.16 : kind === 'hmkill' ? 0.14 : 0.05)), o = new Float32Array(len);
+  const modes = kind === 'hmhead' ? [[3150, 0.0065, 0.55], [4700, 0.004, 0.35], [6900, 0.0025, 0.2], [3720, 0.055, 0.16], [5580, 0.03, 0.07]] /* the tick, plus a short metallic ping */
+    : kind === 'hmkill' ? [[2650, 0.007, 0.5], [4100, 0.0045, 0.32], [6200, 0.0025, 0.18]]
+    : [[2900, 0.006, 0.55], [4400, 0.0038, 0.34], [6600, 0.0022, 0.2]];
+  const thud = kind === 'hmkill' ? [150, 92, 0.05, 0.62] : kind === 'hmhead' ? [210, 150, 0.016, 0.2] : [230, 170, 0.014, 0.24]; /* f0, f1, decay, gain */
+  for (let i = 0; i < len; i++) { const t = i / sr; let v = 0;
+    for (const [f, d, g] of modes) v += Math.sin(2 * Math.PI * f * pv * t) * Math.exp(-t / d) * g;
+    if (t < 0.0012) v += (rnd() * 2 - 1) * (1 - t / 0.0012) * 0.55; /* the click itself */
+    const ft = thud[1] + (thud[0] - thud[1]) * Math.exp(-t / 0.02); v += Math.sin(2 * Math.PI * ft * t) * Math.exp(-t / thud[2]) * thud[3] * Math.min(1, t / 0.0006);
+    if (kind === 'hmkill' && t > 0.018) { const u = t - 0.018; v += (Math.sin(2 * Math.PI * 3300 * pv * u) * 0.3 + Math.sin(2 * Math.PI * 5000 * pv * u) * 0.15) * Math.exp(-u / 0.004); } /* the second, harder snap */
+    o[i] = v; }
+  let pk = 0; for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(o[i])); const G = (kind === 'hmkill' ? 0.62 : kind === 'hmhead' ? 0.58 : 0.5) / (pk || 1);
+  for (let i = 0; i < len; i++) o[i] *= G * Math.min(1, (len - i) / (sr * 0.003)); return o;
+}
 const sfx = {
   ctx: null,
   sample(key, dest, t) { const L = SAMPLES[key]; if (!L || !L.length) return false; const c = this.ctx, s = c.createBufferSource(); s.buffer = L[Math.floor(Math.random() * L.length)]; s.playbackRate.value = 0.97 + Math.random() * 0.06; s.connect(dest); s.start(t === undefined ? c.currentTime : Math.max(t, c.currentTime)); return true; },
@@ -337,6 +355,10 @@ const sfx = {
     this.osc(dest, { t, type: 'sine', f: 70, f2: 22, dur: 1.2, g: 1.3 });
     for (let i = 0; i < 8 && !far; i++) this.nz(dest, { t: t + 0.15 + Math.random() * 0.9, dur: 0.05, type: 'bandpass', f: 1500 + Math.random() * 3000, q: 3, g: 0.08 });
   },
+  hmPlay(n, dest) { /* pre-rendered so the attack is sample-sharp; 4 slight variants each so rapid fire doesn't sound like a machine */
+    const c = this.ctx, B = this.hmB || (this.hmB = {}), L = B[n] || (B[n] = [0, 1, 2, 3].map(i => { const d = hmSynth(n, c.sampleRate, i + 1), b = c.createBuffer(1, d.length, c.sampleRate); b.copyToChannel(d, 0); return b; }));
+    const src = c.createBufferSource(); src.buffer = L[(Math.random() * 4) | 0]; src.connect(dest); src.start();
+  },
   play(n, o = {}) {
     if (!this.ok()) return;
     const v = o.vol === undefined ? 1 : o.vol, dest = this.chain(o.pan || 0, o.wet || 0.05, 0, v, o.pos);
@@ -362,9 +384,7 @@ const sfx = {
         for (let i = 0; i < 9; i++) T({ type: 'sine', f: rand(2800, 7200), dur: rand(0.04, 0.12), g: rand(0.03, 0.08), delay: 0.05 + i * rand(0.03, 0.07) }); N({ dur: 0.12, type: 'bandpass', f: 3800, q: 2, g: 0.25, delay: rand(0.35, 0.5) }); break; }
       case 'board': N({ dur: 0.09, type: 'bandpass', f: 900, q: 1.2, g: 0.8 }); T({ type: 'triangle', f: 190, f2: 90, dur: 0.12, g: 0.35 }); N({ dur: 0.05, type: 'bandpass', f: 2400, q: 2, g: 0.35, delay: 0.04 }); break;
       // CoD-style hit markers: dry, crisp tick you can feel through a firefight
-      case 'hm': N({ dur: 0.016, type: 'highpass', f: 2600, q: 0.7, g: 0.6 }); T({ type: 'triangle', f: 1420, f2: 1150, dur: 0.045, g: 0.17 }); T({ type: 'sine', f: 2850, dur: 0.028, g: 0.06 }); break;
-      case 'hmhead': N({ dur: 0.02, type: 'highpass', f: 3000, q: 0.7, g: 0.65 }); T({ type: 'triangle', f: 1500, f2: 1200, dur: 0.05, g: 0.17 }); T({ type: 'sine', f: 3520, dur: 0.24, g: 0.12 }); T({ type: 'sine', f: 5280, dur: 0.12, g: 0.04 }); break; // metallic tink
-      case 'hmkill': N({ dur: 0.05, type: 'bandpass', f: 1900, q: 1.5, g: 0.55 }); T({ type: 'sine', f: 170, f2: 70, dur: 0.16, g: 0.45 }); T({ type: 'triangle', f: 980, f2: 720, dur: 0.11, g: 0.2 }); T({ type: 'sine', f: 1760, dur: 0.3, g: 0.08, delay: 0.03 }); break; // thud + ding
+      case 'hm': case 'hmhead': case 'hmkill': this.hmPlay(n, dest); break;
       case 'hmstun': N({ dur: 0.02, type: 'highpass', f: 2200, q: 0.7, g: 0.4 }); T({ type: 'sine', f: 2100, f2: 2400, dur: 0.09, g: 0.1 }); break;
       case 'hurt': N({ dur: 0.2, f: 700, f2: 150, g: 0.7 }); T({ f: 90, f2: 45, dur: 0.18, g: 0.55 }); break;
       case 'step': N({ dur: 0.08, f: rand(450, 750), f2: 140, g: 0.2 }); N({ dur: 0.03, type: 'highpass', f: 3000, g: 0.03, delay: 0.01 }); break;
