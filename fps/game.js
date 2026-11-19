@@ -3625,7 +3625,7 @@ function botKilled(victim, killer, head) {
   else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
   if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
   const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null), mine = killer === PLAYER_T;
-  killFeed(kname, tc(killer ? (mine ? 0 : killer.team) : -1), mine ? (game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short) : killer && killer.W ? killer.W.short : '', head, victim.name, tc(victim.team), mine);
+  killFeed(kname, tc(killer ? (mine ? 0 : killer.team) : -1), mine ? killLabel() : killer && killer.W ? killer.W.short : '', head, victim.name, tc(victim.team), mine);
   if (vs) BD.respawn.push({ st: vs, t: 3 });
   checkBotEnd();
 }
@@ -4500,7 +4500,7 @@ function onKill(e, head) {
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
   if (game.streak >= 2) { const b = 50 * game.streak; pts += b; showStreak((names[Math.min(game.streak, 5)] || 'RAMPAGE') + '  +' + b); }
   game.score += pts; addCash(pts, head ? 'HEADSHOT' : '');
-  killFeed(settings.name || 'You', '#ffd27a', game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short, head, e.T.name + '  +' + pts, null, true);
+  killFeed(settings.name || 'You', '#ffd27a', killLabel(), head, e.T.name + '  +' + pts, null, true);
   hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
   const r = Math.random();
   if (r < 0.22) pickups.push(new Pickup('ammo', e.pos.x, e.pos.y, e.pos.z, true));
@@ -4512,7 +4512,7 @@ function damagePlayer(d, from, attacker, head) {
   if (!player.alive || game.time < player.protT) return;
   if (attacker instanceof Enemy) { BD.lastAttacker = attacker; BD.lastHead = !!head; }
   if (MP.active && attacker && attacker.netId) attacker = attacker.netId; // an online bot
-  if (MP.active && attacker) { MP.lastAttacker = attacker; MP.lastAttackT = game.time; MP.lastHead = !!head; if (!MP.viaHit && typeof attacker === 'string' && attacker !== MP.myId && d > 0.5) { const t = performance.now(); if (t - (MP.hmT || 0) > 120) { MP.hmT = t; netSend({ t: 'hm', to: attacker }); } } }
+  if (MP.active && attacker) { MP.lastAttacker = attacker; MP.lastAttackT = game.time; MP.lastHead = !!head; if (game.nadeDmg) MP.lastWeapon = game.ksKind || 'nade'; if (!MP.viaHit && typeof attacker === 'string' && attacker !== MP.myId && d > 0.5) { const t = performance.now(); if (t - (MP.hmT || 0) > 120) { MP.hmT = t; netSend({ t: 'hm', to: attacker }); } } }
   if (player.shield > 0) { const a = Math.min(player.shield, d); player.shield -= a; d -= a; if (d <= 0) { sfx.play('hit'); hud.vig = Math.min(1, hud.vig + 0.05); return; } }
   if (!player.vT || game.time - player.vT > 0.4) { player.vT = game.time; sfx.voice(d > 35 ? 'hurt' : 'pain', { self: true, pitch: settings.vpitch || (settings.vpitch = rand(100, 140)), vol: 0.8 }); }
   rumble(0.6, 0.8, 160); player.hp -= d; player.lastDmgT = 0; if (settings.blood !== false) hud.blood = Math.min(1, (hud.blood || 0) + d / 60); player.regenCap = Math.max(25, Math.ceil(player.hp / 25) * 25);
@@ -5131,7 +5131,9 @@ function addFeed(html, hs, mine) {
   setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 6000);
 }
 // killer [WEAPON] (◎ = headshot) victim
-const wShort = id => { const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
+const KS_FEED = { air: 'AIRSTRIKE', air3: 'CARPET BOMBING' };
+const killLabel = () => game.ksKind ? game.ksKind : game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short; /* what the local player's kill is credited to, for the feed */
+const wShort = id => { if (KS_FEED[id]) return id; const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
 function hitCap(w, head) { const W = typeof w === 'string' && WEAPONS.find(x => x.id === w); if (!W || W.melee || W.launcher) return 250; return Math.ceil(W.dmg * (W.pellets || 1) * (head ? (W.head || 2) * 1.2 : 1) * 1.1) + 1; }
 function killFeed(killer, kc, weapon, head, victim, vc, mine) {
   potgEvent('kill', { k: killer, v: String(victim || '').replace(/\s+\+\d+$/, ''), h: !!head, w: weapon, kc, vc, vn: victim });
@@ -5139,7 +5141,7 @@ function killFeed(killer, kc, weapon, head, victim, vc, mine) {
 }
 function feedLine(killer, kc, weapon, head, victim, vc, mine) {
   const nm = (n, c) => `<span class="fn"${c ? ` style="color:${c}"` : ''}>${esc(n)}</span>`;
-  const mid = `<span class="fw">${esc(weapon || '✕')}</span>${head ? '<span class="fh">◎</span>' : ''}`;
+  const mid = (KS_FEED[weapon] ? `<span class="fw fks">${KS_ICON[weapon]}${KS_FEED[weapon]}</span>` : `<span class="fw">${esc(weapon || '✕')}</span>`) + (head ? '<span class="fh">◎</span>' : '');
   addFeed(killer ? `${nm(killer, kc)} ${mid} ${nm(victim, vc)}` : `${mid} ${nm(victim, vc)}`, head, mine);
 }
 const dmgDirs = [...document.querySelectorAll('#dirs div')].map(el => ({ el, t: 0, a: 0 })); let dmgI = 0;
@@ -5277,7 +5279,7 @@ function callAirstrike(at, carpet, owner, pts) { // jets roar over, then a strin
   const n = carpet ? 9 : 4, mine = !owner; let dir = new V3(rand(-1, 1), 0, rand(-1, 1)).normalize(); if (mine) { aimBasis(); if (Math.hypot(_f.x, _f.z) > 0.1) dir.set(_f.x, 0, _f.z).normalize(); } /* bombs walk along your line of sight */
   if (!pts) { pts = []; for (let i = 0; i < n; i++) { const p = at.clone().addScaledVector(dir, (i - n / 2) * (carpet ? 5 : 3.5)); p.x += rand(-1.5, 1.5); p.z += rand(-1.5, 1.5); p.y = TH(p.x, p.z) + 0.3; pts.push(p); } }
   if (mine && MP.active) netSend({ t: 'air', c: carpet ? 1 : 0, pts: pts.map(v3a) });
-  pts.forEach((p, i) => setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; game.ownSupport = mine; try { explosion(p, carpet ? 6.5 : 7.5, carpet ? 170 : 220, mine ? 'player' : owner); } finally { game.ownSupport = false; } }, 2200 + i * (carpet ? 240 : 330)));
+  pts.forEach((p, i) => setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; game.ownSupport = mine; game.ksKind = carpet ? 'air3' : 'air'; try { explosion(p, carpet ? 6.5 : 7.5, carpet ? 170 : 220, mine ? 'player' : owner); } finally { game.ownSupport = false; game.ksKind = null; } }, 2200 + i * (carpet ? 240 : 330)));
 }
 function updateSurvival(dt) {
   supportTick(dt);
@@ -5805,7 +5807,7 @@ function mpSpawnBot(id) {
 }
 function mpBotDied(e, killer, head) {
   const by = killer === PLAYER_T ? MP.myId : killer && killer.netId ? killer.netId : (e.mpAttacker || e.netId);
-  const msg = { t: 'die', id: e.netId, by, head: !!head, w: killer === PLAYER_T ? WEAPONS[wst.cur].id : killer && killer.W ? killer.W.id : (e.mpAttacker ? 'rifle' : '') };
+  const msg = { t: 'die', id: e.netId, by, head: !!head, w: game.ksKind || (game.nadeDmg ? 'nade' : killer === PLAYER_T ? WEAPONS[wst.cur].id : killer && killer.W ? killer.W.id : (e.mpAttacker ? 'rifle' : '')) };
   bcast(msg); hostDeath(msg); handleGame(msg); (MP.botRespawn || (MP.botRespawn = [])).push({ id: e.netId, t: 3.5 });
 }
 function mpBotsTick(dt) { // host: stream bot positions, respawn the fallen

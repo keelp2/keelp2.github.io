@@ -106,7 +106,7 @@ function callAirstrike(at, carpet, owner, pts) { // jets roar over, then a strin
   const n = carpet ? 9 : 4, mine = !owner; let dir = new V3(rand(-1, 1), 0, rand(-1, 1)).normalize(); if (mine) { aimBasis(); if (Math.hypot(_f.x, _f.z) > 0.1) dir.set(_f.x, 0, _f.z).normalize(); } /* bombs walk along your line of sight */
   if (!pts) { pts = []; for (let i = 0; i < n; i++) { const p = at.clone().addScaledVector(dir, (i - n / 2) * (carpet ? 5 : 3.5)); p.x += rand(-1.5, 1.5); p.z += rand(-1.5, 1.5); p.y = TH(p.x, p.z) + 0.3; pts.push(p); } }
   if (mine && MP.active) netSend({ t: 'air', c: carpet ? 1 : 0, pts: pts.map(v3a) });
-  pts.forEach((p, i) => setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; game.ownSupport = mine; try { explosion(p, carpet ? 6.5 : 7.5, carpet ? 170 : 220, mine ? 'player' : owner); } finally { game.ownSupport = false; } }, 2200 + i * (carpet ? 240 : 330)));
+  pts.forEach((p, i) => setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; game.ownSupport = mine; game.ksKind = carpet ? 'air3' : 'air'; try { explosion(p, carpet ? 6.5 : 7.5, carpet ? 170 : 220, mine ? 'player' : owner); } finally { game.ownSupport = false; game.ksKind = null; } }, 2200 + i * (carpet ? 240 : 330)));
 }
 function updateSurvival(dt) {
   supportTick(dt);

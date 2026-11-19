@@ -43,6 +43,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #feed{position:absolute;top:14px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:5px;font-size:15px;font-weight:600;z-index:5}
 #feed div{background:rgba(10,12,18,.62);padding:5px 12px;border-radius:4px;border-right:3px solid rgba(255,255,255,.25);transition:opacity .4s;display:flex;align-items:center;gap:9px;text-shadow:0 1px 2px #000;animation:feedIn .18s ease-out}
 #feed div.me{background:rgba(120,70,10,.62);border-right-color:#ffcf6b;box-shadow:0 0 0 1px rgba(255,207,107,.45)}
+#feed .fw.fks{display:inline-flex;align-items:center;gap:5px;color:#ffcf6b;background:rgba(255,207,107,.16);border:1px solid rgba(255,207,107,.45);font-weight:800}#feed .fw.fks svg{width:16px;height:16px;color:#ffcf6b}
 #feed .fw{font-size:11px;letter-spacing:.08em;color:#d8dde6;background:rgba(255,255,255,.1);padding:2px 6px;border-radius:3px}
 #feed .fh{color:#ff6b5a;font-size:16px}
 @keyframes feedIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
@@ -533,7 +534,7 @@ img.thumb.tall{height:110px;object-fit:cover}
 <script src="three.min.js"></script>
 <script src="peerjs.min.js?v=1.5.4"></script>
 <script src="cloud-config.js?v=2"></script>
-<script src="game.js?v=202611210130"></script>
+<script src="game.js?v=202611210200"></script>
 <script type="module" src="lib/assets.js?v=202611201000"></script>
 <script type="module" src="lib/post.js?v=202611182330"></script>
 </body>

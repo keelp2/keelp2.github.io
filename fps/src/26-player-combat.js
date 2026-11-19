@@ -3,7 +3,7 @@ function damagePlayer(d, from, attacker, head) {
   if (!player.alive || game.time < player.protT) return;
   if (attacker instanceof Enemy) { BD.lastAttacker = attacker; BD.lastHead = !!head; }
   if (MP.active && attacker && attacker.netId) attacker = attacker.netId; // an online bot
-  if (MP.active && attacker) { MP.lastAttacker = attacker; MP.lastAttackT = game.time; MP.lastHead = !!head; if (!MP.viaHit && typeof attacker === 'string' && attacker !== MP.myId && d > 0.5) { const t = performance.now(); if (t - (MP.hmT || 0) > 120) { MP.hmT = t; netSend({ t: 'hm', to: attacker }); } } }
+  if (MP.active && attacker) { MP.lastAttacker = attacker; MP.lastAttackT = game.time; MP.lastHead = !!head; if (game.nadeDmg) MP.lastWeapon = game.ksKind || 'nade'; if (!MP.viaHit && typeof attacker === 'string' && attacker !== MP.myId && d > 0.5) { const t = performance.now(); if (t - (MP.hmT || 0) > 120) { MP.hmT = t; netSend({ t: 'hm', to: attacker }); } } }
   if (player.shield > 0) { const a = Math.min(player.shield, d); player.shield -= a; d -= a; if (d <= 0) { sfx.play('hit'); hud.vig = Math.min(1, hud.vig + 0.05); return; } }
   if (!player.vT || game.time - player.vT > 0.4) { player.vT = game.time; sfx.voice(d > 35 ? 'hurt' : 'pain', { self: true, pitch: settings.vpitch || (settings.vpitch = rand(100, 140)), vol: 0.8 }); }
   rumble(0.6, 0.8, 160); player.hp -= d; player.lastDmgT = 0; if (settings.blood !== false) hud.blood = Math.min(1, (hud.blood || 0) + d / 60); player.regenCap = Math.max(25, Math.ceil(player.hp / 25) * 25);

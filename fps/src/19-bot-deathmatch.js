@@ -79,7 +79,7 @@ function botKilled(victim, killer, head) {
   else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
   if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
   const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null), mine = killer === PLAYER_T;
-  killFeed(kname, tc(killer ? (mine ? 0 : killer.team) : -1), mine ? (game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short) : killer && killer.W ? killer.W.short : '', head, victim.name, tc(victim.team), mine);
+  killFeed(kname, tc(killer ? (mine ? 0 : killer.team) : -1), mine ? killLabel() : killer && killer.W ? killer.W.short : '', head, victim.name, tc(victim.team), mine);
   if (vs) BD.respawn.push({ st: vs, t: 3 });
   checkBotEnd();
 }

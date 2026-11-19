@@ -54,7 +54,7 @@ function onKill(e, head) {
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
   if (game.streak >= 2) { const b = 50 * game.streak; pts += b; showStreak((names[Math.min(game.streak, 5)] || 'RAMPAGE') + '  +' + b); }
   game.score += pts; addCash(pts, head ? 'HEADSHOT' : '');
-  killFeed(settings.name || 'You', '#ffd27a', game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short, head, e.T.name + '  +' + pts, null, true);
+  killFeed(settings.name || 'You', '#ffd27a', killLabel(), head, e.T.name + '  +' + pts, null, true);
   hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
   const r = Math.random();
   if (r < 0.22) pickups.push(new Pickup('ammo', e.pos.x, e.pos.y, e.pos.z, true));

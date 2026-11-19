@@ -304,7 +304,7 @@ function mpSpawnBot(id) {
 }
 function mpBotDied(e, killer, head) {
   const by = killer === PLAYER_T ? MP.myId : killer && killer.netId ? killer.netId : (e.mpAttacker || e.netId);
-  const msg = { t: 'die', id: e.netId, by, head: !!head, w: killer === PLAYER_T ? WEAPONS[wst.cur].id : killer && killer.W ? killer.W.id : (e.mpAttacker ? 'rifle' : '') };
+  const msg = { t: 'die', id: e.netId, by, head: !!head, w: game.ksKind || (game.nadeDmg ? 'nade' : killer === PLAYER_T ? WEAPONS[wst.cur].id : killer && killer.W ? killer.W.id : (e.mpAttacker ? 'rifle' : '')) };
   bcast(msg); hostDeath(msg); handleGame(msg); (MP.botRespawn || (MP.botRespawn = [])).push({ id: e.netId, t: 3.5 });
 }
 function mpBotsTick(dt) { // host: stream bot positions, respawn the fallen

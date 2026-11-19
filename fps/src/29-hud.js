@@ -19,7 +19,9 @@ function addFeed(html, hs, mine) {
   setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 450); }, 6000);
 }
 // killer [WEAPON] (◎ = headshot) victim
-const wShort = id => { const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
+const KS_FEED = { air: 'AIRSTRIKE', air3: 'CARPET BOMBING' };
+const killLabel = () => game.ksKind ? game.ksKind : game.lastNadeKill ? 'GRENADE' : WEAPONS[wst.cur].short; /* what the local player's kill is credited to, for the feed */
+const wShort = id => { if (KS_FEED[id]) return id; const w = WEAPONS.find(x => x.id === id); return w ? w.short : id === 'nade' ? 'GRENADE' : ''; };
 function hitCap(w, head) { const W = typeof w === 'string' && WEAPONS.find(x => x.id === w); if (!W || W.melee || W.launcher) return 250; return Math.ceil(W.dmg * (W.pellets || 1) * (head ? (W.head || 2) * 1.2 : 1) * 1.1) + 1; }
 function killFeed(killer, kc, weapon, head, victim, vc, mine) {
   potgEvent('kill', { k: killer, v: String(victim || '').replace(/\s+\+\d+$/, ''), h: !!head, w: weapon, kc, vc, vn: victim });
@@ -27,7 +29,7 @@ function killFeed(killer, kc, weapon, head, victim, vc, mine) {
 }
 function feedLine(killer, kc, weapon, head, victim, vc, mine) {
   const nm = (n, c) => `<span class="fn"${c ? ` style="color:${c}"` : ''}>${esc(n)}</span>`;
-  const mid = `<span class="fw">${esc(weapon || '✕')}</span>${head ? '<span class="fh">◎</span>' : ''}`;
+  const mid = (KS_FEED[weapon] ? `<span class="fw fks">${KS_ICON[weapon]}${KS_FEED[weapon]}</span>` : `<span class="fw">${esc(weapon || '✕')}</span>`) + (head ? '<span class="fh">◎</span>' : '');
   addFeed(killer ? `${nm(killer, kc)} ${mid} ${nm(victim, vc)}` : `${mid} ${nm(victim, vc)}`, head, mine);
 }
 const dmgDirs = [...document.querySelectorAll('#dirs div')].map(el => ({ el, t: 0, a: 0 })); let dmgI = 0;
