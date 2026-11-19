@@ -3175,7 +3175,8 @@ class Enemy {
       else if (ready && this.fireT <= 0) { this.aimT = T.aim * (settings.difficulty === 'hard' ? 0.85 : settings.difficulty === 'easy' ? 1.3 : 1); this.laser.visible = true; this.updateLaser(); const sp = spatial(this.pos); sfx.play('charge', { vol: Math.max(0.35, sp.vol), pan: sp.pan }); }
     } else if (ready && this.fireT <= 0) {
       const auto = W.auto && !W.shell;
-      if (auto) { if (this.burst <= 0) this.burst = dist > 25 ? randi(2, 4) : randi(3, Math.round(4 + 5 * this.skill)); this.shoot(dist); this.burst--; this.fireT = this.burst > 0 ? 60 / W.rpm : rand(0.15, 0.5) * (dist > 25 ? 1.6 : 1); }
+      if (W.burst) { if (this.burst <= 0) this.burst = W.burst; this.shoot(dist); this.burst--; this.fireT = this.burst > 0 ? 60 / W.burstRpm : 60 / W.rpm + rand(0.05, 0.35) / this.skill; }
+      else if (auto) { if (this.burst <= 0) this.burst = dist > 25 ? randi(2, 4) : randi(3, Math.round(4 + 5 * this.skill)); this.shoot(dist); this.burst--; this.fireT = this.burst > 0 ? 60 / W.rpm : rand(0.15, 0.5) * (dist > 25 ? 1.6 : 1); }
       else { this.shoot(dist); this.fireT = 60 / W.rpm + rand(0.06, 0.3) / this.skill; }
     }
     return true;
@@ -3477,10 +3478,26 @@ for (const [id, base, o] of [
   ['semi', 'dmr', { finish: 'fde', name: '7.62 MARKSMAN', short: 'MARKSMAN', desc: 'Semi-auto 7.62 with a fast follow-up. Two to the chest, one to the head.', dmg: 58, rpm: 160, mag: 15, kick: 0.03, snd: 'dmr' }],
   ['bolt', 'sniper', { finish: 'od', name: 'LIGHT SNIPER', short: 'LIGHT SNIPER', desc: 'Fast-cycling bolt gun. One-shot to the head, quick to aim.', dmg: 92, rpm: 70, ads: 0.36, speedMul: 1.0, snd: 'sniper' }],
   ['deagle', 'pistol', { finish: 'steel', name: '.50 HAND CANNON', short: 'HAND CANNON', desc: 'Huge .50 semi-auto. Two hits kill, if you can hold it down.', dmg: 62, rpm: 200, mag: 7, kick: 0.06, kickYaw: 0.016, vkick: 2.0, reload: 1.7, snd: 'revolver' }],
+  ['burst', 'rifle', { finish: 'fde', name: '5.56 BURST RIFLE', short: 'BURST', desc: '3-round burst. Land two bursts and they drop — miss and you are slow.', dmg: 28, burst: 3, burstRpm: 900, rpm: 260, auto: false, range: [35, 75, 0.75], kick: 0.011, vkick: 0.7, snd: 'rifle', gscale: 1.02 }],
+  ['blackout', 'rifle', { finish: 'black', name: '.300 SHORT CARBINE', short: 'SHORT CARBINE', desc: 'Short-barrel .300 carbine. SMG pace up close, falls off fast at range.', dmg: 26, rpm: 640, mag: 30, range: [15, 40, 0.55], speedMul: 1.02, kick: 0.012, gscale: 0.9, snd: 'battle' }],
+  ['mini', 'smg', { finish: 'black', name: '9MM MINI SMG', short: 'MINI SMG', desc: 'Tiny 9mm bullet hose. Fastest handling in the game, little range.', dmg: 17, rpm: 1000, mag: 32, range: [8, 22, 0.45], speedMul: 1.08, kick: 0.0075, gscale: 0.82, snd: 'hyper' }],
+  ['rpk', 'lmg', { finish: 'wood', name: '7.62 LIGHT SUPPORT GUN', short: 'SUPPORT GUN', desc: 'Rifle-handling 60-round LMG. Moves and aims faster than the belt-feds.', dmg: 24, rpm: 680, mag: 60, reload: 3.4, speedMul: 0.93, kick: 0.012, snd: 'battle' }],
+  ['lever', 'dmr', { finish: 'wood', name: '.45-70 LEVER ACTION', short: 'LEVER ACTION', desc: 'Two-shot body kills inside 40 m, one to the head. Every round counts.', dmg: 80, head: 2.0, rpm: 90, mag: 6, reload: 2.6, range: [40, 90, 0.75], pierce: false, kick: 0.04, snd: 'revolver', gscale: 0.95, geo: 'rifle', scope: false, zoom: 1.6, ads: 0.12, adsPos: [0, -0.09, -0.26], adsSpeed: 8 }],
+  ['slug', 'shotgun', { finish: 'black', name: '12GA SLUG SHOTGUN', short: 'SLUG', desc: 'Pump gun loaded with slugs: one heavy round, two-shot kills out to 25 m.', dmg: 85, head: 1.8, pellets: 0, rpm: 70, spread: 0.006, range: [25, 55, 0.6], snd: 'shotgun' }],
 ]) { const b = WEAPONS.find(w => w.id === base); if (b) WEAPONS.splice(WEAPONS.indexOf(WEAPONS.find(w => w.id === 'rpg')), 0, Object.assign({}, b, { id, geo: b.geo || base }, o)); }
+// ---- balance pass (150 HP, body shots). Close-range TTK targets: SMGs ~440–530 ms, ARs ~430–560 ms, LMGs ~480–540 ms,
+// shotguns one-shot inside ~8 m, marksman 3-shot (one-shot heads on the DMR), .338 sniper one-shot body; everything falls off at its range.
+for (const [id, o] of Object.entries({
+  rifle: { dmg: 25 }, ak: { dmg: 29, rpm: 560 }, krig: { dmg: 26, rpm: 600 }, bolt: { rpm: 80 }, scar: { rpm: 450 },
+  smg: { dmg: 19 }, vector: { dmg: 17 }, ump: { dmg: 25 }, mp5: { dmg: 21, rpm: 850 }, p90: { dmg: 18 },
+  mg: { dmg: 27 }, shotgun: { dmg: 19 }, db: { dmg: 16 }, dmr: { rpm: 120 }, revolver: { rpm: 175 },
+  sniper: { dmg: 155, desc: '.338 bolt action, 6× scope. One shot to the body kills — slow bolt, slow aim.' },
+  fifty: { dmg: 100, rpm: 75, desc: 'Semi-auto .50, no damage drop-off. Two to the body, one to the head. Heavy.' },
+})) { const w = WEAPONS.find(q => q.id === id); if (w) Object.assign(w, o); }
 // ---- CoD-style unlock ladder (level each item becomes available)
 const UNLOCK = { rifle: 1, smg: 1, shotgun: 1, lmg: 1, dmr: 1, pistol: 1, knife: 1, frag: 1, smoke: 1, flash: 1, ak: 2, revolver: 3, sword: 3, sniper: 4, ump: 5, semtex: 5, grau: 6, mp5: 7, pan: 7, autoshotgun: 8, molotov: 8,
-  scar: 9, mpistol: 10, bullpup: 11, p90: 12, krig: 13, semi: 14, vector: 15, mg: 16, db: 17, bolt: 18, deagle: 19, fifty: 20, rpg: 22 };
+  scar: 9, mpistol: 10, bullpup: 11, p90: 12, krig: 13, semi: 14, vector: 15, mg: 16, db: 17, bolt: 18, deagle: 19, fifty: 20, rpg: 22,
+  blackout: 4, mini: 6, slug: 9, burst: 10, lever: 12, rpk: 14 };
 const unlockLvl = id => UNLOCK[id] || 1, isUnlocked = id => { try { return settings.unlockAll === true || lvlOf(STATS.xp).l >= unlockLvl(id); } catch (e) { return unlockLvl(id) <= 1; } };
 const unlocksAt = l => Object.keys(UNLOCK).filter(k => UNLOCK[k] === l);
 let inv = [];
@@ -4253,7 +4270,7 @@ function fire() {
   if (w.bolt) wst.boltT = 60 / w.rpm;
   recoil.y += (w.pattern ? w.pattern[(wst.consec - 1) % w.pattern.length] + rand(-0.2, 0.2) : rand(-1, 1)) * w.kickYaw; vm.kick = Math.min(vm.kick + (w.id === 'shotgun' || w.id === 'dmr' ? 1 : 0.55), 1.4);
   wst.bloom = Math.min(w.maxBloom, wst.bloom + w.bloom);
-  wst.fireCD += 60 / w.rpm;
+  wst.fireCD += 60 / (w.burst ? w.burstRpm : w.rpm);
   if (w.id === 'shotgun') { wst.pumpT = 0.45; setTimeout(() => sfx.play('pump', { vol: 0.8 }), 280); }
   const m = vmModels[wst.cur]; m.flash.visible = true; m.flash.material.rotation = Math.random() * 6; const fs = w.id === 'shotgun' || w.id === 'revolver' ? 0.32 : w.id === 'pistol' || w.id === 'smg' ? 0.18 : 0.24; m.flash.scale.set(fs, fs, fs);
   vm.flashT = 0.045; muzzleLight.position.copy(muzzleW); muzzleLight.intensity = 25;
@@ -4282,14 +4299,19 @@ function updateWeapon(dt) {
   wst.ads = damp(wst.ads, adsWanted ? 1 : 0, w.adsSpeed * 1.4, dt);
   if (wst.ads < 0.01 && !adsWanted) wst.ads = 0;
   if (w.melee) { if (mouseL && player.alive && wst.switchT <= 0 && wst.swingT <= 0 && !wst.quick) meleeSwing(); if (!mouseL) wst.held = false; return; }
+  if (w.burst && wst.burstLeft > 0) { // the rest of a 3-round burst fires on its own
+    if (s.mag <= 0 || wst.reloading || !player.alive || wst.switchT > 0) wst.burstLeft = 0;
+    else if (wst.fireCD <= 0) { fire(); if (--wst.burstLeft <= 0 || s.mag <= 0) { wst.burstLeft = 0; wst.fireCD += 60 / w.rpm; } }
+    if (!mouseL) wst.held = false; return; }
   if (mouseL && player.alive && wst.switchT <= 0 && player.sprintLock <= 0 && wst.boltT <= 0) {
-    if (!w.auto && wst.held) return;
+    if (!w.auto && !w.burst && wst.held) return;
     if (wst.reloading && w.shell && s.mag > 0) { wst.reloading = false; }
     if (wst.reloading) return;
     if (wst.fireCD <= 0) {
       if (s.mag <= 0) { if (!wst.held) sfx.play('empty'); wst.held = true; wst.fireCD = 0.25; startReload(); return; }
       let guard = 0;
       while (wst.fireCD <= 0 && s.mag > 0 && guard++ < 3) { fire(); if (!w.auto) break; }
+      if (w.burst) { wst.burstLeft = w.burst - 1; if (wst.burstLeft <= 0 || s.mag <= 0) { wst.burstLeft = 0; wst.fireCD += 60 / w.rpm; } }
       wst.held = true;
       if (s.mag <= 0 && s.res > 0) setTimeout(() => { if (inv[wst.cur] === s && s.mag <= 0) startReload(); }, 250);
     }
@@ -6095,5 +6117,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
