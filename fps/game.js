@@ -544,7 +544,10 @@ class LevelBuilder {
     (o.col === false ? this.decor : this.boxes).push(b); return b;
   }
   B(cx, cz, w, d, h, y = 0, m = 'wall', o) { return this.box(cx - w / 2, y, cz - d / 2, cx + w / 2, y + h, cz + d / 2, m, o); }
-  stairs(x, z, dir, w, h0, h1, run, m = 'metal') {
+  stairs(x, z, dir, w, h0, h1, run, m = 'metal', strict = false) {
+    { const fx0 = dir === 'px' ? x : dir === 'nx' ? x - run : x - w / 2, fx1 = dir === 'px' ? x + run : dir === 'nx' ? x : x + w / 2, fz0 = dir === 'pz' ? z : dir === 'nz' ? z - run : z - w / 2, fz1 = dir === 'pz' ? z + run : dir === 'nz' ? z : z + w / 2, e = 0.05;
+      const hit = b => b.x0 < fx1 - e && b.x1 > fx0 + e && b.z0 < fz1 - e && b.z1 > fz0 + e; // never build a staircase through another one (or, strict, through anything at its foot)
+      if (this.boxes.some(b => hit(b) && (b.stair || (strict && b.y1 > h0 + 0.3 && b.y0 < h0 + 0.6)))) return false; }
     const n = Math.max(1, Math.ceil(Math.abs(h1 - h0) / 0.21)), sd = run / n; // low risers = smooth climbing
     { const dx = dir === 'px' ? 1 : dir === 'nx' ? -1 : 0, dz = dir === 'pz' ? 1 : dir === 'nz' ? -1 : 0; // nav link bottom -> top
       this.links.push([x - dx * 0.6, h0, z - dz * 0.6, x + dx * (run + 0.6), h1, z + dz * (run + 0.6), run + 1.2]); }
@@ -552,6 +555,7 @@ class LevelBuilder {
       const top = h0 + (h1 - h0) * (i + 1) / n, a = i * sd, b = (i + 1) * sd;
       const sb = dir === 'px' ? this.box(x + a, h0, z - w / 2, x + b, top, z + w / 2, m) : dir === 'nx' ? this.box(x - b, h0, z - w / 2, x - a, top, z + w / 2, m) : dir === 'pz' ? this.box(x - w / 2, h0, z + a, x + w / 2, top, z + b, m) : this.box(x - w / 2, h0, z - b, x + w / 2, top, z - a, m); sb.stair = true;
     }
+    return true;
   }
   // wall along X at z with openings [{c,w,y0,y1}]
   wallX(x0, x1, z, th, h, ops, m) {
@@ -1763,18 +1767,18 @@ function buildBazaar(L) {
   const Hh = (i, j) => (i < 0 || j < 0 || i >= nx || j >= nz ? 0 : H[j * nx + i]);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { // rooftop stairs: climb from a roof onto the next storey up
     const h = Hh(i, j); if (h <= 0 || h > 7 || rstairs >= 34 || R() > 0.45) continue; const [x0, z0, x1, z1] = cellB(i, j), y = h + 0.12;
-    if (Math.abs(Hh(i + 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs(x0 + 0.3, (z0 + z1) / 2, 'px', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
-    else if (Math.abs(Hh(i, j + 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs((x0 + x1) / 2, z0 + 0.3, 'pz', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (0), j + (1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
-    else if (Math.abs(Hh(i - 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs(x1 - 0.3, (z0 + z1) / 2, 'nx', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (-1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
-    else if (Math.abs(Hh(i, j - 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; L.stairs((x0 + x1) / 2, z1 - 0.3, 'nz', 1.7, y, y + 3.2, 3.6, 'concrete'); busy.add(i + ',' + j); rstairs++; rlinks.push([i, j, i + (0), j + (-1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    if (Math.abs(Hh(i + 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; if (!L.stairs(x0 + 0.3, (z0 + z1) / 2, 'px', 1.7, y, y + 3.2, 3.6, 'concrete')) { } else { busy.add(i + ',' + j); rstairs++; } if (L.boxes.length > nb) rlinks.push([i, j, i + (1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    else if (Math.abs(Hh(i, j + 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; if (!L.stairs((x0 + x1) / 2, z0 + 0.3, 'pz', 1.7, y, y + 3.2, 3.6, 'concrete')) { } else { busy.add(i + ',' + j); rstairs++; } if (L.boxes.length > nb) rlinks.push([i, j, i + (0), j + (1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    else if (Math.abs(Hh(i - 1, j) - h - 3.2) < 0.1) { const nb = L.boxes.length; if (!L.stairs(x1 - 0.3, (z0 + z1) / 2, 'nx', 1.7, y, y + 3.2, 3.6, 'concrete')) { } else { busy.add(i + ',' + j); rstairs++; } if (L.boxes.length > nb) rlinks.push([i, j, i + (-1), j + (0), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
+    else if (Math.abs(Hh(i, j - 1) - h - 3.2) < 0.1) { const nb = L.boxes.length; if (!L.stairs((x0 + x1) / 2, z1 - 0.3, 'nz', 1.7, y, y + 3.2, 3.6, 'concrete')) { } else { busy.add(i + ',' + j); rstairs++; } if (L.boxes.length > nb) rlinks.push([i, j, i + (0), j + (-1), L.boxes.slice(nb), L.links[L.links.length - 1]]); }
   }
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
     const h = H[j * nx + i]; if (h <= 0) continue; const [x0, z0, x1, z1] = cellB(i, j);
     if (h <= 3.3 && stairs < 30 && R() < 0.6) { // street stairs up the side wall onto a single-storey roof
-      if (openIn(i - 1, j) && openIn(i - 2, j)) { L.stairs(x0 - 3.6, z1 - 1.05, 'px', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
-      if (openIn(i, j - 1) && openIn(i, j - 2)) { L.stairs(x1 - 1.05, z0 - 3.6, 'pz', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
-      if (openIn(i + 1, j) && openIn(i + 2, j)) { L.stairs(x1 + 3.6, z0 + 1.05, 'nx', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
-      if (openIn(i, j + 1) && openIn(i, j + 2)) { L.stairs(x0 + 1.05, z1 + 3.6, 'nz', 1.7, 0, h + 0.12, 3.6, 'concrete'); stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i - 1, j) && openIn(i - 2, j) && L.stairs(x0 - 3.6, z1 - 1.05, 'px', 1.7, 0, h + 0.12, 3.6, 'concrete', true)) { stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i, j - 1) && openIn(i, j - 2) && L.stairs(x1 - 1.05, z0 - 3.6, 'pz', 1.7, 0, h + 0.12, 3.6, 'concrete', true)) { stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i + 1, j) && openIn(i + 2, j) && L.stairs(x1 + 3.6, z0 + 1.05, 'nx', 1.7, 0, h + 0.12, 3.6, 'concrete', true)) { stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
+      if (openIn(i, j + 1) && openIn(i, j + 2) && L.stairs(x0 + 1.05, z1 + 3.6, 'nz', 1.7, 0, h + 0.12, 3.6, 'concrete', true)) { stairs++; busy.add(i + ',' + j); street.add(j * nx + i); continue; }
     }
     if (!busy.has(i + ',' + j)) { const rr = R(), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; // rooftop clutter: water tanks, antennas, AC units
       if (rr < 0.14) L.prop('fueltank', cx, h + 0.12, cz, 0.38); else if (rr < 0.24) L.prop('mast', x0 + 0.6, h + 0.12, z0 + 0.6, 0.12); else if (rr < 0.36) L.B(cx, cz, 0.8, 0.6, 0.55, h + 0.12, 'acunit'); }
@@ -1787,13 +1791,14 @@ function buildBazaar(L) {
     for (const [i, j, a, b] of rlinks) if (a >= 0 && b >= 0 && a < nx && b < nz) U(j * nx + i, b * nx + a);
     const grounded = new Set(); for (const k of street) grounded.add(f(k));
     const want = new Set(); for (const [i, j] of rlinks) if (!grounded.has(f(j * nx + i))) want.add(f(j * nx + i));
-    for (let j = 0; j < nz && want.size; j++) for (let i = 0; i < nx && want.size; i++) { const k = j * nx + i, h = H[k], root = f(k); if (h <= 0 || h > 9.8 || !want.has(root) || busy.has(i + ',' + j)) continue;
+    for (let j = 0; j < nz && want.size; j++) for (let i = 0; i < nx && want.size; i++) { const k = j * nx + i, h = H[k], root = f(k); if (h <= 0 || h > 6.6 || !want.has(root) || busy.has(i + ',' + j)) continue;
       const [x0, z0, x1, z1] = cellB(i, j), run = (h + 0.12) * 1.12, y = h + 0.12; let ok = false;
-      const nc = Math.ceil((run + 0.4) / cs), clear = (di, dj) => { for (let q = 1; q <= nc; q++) if (!openIn(i + di * q, j + dj * q)) return false; return true; };
-      if (clear(-1, 0)) { L.stairs(x0 - run, z1 - 1.05, 'px', 1.7, 0, y, run, 'concrete'); ok = true; }
-      else if (clear(1, 0)) { L.stairs(x1 + run, z0 + 1.05, 'nx', 1.7, 0, y, run, 'concrete'); ok = true; }
-      else if (clear(0, -1)) { L.stairs(x1 - 1.05, z0 - run, 'pz', 1.7, 0, y, run, 'concrete'); ok = true; }
-      else if (clear(0, 1)) { L.stairs(x0 + 1.05, z1 + run, 'nz', 1.7, 0, y, run, 'concrete'); ok = true; }
+      const nc = Math.ceil((run + 0.4) / cs), clear = (di, dj) => { for (let q = 1; q <= nc; q++) { const a = i + di * q, b = j + dj * q; if (!openIn(a, b)) return false; // the run stays in the open...
+        const wa = di ? a : (di === 0 && dj ? (dj < 0 ? i + 1 : i - 1) : a), wb = di ? (di < 0 ? b + 1 : b - 1) : b; if (openIn(wa, wb)) return false; } return true; }; // ...but hugs a building wall the whole way (never a free-standing ramp in the street)
+      if (clear(-1, 0) && L.stairs(x0 - run, z1 - 1.05, 'px', 1.7, 0, y, run, 'concrete', true)) ok = true;
+      else if (clear(1, 0) && L.stairs(x1 + run, z0 + 1.05, 'nx', 1.7, 0, y, run, 'concrete', true)) ok = true;
+      else if (clear(0, -1) && L.stairs(x1 - 1.05, z0 - run, 'pz', 1.7, 0, y, run, 'concrete', true)) ok = true;
+      else if (clear(0, 1) && L.stairs(x0 + 1.05, z1 + run, 'nz', 1.7, 0, y, run, 'concrete', true)) ok = true;
       if (!ok) continue; want.delete(root); busy.add(i + ',' + j); stairs++;
       // clear any rooftop clutter where the stair lands
       for (let q = L.boxes.length - 1; q >= 0; q--) { const b = L.boxes[q]; if (Math.abs(b.y0 - y) < 0.05 && b.x0 < x1 && b.x1 > x0 && b.z0 < z1 && b.z1 > z0 && !b.stair) L.boxes.splice(q, 1); }
@@ -2104,7 +2109,12 @@ class Nav {
     for (let n = 0; n < this.n; n++) for (let e = this.eS[n]; e < this.eS[n + 1]; e++) rev[this.eTo[e]].push(n);
     let st = [s0]; fw[s0] = 1; while (st.length) { const n = st.pop(); for (let e = this.eS[n]; e < this.eS[n + 1]; e++) { const q = this.eTo[e]; if (!fw[q]) { fw[q] = 1; st.push(q); } } }
     st = [s0]; bw[s0] = 1; while (st.length) { const n = st.pop(); for (const q of rev[n]) if (!bw[q]) { bw[q] = 1; st.push(q); } }
-    const out = []; for (let n = 0; n < this.n; n++) if (fw[n] && bw[n]) out.push(n); this.safe = Int32Array.from(out); }
+    const out = []; this.safeMask = new Uint8Array(this.n); for (let n = 0; n < this.n; n++) if (fw[n] && bw[n]) { out.push(n); this.safeMask[n] = 1; } this.safe = Int32Array.from(out); }
+  nearestSafe(x, y, z, maxRm = 10) { // closest node you can get to and back from (falls back to any node)
+    if (!this.safeMask) return this.nodeAt(x, y, z, maxRm); const cs = this.cs, R = Math.ceil(maxRm / cs), ci = Math.floor((x - this.x0) / cs), cj = Math.floor((z - this.z0) / cs); let best = -1, bs = 1e9;
+    for (let r = 0; r <= R; r++) { for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue; const i = ci + di, j = cj + dj; if (i < 0 || j < 0 || i >= this.W || j >= this.H) continue; const k = j * this.W + i;
+      for (let m = this.cellStart[k]; m < this.cellStart[k + 1]; m++) { if (!this.safeMask[m]) continue; const sc = Math.hypot(di, dj) * cs + Math.abs(this.nodeH[m] - y) * 2; if (sc < bs) { bs = sc; best = m; } } } if (best >= 0 && bs < (r + 1) * cs) break; }
+    return best; }
   // ---- ground-layer API kept for spawns and scenery
   free(x, z) { const k = this.cellIdx(x, z); return k >= 0 && !this.blk[k]; }
   center(k) { return [this.x0 + ((k % this.W) + 0.5) * this.cs, this.z0 + (Math.floor(k / this.W) + 0.5) * this.cs]; }
@@ -2937,11 +2947,11 @@ class Enemy {
         // flank: approach the last known position from the side instead of head-on
         if (t && this.lostT > 2 && this.lostT < 2.1 && this.skill > 0.8 && Math.random() < 0.5) {
           const ux = this.lastKnown.x - this.pos.x, uz = this.lastKnown.z - this.pos.z, l = Math.hypot(ux, uz) || 1, side = Math.random() < 0.5 ? 1 : -1;
-          const n = world.nav.nodeAt(this.lastKnown.x - uz / l * 9 * side, this.lastKnown.y, this.lastKnown.z + ux / l * 9 * side, 3); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.investigate = new V3(x, y, z); this.state = 'flank'; }
+          const n = world.nav.nearestSafe(this.lastKnown.x - uz / l * 9 * side, this.lastKnown.y, this.lastKnown.z + ux / l * 9 * side, 4); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.investigate = new V3(x, y, z); this.state = 'flank'; }
         }
         let goal = this.investigate || (t ? this.lastKnown : null);
         if (!goal && this.bot) { // roam
-          if ((!this.roam || this.pos.distanceTo(this.roam) < 2) && isAlly(this, PLAYER_T) && player.alive && Math.random() < 0.6) this.roam = new V3(player.pos.x + rand(-6, 6), player.pos.y, player.pos.z + rand(-6, 6));
+          if ((!this.roam || this.pos.distanceTo(this.roam) < 2) && isAlly(this, PLAYER_T) && player.alive && Math.random() < 0.6) { const n = world.nav.nearestSafe(player.pos.x + rand(-6, 6), player.pos.y, player.pos.z + rand(-6, 6), 12); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } } // follow you, but only to places a body can reach and leave
           if (!this.roam || this.pos.distanceTo(this.roam) < 2) { let n = world.nav.randomNode(); if (Math.random() < 0.35) for (let q = 0; q < 24; q++) { const m = world.nav.randomNode(); if (m >= 0 && world.nav.nodeH[m] > Math.max(2.2, n >= 0 ? world.nav.nodeH[n] : 0)) n = m; } // humans like high ground
             if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } }
           goal = this.roam;
@@ -5357,6 +5367,8 @@ function initMpUI() {
   };
   $('mpToLobby').onclick = () => { if (game.mode === 'botdm') { $('mpToLobby').textContent = 'BACK TO LOBBY'; game.mode = 'survival'; return toMenu(); } game.state = 'menu'; openMpScreen(); if (!MP.peer) setMpStatus('Lobby closed.', true); };
   if (new URLSearchParams(location.search).get('join')) openMpScreen();
+  $('onlinechip').onclick = () => { $('onlinepanel').classList.toggle('on'); refreshOnline(); };
+  setTimeout(() => { presenceStart(); setTimeout(refreshOnline, 2500); }, 1500); setInterval(() => { if (game.state === 'menu' && document.visibilityState === 'visible') refreshOnline(); }, 45000);
 }
 // ---- public matches: a hosting player also claims one of a few well-known 'beacon' ids; browsers probe them all
 const PUB_SLOTS = 16;
@@ -5389,6 +5401,35 @@ function quickPlay() {
   settings.name = cleanName($('mpname').value); saveSettings(); setMpStatus('Finding a match…');
   refreshPublic(list => { const open = list.filter(L => !L.active && L.humans < 8).sort((a, b) => b.humans - a.humans);
     if (open.length) joinLobby(open[0].code); else { setMpStatus('No open matches — starting a public one with bots…'); hostLobby(true, 3); } });
+}
+// ---- who's online: every open game claims a presence slot; the menu probes them (coarse location = timezone city only)
+const PRES_SLOTS = 48, PRES = { peer: null, list: [], t: 0 };
+const myPlace = () => { try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; const city = tz.split('/').pop().replace(/_/g, ' '); return city && city !== 'UTC' ? city : 'Unknown'; } catch (e) { return 'Unknown'; } };
+function presenceStatus() { return MP.active ? (MP.mode === 'surv' ? 'In co-op survival' : MP.mode === 'tdm' ? 'In team deathmatch' : 'In free-for-all') : game.state === 'play' ? (game.mode === 'botdm' ? 'In a bot match' : 'In survival') : MP.peer ? 'In a lobby' : 'In the menu'; }
+function presenceStart() {
+  if (PRES.peer || typeof Peer === 'undefined' || settings.presence === false) return; let slot = Math.floor(Math.random() * PRES_SLOTS), tries = 0;
+  const go = () => { if (tries++ >= PRES_SLOTS || settings.presence === false) return; const p = new Peer(PREFIX + 'on-' + slot, peerOpts());
+    p.on('open', () => { PRES.peer = p; PRES.slot = slot; });
+    p.on('error', e => { if (e.type === 'unavailable-id') { try { p.destroy(); } catch (x) {} slot = (slot + 1) % PRES_SLOTS; go(); } });
+    p.on('connection', c => { c.on('open', () => { try { c.send({ t: 'here', place: myPlace(), st: presenceStatus() }); } catch (x) {} setTimeout(() => { try { c.close(); } catch (x) {} }, 1200); }); }); };
+  go();
+}
+function presenceStop() { try { if (PRES.peer) PRES.peer.destroy(); } catch (e) {} PRES.peer = null; }
+function presenceProbe(cb) {
+  if (typeof Peer === 'undefined') return cb([]); const peer = new Peer(undefined, peerOpts()), found = []; let done = false;
+  const fin = () => { if (done) return; done = true; try { peer.destroy(); } catch (e) {} cb(found); };
+  let want = 0; const seen = new Set(), tick = id => { if (id) seen.add(id); if (seen.size >= want) fin(); };
+  peer.on('open', () => { for (let i = 0; i < PRES_SLOTS; i++) { if (PRES.peer && i === PRES.slot) continue; want++; const c = peer.connect(PREFIX + 'on-' + i, { reliable: true }); c.on('data', d => { if (d && d.t === 'here' && !seen.has(c.peer)) { found.push({ place: cleanName(d.place).slice(0, 24) || 'Unknown', st: String(d.st || '').slice(0, 30) }); tick(c.peer); } }); } setTimeout(fin, 12000); });
+  peer.on('error', e => { if (e.type !== 'peer-unavailable') return fin(); const m = /(breachpoint\S+)/.exec(String(e.message || '')); tick(m ? m[1] : null); }); setTimeout(fin, 15000); // done when every slot has answered or reported empty
+}
+function refreshOnline() {
+  if (PRES.busy) { PRES.again = true; return; } PRES.busy = true;
+  presenceProbe(list => { PRES.busy = false; if (PRES.again) { PRES.again = false; setTimeout(refreshOnline, 50); } const me = PRES.peer ? [{ place: myPlace() + ' (you)', st: presenceStatus(), me: true }] : []; PRES.list = me.concat(list); PRES.t = performance.now();
+    const n = $('onlineN'); if (n) n.textContent = PRES.list.length || (settings.presence === false ? '—' : 1); renderOnline(); });
+}
+function renderOnline() {
+  const el = $('onlinepanel'); if (!el) return; const by = {}; for (const p of PRES.list) { const k = p.place; (by[k] || (by[k] = [])).push(p); }
+  el.innerHTML = `<h4>${PRES.list.length} PLAYER${PRES.list.length === 1 ? '' : 'S'} ONLINE</h4>` + Object.entries(by).sort((a, b) => b[1].length - a[1].length).map(([k, v]) => `<div class="orow"><span>${esc(k)}${v.length > 1 ? ' ×' + v.length : ''}</span><small>${esc(v.map(x => x.st).filter((x, i, a) => a.indexOf(x) === i).join(' · '))}</small></div>`).join('') + `<p>Location is each player's timezone city — no IP lookups. Hide yourself in Settings → Audio.</p>`;
 }
 function sendInfo() {
   if (!MP.peer) return;
@@ -5876,11 +5917,11 @@ resize(); loadMap(settings.map); world.shadows = QUALITY[settings.quality].shado
 initUI(); initMpUI(); initDmgNumbers(); initPreview(); applyMapThumbs();
 try { for (const m of MAPS) { localStorage.removeItem('bp_mthumb_' + m.name); localStorage.removeItem('bp_mthumb2_' + m.name); } } catch (e) {} applyMapThumbs(); // old captured thumbnails are no longer used
 addEventListener('bp-assets', () => { makeThumbs(); PV.mode = 'char'; buildPreview(); });
-for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['voices', 'voices', v => v === '1'], ['unlockAll', 'unlockAll', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
-  const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); if (key === 'unlockAll' && $('loadout')) renderLoadout($('loadout')); };
+for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['voices', 'voices', v => v === '1'], ['presence', 'presence', v => v === '1'], ['unlockAll', 'unlockAll', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
+  const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); if (key === 'unlockAll' && $('loadout')) renderLoadout($('loadout')); if (key === 'presence') { if (settings.presence === false) presenceStop(); else presenceStart(); } };
 }
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { PV, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
