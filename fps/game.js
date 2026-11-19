@@ -213,23 +213,24 @@ for (const [k, mf, mg] of [['pistol', 1900, 0.3], ['revolver', 900, 0.45], ['rif
 const SAMPLES = {}, GUNALIAS = { battle: 'ak', bullpup: 'rifle', hyper: 'smg', ump45: 'smg', autosg: 'shotgun', fifty: 'sniper', mpistol: 'smg', revolver: 'pistol', dmr: 'sniper' };
 function loadSamples(c) { fetch('audio/sfx/manifest.json?v=' + (window.BP_AUDIO_V || 1)).then(r => r.ok ? r.json() : null).then(m => { if (!m) return;
   for (const [key, files] of Object.entries(m)) for (const f of [].concat(files)) fetch('audio/sfx/' + f).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(ab => c.decodeAudioData(ab)).then(buf => (SAMPLES[key] || (SAMPLES[key] = [])).push(buf)).catch(() => {}); }).catch(() => {}); }
-// Hit-marker sounds, CoD-style: a dry, high-transient plastic/metal "tick" with a little body thud under it.
-// Modal synthesis: a few exponentially damped resonances struck at t=0 plus a sub-millisecond noise click.
+// Hit-marker sounds: a high-register 808 kick. Each layer is a sine whose pitch dives fast (the "punch"), with a
+// sub-millisecond click on top, then everything is driven into tanh saturation for weight.
 function hmSynth(kind, sr, seed) {
   let r = seed * 9301 + 49297; const rnd = () => { r = (r * 16807) % 2147483647; return r / 2147483647; };
-  const pv = 1 + (rnd() - 0.5) * 0.06, len = Math.round(sr * (kind === 'hmhead' ? 0.16 : kind === 'hmkill' ? 0.14 : 0.05)), o = new Float32Array(len);
-  const modes = kind === 'hmhead' ? [[3150, 0.0065, 0.55], [4700, 0.004, 0.35], [6900, 0.0025, 0.2], [3720, 0.055, 0.16], [5580, 0.03, 0.07]] /* the tick, plus a short metallic ping */
-    : kind === 'hmkill' ? [[2650, 0.007, 0.5], [4100, 0.0045, 0.32], [6200, 0.0025, 0.18]]
-    : [[2900, 0.006, 0.55], [4400, 0.0038, 0.34], [6600, 0.0022, 0.2]];
-  const thud = kind === 'hmkill' ? [150, 92, 0.05, 0.62] : kind === 'hmhead' ? [210, 150, 0.016, 0.2] : [230, 170, 0.014, 0.24]; /* f0, f1, decay, gain */
+  const pv = 1 + (rnd() - 0.5) * 0.05, K = kind === 'hmkill', Hd = kind === 'hmhead';
+  /* layers: [start Hz, end Hz, pitch-dive time, amp decay, gain] */
+  const L = K ? [[1500, 420, 0.012, 0.055, 0.9], [260, 62, 0.03, 0.11, 1.0]]
+    : Hd ? [[2300, 760, 0.008, 0.03, 0.9], [420, 150, 0.014, 0.04, 0.55]]
+    : [[2000, 640, 0.008, 0.026, 0.9], [380, 130, 0.014, 0.034, 0.6]];
+  const len = Math.round(sr * (K ? 0.3 : Hd ? 0.2 : 0.11)), o = new Float32Array(len), ph = L.map(() => 0);
   for (let i = 0; i < len; i++) { const t = i / sr; let v = 0;
-    for (const [f, d, g] of modes) v += Math.sin(2 * Math.PI * f * pv * t) * Math.exp(-t / d) * g;
-    if (t < 0.0012) v += (rnd() * 2 - 1) * (1 - t / 0.0012) * 0.55; /* the click itself */
-    const ft = thud[1] + (thud[0] - thud[1]) * Math.exp(-t / 0.02); v += Math.sin(2 * Math.PI * ft * t) * Math.exp(-t / thud[2]) * thud[3] * Math.min(1, t / 0.0006);
-    if (kind === 'hmkill' && t > 0.018) { const u = t - 0.018; v += (Math.sin(2 * Math.PI * 3300 * pv * u) * 0.3 + Math.sin(2 * Math.PI * 5000 * pv * u) * 0.15) * Math.exp(-u / 0.004); } /* the second, harder snap */
-    o[i] = v; }
-  let pk = 0; for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(o[i])); const G = (kind === 'hmkill' ? 0.62 : kind === 'hmhead' ? 0.58 : 0.5) / (pk || 1);
-  for (let i = 0; i < len; i++) o[i] *= G * Math.min(1, (len - i) / (sr * 0.003)); return o;
+    L.forEach((l, j) => { const f = (l[1] + (l[0] - l[1]) * Math.exp(-t / l[2])) * pv; ph[j] += 2 * Math.PI * f / sr; v += Math.sin(ph[j]) * Math.exp(-t / l[3]) * l[4]; });
+    if (t < 0.0015) v += (rnd() * 2 - 1) * (1 - t / 0.0015) * 0.7; /* the click */
+    if (Hd) v += (Math.sin(2 * Math.PI * 3700 * pv * t) * 0.22 + Math.sin(2 * Math.PI * 5550 * pv * t) * 0.08) * Math.exp(-t / 0.05) * Math.min(1, t / 0.003); /* headshot ping */
+    if (K && t > 0.022) { const u = t - 0.022; v += Math.sin(2 * Math.PI * (900 + 1300 * Math.exp(-u / 0.006)) * pv * u) * Math.exp(-u / 0.03) * 0.55; } /* second hit of the kill */
+    o[i] = Math.tanh(v * (K ? 2.6 : 2.2)); }
+  let pk = 0; for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(o[i])); const G = (K ? 0.75 : Hd ? 0.66 : 0.6) / (pk || 1);
+  for (let i = 0; i < len; i++) o[i] *= G * Math.min(1, (len - i) / (sr * 0.004)); return o;
 }
 const sfx = {
   ctx: null,
@@ -3688,8 +3689,8 @@ function updateClouds(dt) {
   }
 }
 if (!CLASSES[settings.cls]) settings.cls = 'assault';
-const HEALTH = { hardcore: 40, classic: 100, core: 150 }; if (settings.hv !== 2) { if (!settings.health || settings.health === 'core') settings.health = 'classic'; settings.hv = 2; } if (!HEALTH[settings.health]) settings.health = 'classic'; // classic 100 HP is the default
-const hpMul = () => (MP.active ? (HEALTH[MP.health] || 100) : HEALTH[settings.health]) / 100; // everyone shares one value; online the host decides
+const HEALTH = { hardcore: 40, classic: 100, core: 150 }; if (settings.hv !== 3) { if (settings.health !== 'hardcore') settings.health = 'core'; settings.hv = 3; } if (!HEALTH[settings.health]) settings.health = 'core'; // 150 HP is the default: the guns are balanced for it (~0.45-0.55 s TTK)
+const hpMul = () => (MP.active ? (HEALTH[MP.health] || 150) : HEALTH[settings.health]) / 100; // everyone shares one value; online the host decides
 const cls = () => CLASSES[settings.cls];
 function useAbility() {
   const C = cls(), P = player;
@@ -5838,7 +5839,7 @@ function startMatch(d) { if (!d._ld) { d._ld = 1; return deploy('MULTIPLAYER · 
   sfx.init(); music.play('start'); MP.ending = false; if (!MP.isHost && typeof d.hostId === 'string') MP.hostId = d.hostId; if (game.potg) endPotg();
   MP.mode = ['ffa', 'tdm', 'surv'].includes(d.mode) ? d.mode : 'ffa'; MP.teamScore = [0, 0]; setTimeout(potgReset, 0);
   if (d.players && typeof d.players === 'object') for (const id in d.players) if (MP.players[id] && (d.players[id].team === 0 || d.players[id].team === 1)) MP.players[id].team = d.players[id].team;
-  MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 200); MP.time = clamp(num(d.time, 480) | 0, 60, 3600); MP.health = HEALTH[d.hp] ? d.hp : 'classic';
+  MP.map = clamp(num(d.map) | 0, 0, MAPS.length - 1); MP.limit = clamp(num(d.limit, 20) | 0, 1, 200); MP.time = clamp(num(d.time, 480) | 0, 60, 3600); MP.health = HEALTH[d.hp] ? d.hp : 'core';
   for (const id in MP.players) { MP.players[id].kills = 0; MP.players[id].deaths = 0; }
   if (!world || world.def !== MAPS[MP.map]) { loadMap(MP.map); world.shadows = QUALITY[settings.quality].shadows; }
   resetRun(); clearRemotes();
