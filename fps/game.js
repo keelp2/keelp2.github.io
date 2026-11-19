@@ -3020,9 +3020,36 @@ function addAccessories(kind, o) { // per-class kit, in each faction's period ge
   else if (kind === 'goblin') { vest(false); beret(); }
   else { vest(false); helmet(false, false); }
 }
+// ---- realistic troops: 4 per faction. Players get the soldier for their class; bots/NPCs a varied pick by name.
+const TROOPS = [['c1', 'c2', 'c3', 'c4'], ['g1', 'g2', 'g3', 'g4']];
+const CLASS_TROOP = [{ knight: 'c1', ginger: 'c4', ogre: 'c2', fairy: 'c3', wolf: 'c2', witch: 'c1' }, { knight: 'g2', ginger: 'g3', ogre: 'g4', fairy: 'g1', wolf: 'g2', witch: 'g1' }];
+function troopId(kind, faction, seed, byClass) { const f = faction ? 1 : 0; if (byClass && CLASS_TROOP[f][kind]) return CLASS_TROOP[f][kind]; const L = TROOPS[f]; return L[hashStr(String(seed === undefined ? Math.random() : seed)) % L.length]; }
+function makeTroopChar(kind, opt, gl, tid, faction) {
+  const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
+  const root = window.BP_SkeletonUtils.clone(gl.scene); inner.add(root);
+  const bones = {}; let bodyMat = null;
+  root.traverse(o => { if (o.isBone) bones[o.name.replace(/^mixamorig:?/, '')] = o;
+    if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; if (/fatigue|vest|shirt/i.test(o.material.name || '')) { o.material = o.material.clone(); if (!bodyMat || /shirt/i.test(o.material.name)) bodyMat = o.material; } } });
+  if (!bodyMat) root.traverse(o => { if (!bodyMat && o.isMesh) { o.material = o.material.clone(); bodyMat = o.material; } });
+  if (!bodyMat.emissive) bodyMat.emissive = new THREE.Color(0);
+  // everyone stands the same height (fairness: no smaller target), and the hitbox never depends on the model
+  root.updateMatrixWorld(true); const hb = bones.HeadTop_End || bones.Head; let h = 1.8; if (hb) { const v = new V3(); hb.getWorldPosition(v); h = v.y + (bones.HeadTop_End ? 0.02 : 0.12); }
+  inner.scale.setScalar((1.8 / Math.max(1.2, h)) * (opt.scale || (CHAR[kind] && CHAR[kind].scale) || 1));
+  const mixer = new THREE.AnimationMixer(root), act = {};
+  for (const c of gl.animations) { const nm = /idle/i.test(c.name) ? 'Idle' : /run/i.test(c.name) ? 'Run' : /walk/i.test(c.name) ? 'Walk' : c.name; act[nm] = mixer.clipAction(c); }
+  (act.Idle || Object.values(act)[0]).play(); g.updateMatrixWorld(true);
+  const rp = new V3(); if (bones.RightArm) { bones.RightArm.getWorldPosition(rp); inner.worldToLocal(rp); }
+  const out = { group: g, inner, bodyMat, mixer, act, bones, animState: 'Idle', legL: null, legR: null, skinned: true, rsign: rp.x >= 0 ? 1 : -1, wings: null, troop: tid, look: { faction, female: tid === 'c3' } };
+  out.headAcc = new THREE.Group(); out.chestAcc = new THREE.Group(); inner.add(out.headAcc, out.chestAcc);
+  const iq = inner.getWorldQuaternion(new THREE.Quaternion()).invert(), bq = b => b ? iq.clone().multiply(b.getWorldQuaternion(new THREE.Quaternion())).invert() : null;
+  out.headBind = bq(bones.Head); out.chestBind = bq(bones.Spine2);
+  return out;
+}
 function makeCharacter(kind, opt = {}) {
   let o = null;
-  try { if (window.BP_ASSETS && window.BP_ASSETS.soldier && window.BP_SkeletonUtils && settings.quality !== 'low') o = makeSoldierChar(kind, opt); } catch (e) { console.warn('soldier model failed, using fallback', e); o = null; }
+  try { const T = window.BP_TROOPS, f = opt.faction !== undefined ? opt.faction : (CHAR[kind] && CHAR[kind].foe ? 1 : 0), tid = opt.troop || troopId(kind, f, opt.seed !== undefined ? opt.seed : opt.name, opt.byClass), gl = T && (T[tid] || T[TROOPS[f ? 1 : 0].find(x => T[x])]);
+    if (gl && window.BP_SkeletonUtils) o = makeTroopChar(kind, opt, gl, tid, f ? 1 : 0); } catch (e) { console.warn('troop model failed, using fallback', e); o = null; }
+  try { if (!o && window.BP_ASSETS && window.BP_ASSETS.soldier && window.BP_SkeletonUtils) o = makeSoldierChar(kind, opt); } catch (e) { console.warn('soldier model failed, using fallback', e); o = null; }
   if (!o) o = makeProcChar(kind, opt);
   o.kind = kind; setCharWeapon(o, opt.weapon || 'rifle');
   if (opt.sash !== undefined) { const m = new THREE.Mesh(CG.box, new THREE.MeshBasicMaterial({ color: opt.sash })); m.scale.set(0.5, 0.07, 0.3); m.rotation.z = 0.7; m.position.y = o.skinned ? 0 : 1.22; (o.chestAcc || o.inner).add(m); }
@@ -3137,7 +3164,7 @@ class Enemy {
     this.state = 'hunt'; this.cover = null; this.coverT = 0; this.strafe = Math.random() < 0.5 ? 1 : -1; this.strafeT = 0; this.jumpCD = rand(1, 3);
     this.flashT = 0; this.mflash = 0; this.dead = false; this.deadT = 0; this.stuckT = 0; this.lastPos = this.pos.clone(); this.lastFired = -99; this.spawnT = 0.5;
     this.lookT = 0; this.lookYaw = 0; this.attacker = null; this.headPref = Math.random() < 0.18 * this.skill;
-    Object.assign(this, makeCharacter(T.model, { scale: T.scale, weapon: this.W.id, sash: opt.sash, faction: opt.faction, seed: opt.name || T.name }));
+    Object.assign(this, makeCharacter(T.model, { scale: T.scale, weapon: this.W.id, sash: opt.sash, faction: opt.faction, seed: opt.name || T.name + ':' + Math.random() }));
     this.group.position.copy(this.pos); world.group.add(this.group);
     if (T.sniper) {
       const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
@@ -5625,7 +5652,7 @@ class Remote {
   constructor(id, info) {
     this.id = id; this.name = info.name; const color = MP.mode === 'tdm' && (info.team === 0 || info.team === 1) ? TEAMC[info.team] : PCOLORS[info.color % PCOLORS.length];
     const C = CLASSES[info.cls] || CLASSES.assault; this.cls = C;
-    Object.assign(this, makeCharacter(info.model || C.model, { sash: color, weapon: 'rifle', faction: info.model ? 1 : MP.mode === 'tdm' && info.team >= 0 ? info.team : hashStr(info.name || '') & 1, seed: (info.name || '') + (info.tag || '') })); this.isRemote = true; this.isEnemyNpc = !!info.model;
+    Object.assign(this, makeCharacter(info.model || C.model, { sash: color, weapon: 'rifle', faction: info.model ? 1 : MP.mode === 'tdm' && info.team >= 0 ? info.team : hashStr(info.name || '') & 1, seed: (info.name || '') + (info.tag || ''), byClass: !info.model && !info.bot })); this.isRemote = true; this.isEnemyNpc = !!info.model;
     this.baseColor = this.bodyMat.color.getHex();
     this.s = CHAR[C.model].scale; this.h = 1.82 * this.s; this.pos = new V3(0, -50, 0); this.dead = true; this.snaps = []; this.yaw = 0; this.walk = 0;
     this.flashT = 0; this.mflash = 0; this.lastFired = -99; this.deadT = 0;
@@ -5930,9 +5957,9 @@ function potgRecord(dt) {
   const a = [], myTeam = MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0;
   potgActor('me', { names: ['You', cleanName(settings.name)], name: cleanName(settings.name) + '#' + PROFILE.tag, kind: cls().model, faction: myTeam, seed: PROFILE.id, human: true });
   a.push(['me', player.pos.x, player.pos.y, player.pos.z, player.yaw + Math.PI, player.pitch || 0, player.alive ? 1 : 0, WEAPONS[wst.cur].id]);
-  for (const e of enemies) { if (!e._pid) e._pid = 'e' + (POTG.nid++); potgActor(e._pid, { names: [e.T && e.T.name, e.netId && MP.players[e.netId] && MP.players[e.netId].name].filter(Boolean), name: (e.T && e.T.name) || 'Bot', kind: e.kind, faction: e.look ? e.look.faction : 1, seed: e.T && e.T.name, human: false });
+  for (const e of enemies) { if (!e._pid) e._pid = 'e' + (POTG.nid++); potgActor(e._pid, { names: [e.T && e.T.name, e.netId && MP.players[e.netId] && MP.players[e.netId].name].filter(Boolean), name: (e.T && e.T.name) || 'Bot', kind: e.kind, faction: e.look ? e.look.faction : 1, seed: e.T && e.T.name, human: false, troop: e.troop });
     a.push([e._pid, e.pos.x, e.pos.y, e.pos.z, e.yaw, e.aimPitch || 0, e.dead ? 0 : 1, e.W ? e.W.id : 'rifle']); }
-  for (const r of remoteList) { const id = 'r' + r.id; potgActor(id, { names: [r.name], name: r.name, kind: r.kind, faction: r.look ? r.look.faction : 0, seed: r.look ? undefined : r.name, look: r.look, human: !(MP.players[r.id] && MP.players[r.id].bot) });
+  for (const r of remoteList) { const id = 'r' + r.id; potgActor(id, { names: [r.name], name: r.name, kind: r.kind, faction: r.look ? r.look.faction : 0, seed: r.name, look: r.look, human: !(MP.players[r.id] && MP.players[r.id].bot), troop: r.troop });
     a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, 'rifle']); }
   POTG.frames.push({ t: POTG.t, a });
 }
@@ -5951,7 +5978,7 @@ function startPotg(done) {
   const ghosts = {}, hidden = [];
   for (const o of [...enemies, ...remoteList]) if (o.group && o.group.visible) { o.group.visible = false; hidden.push(o); } if (avatar) { avatar.group.visible = false; hidden.push(avatar); }
   const ids = new Set(); for (const f of fr) for (const a of f.a) ids.add(a[0]);
-  for (const id of ids) { const I = POTG.actors[id]; if (!I) continue; const ch = makeCharacter(I.kind || 'knight', { weapon: (fr[0].a.find(a => a[0] === id) || [])[7] || 'rifle', faction: I.faction, seed: I.seed }); ch.group.visible = false; world.group.add(ch.group); ghosts[id] = ch; }
+  for (const id of ids) { const I = POTG.actors[id]; if (!I) continue; const ch = makeCharacter(I.kind || 'knight', { weapon: (fr[0].a.find(a => a[0] === id) || [])[7] || 'rifle', faction: I.faction, seed: I.seed, byClass: I.human, troop: I.troop }); ch.group.visible = false; world.group.add(ch.group); ghosts[id] = ch; }
   const ov = $('potgov') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'potgov' }));
   ov.innerHTML = `<div class="ptitle"><small>PLAY OF THE GAME</small><b>${esc(A.name.toUpperCase())}</b><i>${B.n > 1 ? ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, B.n)] : 'CLUTCH ELIMINATION'}</i></div><div class="pcall" id="potgCall"></div><div class="pskip">${gp.on ? 'A' : 'SPACE / CLICK'} — SKIP</div>`;
   ov.className = 'on'; $('hud').classList.add('cine'); $('hud').classList.add('potgmode');
@@ -6076,7 +6103,7 @@ function buildPreview() {
   const C = cls(), lo = getLO();
   if (PV.mode === 'gun' && PV.id) { const w = WEAPONS[widx(PV.id)], ck = PV.id + JSON.stringify(settings.att[PV.id] || {}), g = (PV.gc || (PV.gc = {}))[ck] || (PV.gc[ck] = buildGun(PV.id, settings.att[PV.id] || {}, false).g); g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); const box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); const h = new THREE.Group(); h.add(g); h.position.y = 1.0; PV.obj = h; PV.disc.visible = false;
     const len = box.getSize(new V3()).length(); PV.cam.position.set(0, 1.04, len * 1.45 + 0.05); PV.cam.lookAt(0, 1.0, 0); PV.label = w.name; }
-  else { const wpn = PV.weapon && widx(PV.weapon) >= 0 ? PV.weapon : lo.primary, ch = makeCharacter(C.model, { weapon: wpn, faction: 0, seed: PROFILE.id }); ch.showAtt = true; setCharWeapon(ch, wpn); PV.char = ch; PV.obj = ch.group; PV.disc.visible = true; PV.label = C.name + ' · ' + WEAPONS[widx(wpn)].short; }
+  else { const wpn = PV.weapon && widx(PV.weapon) >= 0 ? PV.weapon : lo.primary, ch = makeCharacter(C.model, { weapon: wpn, faction: 0, seed: PROFILE.id, byClass: true }); ch.showAtt = true; setCharWeapon(ch, wpn); PV.char = ch; PV.obj = ch.group; PV.disc.visible = true; PV.label = C.name + ' · ' + WEAPONS[widx(wpn)].short; }
   PV.scene.add(PV.obj); $('pvlabel').textContent = PV.label;
 }
 function updatePreview(dt) {
@@ -6100,7 +6127,7 @@ function snap(obj, camPos, look, w = 220, h = 120) {
 function makeThumbs() { // built in small slices while the browser is idle, so the menu never freezes
   if (!PV.r) return; const jobs = [];
   for (const w of WEAPONS) jobs.push(() => { const g = buildGun(w.id, {}, false).g, box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); g.rotation.y = Math.PI / 2; const len = box.getSize(new V3()).length(); THUMBS[w.id] = snap(g, new V3(0, 0.03, len * 1.25 + 0.05), new V3(0, 0, 0)); });
-  for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0], faction: 0, seed: 'class-' + k }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.2, 3.4), new V3(0, 0.95, 0), 160, 160);  });
+  for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0], faction: 0, seed: 'class-' + k, byClass: true }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.2, 3.4), new V3(0, 0.95, 0), 160, 160);  });
   let i = 0; const later = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 16);
   const step = () => { const t = performance.now(); while (i < jobs.length && performance.now() - t < 10) { try { jobs[i](); } catch (e) {} i++; }
     if (i < jobs.length) { if (i % 12 < 3 && document.querySelector('.mtab.on[data-tab="loadout"]')) renderLoadout($('loadout')); later(step); }
@@ -6298,7 +6325,7 @@ refreshAvatar = () => { if (avatar && world) world.group.remove(avatar.group); a
 function updateAvatar(dt) {
   const outroShow = !!(game.outro && game.outro.t > 1.4), third = (settings.view === 'third' || (game.intro && game.intro.showAvatar) || outroShow) && (game.state === 'play' || game.state === 'paused' || game.state === 'dying');
   if (!third) { if (avatar) avatar.group.visible = false; return false; }
-  if (!avatar || avatar.cls !== settings.cls) { refreshAvatar(); avatar = makeCharacter(cls().model, { weapon: WEAPONS[wst.cur].id, faction: MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0, seed: PROFILE.id }); avatar.cls = settings.cls; world.group.add(avatar.group); }
+  if (!avatar || avatar.cls !== settings.cls) { refreshAvatar(); avatar = makeCharacter(cls().model, { weapon: WEAPONS[wst.cur].id, faction: MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0, seed: PROFILE.id, byClass: true }); avatar.cls = settings.cls; world.group.add(avatar.group); }
   setCharWeapon(avatar, WEAPONS[wst.cur].id);
   avatar.group.visible = true; avatar.group.position.set(player.pos.x, player.pos.y, player.pos.z); avatar.group.rotation.y = player.yaw + Math.PI;
   avatar.group.rotation.x = player.alive ? 0 : -Math.min(1, (game.deadT || 0) / 0.5) * 1.4;
@@ -6456,6 +6483,7 @@ resize(); loadMap(settings.map); world.shadows = QUALITY[settings.quality].shado
 initUI(); initMpUI(); initDmgNumbers(); initPreview(); applyMapThumbs();
 try { for (const m of MAPS) { localStorage.removeItem('bp_mthumb_' + m.name); localStorage.removeItem('bp_mthumb2_' + m.name); } } catch (e) {} applyMapThumbs(); // old captured thumbnails are no longer used
 addEventListener('bp-assets', () => { makeThumbs(); PV.mode = 'char'; buildPreview(); });
+addEventListener('bp-troops', () => { makeThumbs(); PV.mode = 'char'; buildPreview(); if (typeof avatar !== 'undefined' && avatar) { avatar.cls = null; } });
 for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', String], ['invertY', 'invertY', v => v === '1'], ['adsToggle', 'adsToggle', v => v === '1'], ['view', 'view', String], ['ambience', 'ambience', v => v === '1'], ['voices', 'voices', v => v === '1'], ['presence', 'presence', v => v === '1'], ['unlockAll', 'unlockAll', v => v === '1'], ['aimAssist', 'aimAssist', String], ['blood', 'blood', v => v === '1'], ['fullscreen', 'fullscreen', v => v === '1'], ['intro', 'intro', v => v === '1'], ['rumble', 'rumble', v => v === '1']]) {
   const el = $(id); if (!el) continue; const cur = settings[key]; el.value = typeof cur === 'boolean' ? (cur ? '1' : '0') : (cur || el.value); el.onchange = () => { settings[key] = conv(el.value); saveSettings(); if (key === 'unlockAll' && $('loadout')) renderLoadout($('loadout')); if (key === 'presence') { if (settings.presence === false) presenceStop(); else presenceStart(); } };
 }
