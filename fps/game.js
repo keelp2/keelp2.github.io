@@ -208,8 +208,14 @@ const GUNSND = { // crack, body (lowpass f, dur, gain), thump (f0 -> f1, dur, ga
   mpistol: { crack: 0.4, bf: 4200, bd: 0.07, bg: 0.7, t0: 200, t1: 80, td: 0.05, tg: 0.4, mech: 0.02, mf: 2300, mg: 0.3 },
 };
 for (const [k, mf, mg] of [['pistol', 1900, 0.3], ['revolver', 900, 0.45], ['rifle', 1500, 0.35], ['ak', 820, 0.5], ['smg', 2200, 0.3], ['lmg', 1000, 0.4], ['shotgun', 750, 0.45], ['dmr', 950, 0.4]]) Object.assign(GUNSND[k], { mf, mg });
+// Recorded clips: list them in audio/sfx/manifest.json ({ "gun_rifle": ["rifle_1.mp3", "rifle_2.mp3"], ... }) and they replace
+// the generated sound for that key (a random take each time); anything not listed keeps the generated version. See audio/README.md.
+const SAMPLES = {}, GUNALIAS = { battle: 'ak', bullpup: 'rifle', hyper: 'smg', ump45: 'smg', autosg: 'shotgun', fifty: 'sniper', mpistol: 'smg', revolver: 'pistol', dmr: 'sniper' };
+function loadSamples(c) { fetch('audio/sfx/manifest.json?v=' + (window.BP_AUDIO_V || 1)).then(r => r.ok ? r.json() : null).then(m => { if (!m) return;
+  for (const [key, files] of Object.entries(m)) for (const f of [].concat(files)) fetch('audio/sfx/' + f).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(ab => c.decodeAudioData(ab)).then(buf => (SAMPLES[key] || (SAMPLES[key] = [])).push(buf)).catch(() => {}); }).catch(() => {}); }
 const sfx = {
   ctx: null,
+  sample(key, dest, t) { const L = SAMPLES[key]; if (!L || !L.length) return false; const c = this.ctx, s = c.createBufferSource(); s.buffer = L[Math.floor(Math.random() * L.length)]; s.playbackRate.value = 0.97 + Math.random() * 0.06; s.connect(dest); s.start(t === undefined ? c.currentTime : Math.max(t, c.currentTime)); return true; },
   init() {
     if (this.ctx) { if (this.ctx.state !== 'running') this.ctx.resume(); return; }
     const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
@@ -223,7 +229,7 @@ const sfx = {
     this.verbIn.connect(this.verb); this.verb.connect(this.sfxBus);
     const len = c.sampleRate * 2, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    this.nb = buf;
+    this.nb = buf; loadSamples(c);
   },
   impulse(sec, decay) { // synthetic outdoor/room reverb: early reflections + diffuse tail
     const c = this.ctx, n = Math.floor(c.sampleRate * sec), b = c.createBuffer(2, n, c.sampleRate);
@@ -288,6 +294,7 @@ const sfx = {
     const lpF = (far > 0.02 ? 12000 - far * 10200 : 0) || (occ ? 14000 : 0), lp = occ ? Math.min(lpF || 14000, 1400) : lpF;
     const dest = this.chain(o.pan || 0, sup ? 0.12 : (this.indoor ? 0.55 : 0.2) + far * 0.55, lp, (o.vol === undefined ? 1 : o.vol) * (o.comp ? 1.12 : 1) * (occ ? 0.62 : 1) / (1 + d * 0.025), o.pos);
     const t = this.ctx.currentTime + (d > 12 ? Math.min(0.9, d / 343) : 0); // sound arrives after the flash
+    if (this.sample(sup ? 'gun_suppressed' : 'gun_' + id, dest, t) || (!sup && GUNALIAS[id] && this.sample('gun_' + GUNALIAS[id], dest, t))) return;
     if (!sup) this.nz(dest, { t, dur: 0.03, type: 'bandpass', f: 3400, q: 0.8, g: P.crack * 0.8 * (1 - far * 0.85) * (occ ? 0.4 : 1) }); // crack, without the fizzy top end
     if (!sup && d < 4) this.osc(dest, { t, type: 'sine', f: 95, f2: 38, dur: 0.11, g: 0.55 * Math.min(1.3, P.tg) }); // chest punch on your own shots
     this.nz(dest, { t, dur: sup ? P.bd * 0.6 : P.bd, type: 'lowpass', f: sup ? P.bf * 0.32 : P.bf, f2: P.bf * 0.2, g: P.bg * (sup ? 0.45 : 1), a: 0.001 });
@@ -301,6 +308,7 @@ const sfx = {
   step(surf, o = {}) {
     if (!this.ok()) return; const v = o.vol === undefined ? 1 : o.vol; if (v < 0.01) return;
     const mf = o.muffle || 0, dest = this.chain(o.pan || 0, o.near ? 0.04 : 0.12 + mf * 0.2, mf > 0.05 ? 3200 - mf * 2700 : 0, v, o.pos), t = this.ctx.currentTime + Math.random() * 0.01;
+    if (this.sample('step_' + (surf || 'concrete'), dest, t) || this.sample('step_concrete', dest, t)) return;
     const N = x => this.nz(dest, Object.assign({ t: t + (x.d || 0) }, x)), T = x => this.osc(dest, Object.assign({ t: t + (x.d || 0) }, x)), j = rand(0.88, 1.14), hard = o.gait === 'sprint' ? 1.25 : o.gait === 'sneak' ? 0.55 : 1;
     switch (surf) {
       case 'wood': T({ f: 190 * j, f2: 120, dur: 0.12, g: 0.5 * hard }); N({ type: 'bandpass', f: 850 * j, q: 2.2, dur: 0.09, g: 0.4 * hard }); N({ type: 'bandpass', f: 1600 * j, q: 3, dur: 0.04, g: 0.15, d: 0.05 });
@@ -323,6 +331,7 @@ const sfx = {
   boom(dist = 0, pan = 0, big = 1, pos = null) {
     if (!this.ok()) return; const far = clamp(dist / 120, 0, 1);
     const dest = this.chain(pan, 0.45 + far * 0.5, far > 0.02 ? 6000 - far * 5200 : 0, big / (1 + dist * 0.02), pos), t = this.ctx.currentTime + (dist > 15 ? Math.min(1.2, dist / 343) : 0);
+    if (this.sample(far > 0.5 ? 'explosion_far' : 'explosion', dest, t) || this.sample('explosion', dest, t)) return;
     this.nz(dest, { t, dur: 0.05, type: 'highpass', f: 1500, g: 0.9 * (1 - far) });
     this.nz(dest, { t, dur: 1.8, type: 'lowpass', f: 1600, f2: 70, g: 1.4, a: 0.004 });
     this.osc(dest, { t, type: 'sine', f: 70, f2: 22, dur: 1.2, g: 1.3 });
@@ -332,6 +341,7 @@ const sfx = {
     if (!this.ok()) return;
     const v = o.vol === undefined ? 1 : o.vol, dest = this.chain(o.pan || 0, o.wet || 0.05, 0, v, o.pos);
     const N = x => this.nz(dest, x), T = x => this.osc(dest, x);
+    if (!/^(eRifle|eShotgun|eHeavy|eSniper|pistol|revolver|rifle|ak|smg|lmg|shotgun|dmr|sniper)$/.test(n) && this.sample(n, dest)) return;
     switch (n) {
       case 'eRifle': return this.gun('rifle', o); case 'eShotgun': return this.gun('shotgun', o); case 'eHeavy': return this.gun('lmg', o); case 'eSniper': return this.gun('sniper', o);
       case 'pistol': case 'revolver': case 'rifle': case 'ak': case 'smg': case 'lmg': case 'shotgun': case 'dmr': case 'sniper': return this.gun(n, o);
@@ -421,7 +431,8 @@ const ambience = { t: 2,
     else if (r < 0.9) this.flyby(true); else this.flyby(false);
   },
   startWind() { // soft, slowly breathing wind bed under the battle (stops with the match)
-    const c = sfx.ctx, n = c.createBufferSource(), lp = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(); n.buffer = sfx.nb; n.loop = true;
+    const c = sfx.ctx, n = c.createBufferSource(), lp = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(), W = SAMPLES.amb_wind; n.buffer = W ? W[0] : sfx.nb; n.loop = true;
+    if (W) { g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(0.35, c.currentTime + 3); n.connect(g); g.connect(sfx.sfxBus); n.start(); this.wind = { n, lfo: { stop() {} }, g }; return; }
     lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 0.5; lfo.frequency.value = 0.07; lg.gain.value = 220; lfo.connect(lg); lg.connect(lp.frequency);
     g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(0.07, c.currentTime + 3); n.connect(lp); lp.connect(g); g.connect(sfx.sfxBus); n.start(); lfo.start(); this.wind = { n, lfo, g };
   },
@@ -578,10 +589,18 @@ function loseTheme() { const ev = [];
   return { bpm: 70, len: 15, loop: false, ev };
 }
 const SONGS = { title: rockTheme, start: rockSting, win: rockWin, lose: loseTheme, orchestral: mainTheme };
+// Your own music: drop MP3s at these paths and they replace the generated score (missing files fall back to it).
+const MUSIC_FILES = { title: 'audio/music/menu.mp3', start: 'audio/music/deploy.mp3', win: 'audio/music/victory.mp3', lose: 'audio/music/defeat.mp3' };
+const MUSIC_OK = {};
+for (const [k, u] of Object.entries(MUSIC_FILES)) { try { fetch(u + '?v=1', { method: 'HEAD' }).then(r => { MUSIC_OK[k] = r.ok && /audio|mpeg|octet/.test(r.headers.get('content-type') || 'audio'); if (MUSIC_OK[k] && k === 'title' && music.name === 'title' && !music.file) { music.name = ''; music.play('title'); } }).catch(() => {}); } catch (e) {} }
 const music = {
-  cur: null, name: '',
+  cur: null, name: '', file: null,
+  playFile(name) { const c = sfx.ctx, el = new Audio(MUSIC_FILES[name] + '?v=1'); el.crossOrigin = 'anonymous'; el.loop = name === 'title'; el.preload = 'auto';
+    const src = c.createMediaElementSource(el), g = c.createGain(); g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(name === 'title' ? 0.8 : 0.95, c.currentTime + 0.6); src.connect(g); g.connect(sfx.musicBus);
+    el.play().catch(() => {}); this.file = { el, g }; this.name = name; if (!el.loop) el.onended = () => { if (this.file && this.file.el === el) { this.file = null; this.name = ''; } }; },
   play(name) {
     if (!sfx.ok()) { this.pending = name; return; }
+    if (MUSIC_OK[name]) { if (this.name === name && this.file && this.file.el.loop) return; this.stop(); this.playFile(name); return; }
     if (this.name === name && this.cur && SONGS[name]().loop) return;
     this.stop(); const song = SONGS[name](), c = sfx.ctx, out = c.createGain(); out.gain.value = name === 'title' ? 0.75 : 0.9; out.connect(sfx.musicBus);
     const spb = 60 / song.bpm, ev = song.ev.slice().sort((a, b) => a[0] - b[0]);
@@ -599,7 +618,8 @@ const music = {
     this.cur = st; this.name = name;
     if (!song.loop) setTimeout(() => { if (this.cur === st && name !== 'title') { this.cur = null; this.name = ''; } }, (song.len * spb + 1) * 1000);
   },
-  stop() { if (!this.cur) return; clearInterval(this.cur.timer); const g = this.cur.out.gain, c = sfx.ctx; g.setValueAtTime(g.value, c.currentTime); g.linearRampToValueAtTime(0.0001, c.currentTime + 0.4); const o = this.cur.out; setTimeout(() => o.disconnect(), 600); this.cur = null; this.name = ''; },
+  stop() { if (this.file) { const f = this.file, c = sfx.ctx; this.file = null; this.name = ''; f.g.gain.setValueAtTime(f.g.gain.value, c.currentTime); f.g.gain.linearRampToValueAtTime(0.0001, c.currentTime + 0.5); setTimeout(() => { f.el.pause(); f.el.src = ''; }, 600); }
+    if (!this.cur) return; clearInterval(this.cur.timer); const g = this.cur.out.gain, c = sfx.ctx; g.setValueAtTime(g.value, c.currentTime); g.linearRampToValueAtTime(0.0001, c.currentTime + 0.4); const o = this.cur.out; setTimeout(() => o.disconnect(), 600); this.cur = null; this.name = ''; },
 };
 
 // ============================================================ LEVEL BUILDER
@@ -6358,5 +6378,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); if (game.state === 'menu') setTimeout(() => music.play(music.pending || 'title'), 100); removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
