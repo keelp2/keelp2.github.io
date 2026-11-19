@@ -248,7 +248,7 @@ const sfx = {
     this.musicBus = c.createGain(); this.musicBus.gain.value = settings.music;
     const comp = c.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 6; comp.attack.value = 0.002; comp.release.value = 0.18;
     const tame = c.createBiquadFilter(); tame.type = 'highshelf'; tame.frequency.value = 7500; tame.gain.value = -5; // less hiss and fizz, easier on the ears
-    this.sfxBus.connect(tame); tame.connect(comp); comp.connect(c.destination); this.musicBus.connect(c.destination);
+    this.sfxBus.connect(tame); tame.connect(comp); comp.connect(c.destination); { const lim = c.createDynamicsCompressor(); lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 14; lim.attack.value = 0.003; lim.release.value = 0.18; this.musicBus.connect(lim); lim.connect(c.destination); } /* the music gets its own limiter: stacked synth voices used to clip (the grainy sound) */
     this.verb = c.createConvolver(); this.verb.buffer = this.impulse(2.4, 2.8); this.verbIn = c.createGain(); this.verbIn.gain.value = 0.55;
     this.verbIn.connect(this.verb); this.verb.connect(this.sfxBus);
     const len = c.sampleRate * 2, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
@@ -379,6 +379,7 @@ const sfx = {
       case 'eRifle': return this.gun('rifle', o); case 'eShotgun': return this.gun('shotgun', o); case 'eHeavy': return this.gun('lmg', o); case 'eSniper': return this.gun('sniper', o);
       case 'pistol': case 'revolver': case 'rifle': case 'ak': case 'smg': case 'lmg': case 'shotgun': case 'dmr': case 'sniper': return this.gun(n, o);
       case 'charge': T({ type: 'sine', f: 600, f2: 1800, dur: 1.0, g: 0.18, a: 0.3 }); break;
+      case 'medal': T({ type: 'triangle', f: 1320, dur: 0.12, g: 0.09 }); T({ type: 'sine', f: 1980, dur: 0.22, g: 0.06, delay: 0.05 }); N({ dur: 0.03, type: 'highpass', f: 6000, g: 0.12 }); break;
       case 'nukeSiren': T({ type: 'sawtooth', f: 420, f2: 760, dur: 0.5, g: 0.09 }); T({ type: 'sawtooth', f: 760, f2: 420, dur: 0.45, g: 0.09, delay: 0.5 }); break;
       case 'heli': N({ dur: 0.09, type: 'lowpass', f: 260, f2: 90, g: 0.55 }); T({ f: 58, f2: 38, dur: 0.08, g: 0.35 }); break; // rotor thump
       case 'empty': N({ dur: 0.035, type: 'bandpass', f: 3500, q: 6, g: 0.4 }); break;
@@ -488,7 +489,7 @@ const NOTE = n => 440 * Math.pow(2, (n - 69) / 12); // MIDI -> Hz
 const INSTR = {
   pad(dest, t, f, d, v) { const c = sfx.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.4; lp.connect(g); g.connect(dest);
     const a = Math.min(1.4, d * 0.35); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.09, t + a); g.gain.setValueAtTime(v * 0.09, t + d - 0.2); g.gain.linearRampToValueAtTime(0.0001, t + d + 0.8);
-    for (const det of [-9, 0, 8]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d + 0.9); } },
+    for (const det of [-8, 8]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d + 0.9); } }, /* two voices, not three: thick pads were the main cause of overload */
   strings(dest, t, f, d, v) { const c = sfx.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.connect(g); g.connect(dest);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.11, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d * 0.95);
     for (const det of [-6, 6]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d); } },
@@ -640,15 +641,15 @@ const music = {
     const spb = 60 / song.bpm, ev = song.ev.slice().sort((a, b) => a[0] - b[0]);
     const st = { out, t0: c.currentTime + 0.08, i: 0, loopN: 0, timer: 0 };
     const tick = () => {
-      const horizon = c.currentTime + 0.3;
+      const horizon = c.currentTime + 1.2; /* schedule well ahead: a render hitch on the main thread can no longer starve the music */
       for (;;) {
         if (st.i >= ev.length) { if (!song.loop) return; st.i = 0; st.loopN++; }
         const e = ev[st.i], at = st.t0 + (e[0] + st.loopN * song.len) * spb; if (at > horizon) break;
-        if (at > c.currentTime - 0.05) INSTR[e[1] === 'tomhz' ? 'tom' : e[1]](out, Math.max(at, c.currentTime), e[1] === 'boing' || e[1] === 'tomhz' ? e[2] : NOTE(e[2]), e[3] * spb, e[4], e[5]);
+        if (at > c.currentTime - 0.12) INSTR[e[1] === 'tomhz' ? 'tom' : e[1]](out, Math.max(at, c.currentTime), e[1] === 'boing' || e[1] === 'tomhz' ? e[2] : NOTE(e[2]), e[3] * spb, e[4], e[5]);
         st.i++;
       }
     };
-    tick(); st.timer = setInterval(tick, 60);
+    tick(); st.timer = setInterval(tick, 120);
     this.cur = st; this.name = name;
     if (!song.loop) setTimeout(() => { if (this.cur === st && name !== 'title') { this.cur = null; this.name = ''; } }, (song.len * spb + 1) * 1000);
   },
@@ -3622,9 +3623,12 @@ function startBotMatch() {
 function botKilled(victim, killer, head) {
   const vs = victim.stat; if (vs) vs.deaths++;
   let kname = 'the swamp';
-  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; ksKill(); if (head) game.heads++; statKill(head, 'bot'); kname = 'You'; hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
-    if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time; const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' }; if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]); }
-  else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
+  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; ksKill(); if (head) game.heads++; statKill(head, 'bot'); kname = 'You'; hitMarker(true, head); if (head) sfx.play('head'); /* the HEADSHOT medal says it now */
+    if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time;
+    killMedals({ head, dist: victim.pos.distanceTo(player.pos), melee: !!WEAPONS[wst.cur].melee && !game.lastNadeKill && !game.ksKind, back: !!game.lastBackstab, victimKey: victim, victimStreak: victim.lifeK || 0, ks: !!game.ksKind });
+    if ((victim.lifeK || 0) >= 5) feedEnded('You', victim.name, victim.lifeK, true); }
+  else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; killer.lifeK = (killer.lifeK || 0) + 1; feedStreak(killer.name, killer.lifeK, false); if ((victim.lifeK || 0) >= 5) feedEnded(killer.name, victim.name, victim.lifeK, false); game.firstBlood = true; }
+  victim.lifeK = 0;
   if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
   const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null), mine = killer === PLAYER_T;
   killFeed(kname, tc(killer ? (mine ? 0 : killer.team) : -1), mine ? killLabel() : killer && killer.W ? killer.W.short : '', head, victim.name, tc(victim.team), mine);
@@ -3632,6 +3636,7 @@ function botKilled(victim, killer, head) {
   checkBotEnd();
 }
 function botPlayerDie() {
+  { const kb = BD.lastAttacker instanceof Enemy ? BD.lastAttacker : null; if (kb) { game.nemesis = kb; kb.lifeK = (kb.lifeK || 0) + 1; feedStreak(kb.name, kb.lifeK, false); if ((game.lifeK || 0) >= 5) feedEnded(kb.name, 'Your', game.lifeK, true); } game.firstBlood = true; }
   ksReset(); if (SURV.tgt) supportCancel();
   const k = BD.lastAttacker instanceof Enemy ? BD.lastAttacker : null; BD.stats[0].deaths++;
   if (k && k.stat) k.stat.kills++; if (BD.teams && k) BD.teamKills[k.team]++;
@@ -4352,7 +4357,7 @@ function disposeGroup(g) {
 }
 let radarImg = null;
 function loadMap(i) {
-  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; NUKE.t = 0; NUKE.fade = 0; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
+  SURV.support = []; SURV.tgt = null; game.ks = 0; game.uavT = 0; game.nukeWin = null; game.firstBlood = false; game.lifeK = 0; game.nemesis = null; MEDALS.q.length = 0; NUKE.t = 0; NUKE.fade = 0; { const no = document.getElementById('nukeov'); if (no) no.classList.remove('on'); } { const tb = document.getElementById('tablet'); if (tb) tb.classList.remove('on'); }
   if (world) { scene.remove(world.group); disposeGroup(world.group); }
   enemies = []; pickups = []; barrels = []; grenades.forEach(g => fx.remove(g.mesh)); grenades = [];
   const def = MAPS[i], th = def.theme, L = new LevelBuilder(); def.build(L);
@@ -4504,7 +4509,8 @@ function onKill(e, head) {
   if (game.time - game.lastKill < 2.5) game.streak++; else game.streak = 1;
   game.lastKill = game.time;
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
-  if (game.streak >= 2) { const b = 50 * game.streak; pts += b; showStreak((names[Math.min(game.streak, 5)] || 'RAMPAGE') + '  +' + b); }
+  if (game.streak >= 2) { const b = 50 * game.streak; pts += b; }
+  killMedals({ head, dist: e.pos.distanceTo(player.pos), melee: !!WEAPONS[wst.cur].melee && !game.lastNadeKill && !game.ksKind, back: !!game.lastBackstab, ks: !!game.ksKind });
   game.score += pts; addCash(pts, head ? 'HEADSHOT' : '');
   killFeed(settings.name || 'You', '#ffd27a', killLabel(), head, e.T.name + '  +' + pts, null, true);
   hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
@@ -4559,7 +4565,7 @@ function meleeHit(w) {
     const fy = e.isRemote ? e.yaw + Math.PI : e.yaw, tx = player.pos.x - e.pos.x, tz = player.pos.z - e.pos.z, tl = Math.hypot(tx, tz) || 1;
     const behind = (Math.sin(fy) * tx + Math.cos(fy) * tz) / tl < -0.4, dmg = Math.max(behind ? w.backstab : w.dmg, e.maxHp ? e.maxHp + 1 : 250), kb = w.knock || 4; /* CoD rule: melee is a one-hit kill, every melee weapon, from any side */
     const hp = new V3(e.pos.x, e.pos.y + e.h * 0.6, e.pos.z);
-    const killed = e.damage(dmg, false, { x: _f.x * kb, z: _f.z * kb }, 'player'); hits++; game.hits++;
+    game.lastBackstab = behind; let killed; try { killed = e.damage(dmg, false, { x: _f.x * kb, z: _f.z * kb }, 'player'); } finally { game.lastBackstab = false; } hits++; game.hits++;
     dmgNumber(hp, dmg, behind); if (!killed) hitMarker(false, behind); debris.burst(hp.x, hp.y, hp.z, 18, 3.5, 0.62, 0.04, 0.03, 0.55, 1, _f.x * 0.8, 0.2, _f.z * 0.8); bloodHit(hp.clone(), _f.clone(), false);
     if (behind) showHint('BACKSTAB!', '#ff6b5a');
   }
@@ -5182,6 +5188,49 @@ function drawRadar() {
   g.strokeStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(S / 2, S / 2, 12 * R, 0, 7); g.stroke();
 }
 let fpsAcc = 0, fpsN = 0;
+// ============================================================ MEDALS — CoD-style pop-ups for your kills, plus killstreak call-outs in the feed
+// Multi-kills (Double → Frenzy), kills in one life (Bloodthirsty 5 → Nuclear 25), and skill medals (Headshot, Longshot,
+// Point Blank, Backstab, First Blood, Revenge, Buzzkill). Up to three stack on screen; extra ones queue behind them.
+const MEDAL_STYLE = { multi: ['#ff9a3c', 'hex'], life: ['#ff4d4d', 'shield'], skill: ['#5ab8ff', 'circle'], gold: ['#ffcf3a', 'star'] };
+const MEDAL_GLYPH = {
+  hex: '<path d="M32 4 56 18v28L32 60 8 46V18z"/>', shield: '<path d="M32 4 56 12v18c0 15-10 25-24 30C18 55 8 45 8 30V12z"/>',
+  circle: '<circle cx="32" cy="32" r="27"/>', star: '<path d="M32 4l7.6 17.6L58 23l-14 12.6L48.2 54 32 44.6 15.8 54 20 35.6 6 23l18.4-1.4z"/>' };
+const MEDAL_MARK = {
+  skull: '<path d="M32 17c-8.3 0-14 5.6-14 13 0 4.6 2.2 7.6 5 9.4V45h18v-5.6c2.8-1.8 5-4.8 5-9.4 0-7.4-5.7-13-14-13z" fill="#111"/><circle cx="26.5" cy="31" r="3.2"/><circle cx="37.5" cy="31" r="3.2"/><path d="M27 45v-4M32 45v-4M37 45v-4" stroke="#111" stroke-width="1.8"/>',
+  cross: '<circle cx="32" cy="32" r="12" fill="none" stroke="#111" stroke-width="3.2"/><path d="M32 14v10M32 40v10M14 32h10M40 32h10" stroke="#111" stroke-width="3.2"/><circle cx="32" cy="32" r="2.6" fill="#111"/>',
+  knife: '<path d="M20 44 42 20l4 2-20 26z" fill="#111"/><path d="M18 46l6-6 3 3-6 6z" fill="#111"/>',
+  num: '' };
+const MEDALS = { q: [], live: [] };
+function medal(name, kind = 'skill', mark = 'cross', num) {
+  MEDALS.q.push({ name, kind, mark, num }); if (MEDALS.q.length > 6) MEDALS.q.shift(); }
+function medalTick(dt) {
+  let box = $('medals'); if (!box) { box = document.createElement('div'); box.id = 'medals'; $('hud').appendChild(box); }
+  for (const m of MEDALS.live) m.t += dt;
+  while (MEDALS.live.length && MEDALS.live[0].t > 2.3) { const m = MEDALS.live.shift(); m.el.remove(); }
+  if (MEDALS.q.length && MEDALS.live.length < 3 && (!MEDALS.live.length || MEDALS.live[MEDALS.live.length - 1].t > 0.28)) {
+    const M = MEDALS.q.shift(), [col, shape] = MEDAL_STYLE[M.kind] || MEDAL_STYLE.skill, el = document.createElement('div'); el.className = 'medal';
+    el.innerHTML = `<svg viewBox="0 0 64 64"><g fill="${col}" stroke="rgba(0,0,0,.55)" stroke-width="2">${MEDAL_GLYPH[shape]}</g><g fill="#111">${M.num ? `<text x="32" y="41" text-anchor="middle" font-size="24" font-weight="900" font-family="Inter,Arial">${M.num}</text>` : MEDAL_MARK[M.mark] || ''}</g></svg><b>${esc(M.name)}</b>`;
+    box.appendChild(el); MEDALS.live.push({ el, t: 0 }); sfx.play('medal');
+    if (el.animate) el.animate([{ transform: 'scale(1.9)', opacity: 0, filter: 'brightness(2.4)' }, { transform: 'scale(0.94)', opacity: 1, filter: 'brightness(1.4)', offset: 0.55 }, { transform: 'scale(1)', opacity: 1, filter: 'brightness(1)' }], { duration: 300, easing: 'ease-out' }); }
+  for (const m of MEDALS.live) { const k = m.t > 1.9 ? 1 - (m.t - 1.9) / 0.4 : 1; m.el.style.opacity = clamp(k, 0, 1); }
+}
+const MULTI = [, , 'DOUBLE KILL', 'TRIPLE KILL', 'FURY KILL', 'FRENZY KILL', 'SUPER KILL', 'MEGA KILL', 'ULTRA KILL', 'KILL CHAIN'];
+const LIFE = { 5: 'BLOODTHIRSTY', 10: 'MERCILESS', 15: 'RUTHLESS', 20: 'RELENTLESS', 25: 'NUCLEAR' };
+/* call on every kill YOU make. o = { head, dist, melee, back, victimKey, victimStreak, ks } */
+function killMedals(o) {
+  const st = game.streak || 1; if (st >= 2) medal(MULTI[Math.min(st, 9)], 'multi', null, st);
+  game.lifeK = (game.lifeK || 0) + 1; if (LIFE[game.lifeK]) { medal(LIFE[game.lifeK], 'life', 'skull', game.lifeK); feedStreak('You', game.lifeK, true); }
+  if (!game.firstBlood) { game.firstBlood = true; medal('FIRST BLOOD', 'gold', 'skull'); }
+  if (o.victimKey && game.nemesis && o.victimKey === game.nemesis) { game.nemesis = null; medal('REVENGE', 'gold', 'skull'); }
+  if (o.victimStreak >= 5) { medal('BUZZKILL', 'gold', 'skull'); }
+  if (o.ks) return; /* killstreak kills: no weapon-skill medals */
+  if (o.back) medal('BACKSTAB', 'skill', 'knife'); else if (o.melee) medal('MELEE KILL', 'skill', 'knife');
+  if (o.head && !o.melee) medal('HEADSHOT', 'skill', 'cross');
+  if (o.dist > 45 && !o.melee) medal('LONGSHOT', 'skill', 'cross'); else if (o.dist < 3.5 && !o.melee) medal('POINT BLANK', 'skill', 'cross');
+}
+/* anyone's streak: a feed line at 5, 10, 15 ... like CoD's "is on a killstreak" */
+function feedStreak(name, n, mine) { if (n >= 5 && n % 5 === 0) addFeed(`<span class="fn">${esc(name)}</span> <span class="fks2">${mine ? 'are' : 'is'} on a ${n} killstreak</span>`, false, mine); }
+function feedEnded(killer, victim, n, mine) { if (n >= 5) addFeed(`<span class="fn">${esc(killer)}</span> <span class="fks2">ended</span> <span class="fn">${esc(victim)}</span><span class="fks2">'s ${n} killstreak</span>`, false, mine); }
 // ============================================================ SURVIVAL ECONOMY (MW3-style): start light, earn cash, buy at armories on the map
 const SURV = { cash: 0, eq: {}, stations: [], open: null, sel: 0, markers: [], support: [], tgt: null };
 const ARMORY = {
@@ -5253,7 +5302,7 @@ const supBack = () => gp.on ? '<kbd>B</kbd>' : '<kbd>RIGHT-CLICK</kbd>';
 function ksKill() { if (!pvpOn() || game.ksKind) return; game.ks = (game.ks || 0) + 1; /* a killstreak's own kills don't feed the next one */
   const L = STREAKS(); for (const [id, n, name, desc] of L) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); }
   if (L.length && game.ks >= L[L.length - 1][1]) game.ks = 0; /* top streak earned: the counter starts over, so you can earn them again without dying */ }
-function ksReset() { game.ks = 0; }
+function ksReset() { game.ks = 0; game.lifeK = 0; }
 function ksBanner(id, name, desc) { let b = $('ksbanner'); if (!b) { b = document.createElement('div'); b.id = 'ksbanner'; $('hud').appendChild(b); }
   b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc}</em></div><div class="kskey">${supKey()}<small>${gp.on ? 'D-PAD RIGHT' : 'PRESS'}</small></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
 function ksTrack() { /* the CoD stack: next streaks with progress pips */ let t = $('kstrack'); if (!t) { t = document.createElement('div'); t.id = 'kstrack'; $('hud').appendChild(t); }
@@ -5305,7 +5354,7 @@ function tabletDraw() {
   g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, W - 26, W, 26); g.fillStyle = '#9cffb4'; g.font = '600 13px Inter, Arial, sans-serif'; g.fillText(`GRID ${String.fromCharCode(65 + clamp(Math.floor((T.x - x0) / (x1 - x0) * 8), 0, 7))}${1 + clamp(Math.floor((T.z - z0) / (z1 - z0) * 8), 0, 7)} · ${Math.round(Math.hypot(T.x - player.pos.x, T.z - player.pos.z))} m from you`, 10, W - 9);
 }
 function supportTick(dt) {
-  nukeTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
+  medalTick(dt); nukeTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
   const T = SURV.tgt; let tile = $('suptile'); if (!tile) { tile = document.createElement('div'); tile.id = 'suptile'; $('hud').appendChild(tile); }
   const n = SURV.support.length, nm = id => (KS_DEFS[id] || KS_DEFS.air).name; if (game.uavT > 0) game.uavT -= dt; ksTrack();
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
@@ -5361,10 +5410,10 @@ function updateHUD(dt) {
   $('mag').classList.toggle('low', s.mag <= Math.ceil(w.mag * 0.25));
   const slots = $('slots').children; for (let i = 0; i < slots.length; i++) { const on = +slots[i].dataset.w === wst.cur; if (slots[i].classList.contains('on') !== on) slots[i].classList.toggle('on', on); }
   // inventory overlay (hold Tab) + armory hint
-  { const sb = !!keys.Tab && MP.active, el = $('mpsb'); if (el) { if (sb) { hud.sbT = (hud.sbT || 0) - dt; if (hud.sbT <= 0) { hud.sbT = 0.3; const rows = Object.entries(MP.players).sort((a, b) => MP.mode === 'surv' ? (b[1].score | 0) - (a[1].score | 0) : b[1].kills - a[1].kills); el.innerHTML = `<h4>${MP.mode === 'surv' ? 'SURVIVAL CO-OP · WAVE ' + game.wave : MP.mode === 'tdm' ? 'TEAM DEATHMATCH' : 'FREE-FOR-ALL'}</h4>` + scoreTable(rows); } } el.style.display = sb ? 'block' : 'none'; } }
+  { const sb = !!keys.Tab && MP.active, el = $('mpsb'); if (el) { if (sb) { if (!hud.sbOpen) hud.sbT = 0; hud.sbT = (hud.sbT || 0) - dt; if (hud.sbT <= 0) { hud.sbT = 0.12; /* drawn the instant it opens, then kept live */ const rows = Object.entries(MP.players).sort((a, b) => MP.mode === 'surv' ? (b[1].score | 0) - (a[1].score | 0) : b[1].kills - a[1].kills); setHTML(el, `<h4>${MP.mode === 'surv' ? 'SURVIVAL CO-OP · WAVE ' + game.wave : MP.mode === 'tdm' ? 'TEAM DEATHMATCH' : 'FREE-FOR-ALL'}</h4>` + scoreTable(rows)); } } hud.sbOpen = sb; el.style.display = sb ? 'block' : 'none'; } }
   const showInv = !!keys.Tab && !MP.active && (player.alive || game.mode === 'botdm');
+  if (showInv) { if (!hudCache.inv) hud.invT = 0; hud.invT = (hud.invT || 0) - dt; if (hud.invT <= 0) { hud.invT = 0.12; renderInventory(); } } /* fresh numbers before it is shown, never last time's */
   if (hudCache.inv !== showInv) { hudCache.inv = showInv; $('invp').style.display = showInv ? 'block' : 'none'; }
-  if (showInv) { hud.invT = (hud.invT || 0) - dt; if (hud.invT <= 0) { hud.invT = 0.4; renderInventory(); } }
   const canArm = game.phase === 'inter' && player.alive;
   if (hudCache.arm !== canArm) { hudCache.arm = canArm; $('armhint').style.opacity = canArm ? 1 : 0; $('armhint').textContent = survOn() ? 'BREAK — SPEND YOUR CASH AT AN ARMORY (FOLLOW THE ICONS)' : 'PRESS B — ARMORY (CHANGE WEAPONS)'; }
   if (hud.blood > 0 || hud.bloodOn) { hud.blood = Math.max(0, (hud.blood || 0) - dt * 0.6); const bo = $('bloodov'); if (bo) bo.style.opacity = String(Math.min(0.6, hud.blood)); hud.bloodOn = hud.blood > 0; }
@@ -5638,10 +5687,10 @@ function rebuildViewmodels() { // apply attachments and rebuild the weapons the 
   vmModels.forEach((m, i) => { if (m) m.g.visible = i === wst.cur; });
 }
 function renderInventory() {
-  $('invlist').innerHTML = (MP.active ? scoreTable(Object.entries(MP.players).sort((a, b) => b[1].kills - a[1].kills)) : game.mode === 'botdm' ? botBoard() : '') + carry.map((wi, k) => { const w = WEAPONS[wi], s = inv[wi];
+  setHTML($('invlist'), (MP.active ? scoreTable(Object.entries(MP.players).sort((a, b) => b[1].kills - a[1].kills)) : game.mode === 'botdm' ? botBoard() : '') + carry.map((wi, k) => { const w = WEAPONS[wi], s = inv[wi];
     return `<div class="invrow${wi === wst.cur ? ' on' : ''}"><kbd>${k + 1}</kbd><div><b>${w.name}</b><small>${['PRIMARY', 'SECONDARY', 'MELEE'][k]} · ${w.desc}</small></div><span>${w.melee ? '—' : s.mag + ' / ' + (isFinite(s.res) ? s.res : '∞')}</span></div>`; }).join('')
     + `<div class="invrow"><kbd>E</kbd><div><b>${cls().name} · ${cls().ability}</b><small>${cls().abDesc} · ${cls().passive}</small></div><span>${player.abilityCD > 0 ? Math.ceil(player.abilityCD) + 's' : 'READY'}</span></div>`
-    + `<div class="invrow"><kbd>G</kbd><div><b>FRAG GRENADE</b><small>2s fuse · bounces · damages you too</small></div><span>${player.grenades} / ${cls().nadeMax}</span></div>`;
+    + `<div class="invrow"><kbd>G</kbd><div><b>FRAG GRENADE</b><small>2s fuse · bounces · damages you too</small></div><span>${player.grenades} / ${cls().nadeMax}</span></div>`);
 }
 function statBars(w) {
   const rows = [['DAMAGE', w.dmg * (w.pellets || 1) / 110], ['FIRE RATE', w.rpm / 900], ['RANGE', w.range[1] / 140], ['CONTROL', 1 - clamp(w.kick / 0.06, 0, 0.9)], ['HANDLING', 1 - (w.swap - 0.22) / 0.3]];
@@ -5955,7 +6004,9 @@ function handleGame(d) {
     case 'die': {
       const victim = d.id, killer = typeof d.by === 'string' ? d.by : victim; if (r && victim !== MP.myId) { const sp = spatial(r.pos); sfx.voice('death', { pos: sp.pos, vol: sp.vol * 1.8, pitch: 95 + (hashStr(String(victim)) % 60) }); }
       killFeed(killer === victim ? null : pname(killer), null, wShort(d.w), !!d.head && killer !== victim, pname(victim), null, killer === MP.myId || victim === MP.myId);
+      { const KP = MP.players[killer], VP = MP.players[victim]; if (killer !== victim && KP && killer !== MP.myId) { KP.lifeK = (KP.lifeK || 0) + 1; feedStreak(KP.name, KP.lifeK, false); } if (VP && (VP.lifeK || 0) >= 5 && killer !== victim) feedEnded(killer === MP.myId ? 'You' : pname(killer), victim === MP.myId ? 'Your' : VP.name, VP.lifeK, killer === MP.myId || victim === MP.myId); if (victim === MP.myId && killer !== victim) game.nemesis = killer; if (killer !== victim) game.firstBlood = game.firstBlood || killer !== MP.myId; }
       if (killer === MP.myId && victim !== MP.myId) mpKillConfirm(victim, !!d.head);
+      { const VP = MP.players[victim]; if (VP) VP.lifeK = 0; }
       break;
     }
     case 'rocket': { const p = arrV3(d.p), v = arrV3(d.v); if (p && v && v.length() < 80) { spawnRocket(p, v, d.id); const sp = spatial(p); sfx.boom(sp.dist + 4, sp.pan, 0.3); } break; }
@@ -5974,8 +6025,7 @@ function mpKillConfirm(victim, head) {
   ksKill();
   const vb = MP.players[victim] && MP.players[victim].bot; if (!vb) { game.kills++; if (head) game.heads++; } statKill(head, vb ? 'bot' : 'pvp'); // bot kills earn XP but stay out of your PvP K/D
   if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time;
-  const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
-  if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]);
+  { const rv = remotes.get(victim), P = MP.players[victim]; killMedals({ head, dist: rv ? rv.pos.distanceTo(player.pos) : 20, melee: !!WEAPONS[wst.cur].melee && !game.lastNadeKill && !game.ksKind, back: !!game.lastBackstab, victimKey: victim, victimStreak: P ? P.lifeK || 0 : 0, ks: !!game.ksKind }); }
   hitMarker(true, head); showHint((head ? 'HEADSHOT · ' : '') + 'ELIMINATED ' + pname(victim).toUpperCase(), head ? '#ff6b5a' : '#ffcf6b');
 }
 function hostDeath(d) {

@@ -52,7 +52,8 @@ function onKill(e, head) {
   if (game.time - game.lastKill < 2.5) game.streak++; else game.streak = 1;
   game.lastKill = game.time;
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
-  if (game.streak >= 2) { const b = 50 * game.streak; pts += b; showStreak((names[Math.min(game.streak, 5)] || 'RAMPAGE') + '  +' + b); }
+  if (game.streak >= 2) { const b = 50 * game.streak; pts += b; }
+  killMedals({ head, dist: e.pos.distanceTo(player.pos), melee: !!WEAPONS[wst.cur].melee && !game.lastNadeKill && !game.ksKind, back: !!game.lastBackstab, ks: !!game.ksKind });
   game.score += pts; addCash(pts, head ? 'HEADSHOT' : '');
   killFeed(settings.name || 'You', '#ffd27a', killLabel(), head, e.T.name + '  +' + pts, null, true);
   hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }

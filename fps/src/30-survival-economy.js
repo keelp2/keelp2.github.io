@@ -69,7 +69,7 @@ const supBack = () => gp.on ? '<kbd>B</kbd>' : '<kbd>RIGHT-CLICK</kbd>';
 function ksKill() { if (!pvpOn() || game.ksKind) return; game.ks = (game.ks || 0) + 1; /* a killstreak's own kills don't feed the next one */
   const L = STREAKS(); for (const [id, n, name, desc] of L) if (game.ks === n) { if (SURV.support.length < 3) SURV.support.push(id); ksBanner(id, name, desc); }
   if (L.length && game.ks >= L[L.length - 1][1]) game.ks = 0; /* top streak earned: the counter starts over, so you can earn them again without dying */ }
-function ksReset() { game.ks = 0; }
+function ksReset() { game.ks = 0; game.lifeK = 0; }
 function ksBanner(id, name, desc) { let b = $('ksbanner'); if (!b) { b = document.createElement('div'); b.id = 'ksbanner'; $('hud').appendChild(b); }
   b.innerHTML = `<i>${KS_ICON[id]}</i><div><small>KILLSTREAK READY</small><b>${name}</b><em>${desc}</em></div><div class="kskey">${supKey()}<small>${gp.on ? 'D-PAD RIGHT' : 'PRESS'}</small></div>`; game.ksbT = 4.2; sfx.play('levelup'); rumble(0.4, 0.6, 250); }
 function ksTrack() { /* the CoD stack: next streaks with progress pips */ let t = $('kstrack'); if (!t) { t = document.createElement('div'); t.id = 'kstrack'; $('hud').appendChild(t); }
@@ -121,7 +121,7 @@ function tabletDraw() {
   g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, W - 26, W, 26); g.fillStyle = '#9cffb4'; g.font = '600 13px Inter, Arial, sans-serif'; g.fillText(`GRID ${String.fromCharCode(65 + clamp(Math.floor((T.x - x0) / (x1 - x0) * 8), 0, 7))}${1 + clamp(Math.floor((T.z - z0) / (z1 - z0) * 8), 0, 7)} · ${Math.round(Math.hypot(T.x - player.pos.x, T.z - player.pos.z))} m from you`, 10, W - 9);
 }
 function supportTick(dt) {
-  nukeTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
+  medalTick(dt); nukeTick(dt); ksFxTick(dt); heliTick(dt); predTick(dt); if (PRED.on) { const tl = $('suptile'); if (tl) tl.style.display = 'none'; return; }
   const T = SURV.tgt; let tile = $('suptile'); if (!tile) { tile = document.createElement('div'); tile.id = 'suptile'; $('hud').appendChild(tile); }
   const n = SURV.support.length, nm = id => (KS_DEFS[id] || KS_DEFS.air).name; if (game.uavT > 0) game.uavT -= dt; ksTrack();
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
@@ -177,10 +177,10 @@ function updateHUD(dt) {
   $('mag').classList.toggle('low', s.mag <= Math.ceil(w.mag * 0.25));
   const slots = $('slots').children; for (let i = 0; i < slots.length; i++) { const on = +slots[i].dataset.w === wst.cur; if (slots[i].classList.contains('on') !== on) slots[i].classList.toggle('on', on); }
   // inventory overlay (hold Tab) + armory hint
-  { const sb = !!keys.Tab && MP.active, el = $('mpsb'); if (el) { if (sb) { hud.sbT = (hud.sbT || 0) - dt; if (hud.sbT <= 0) { hud.sbT = 0.3; const rows = Object.entries(MP.players).sort((a, b) => MP.mode === 'surv' ? (b[1].score | 0) - (a[1].score | 0) : b[1].kills - a[1].kills); el.innerHTML = `<h4>${MP.mode === 'surv' ? 'SURVIVAL CO-OP · WAVE ' + game.wave : MP.mode === 'tdm' ? 'TEAM DEATHMATCH' : 'FREE-FOR-ALL'}</h4>` + scoreTable(rows); } } el.style.display = sb ? 'block' : 'none'; } }
+  { const sb = !!keys.Tab && MP.active, el = $('mpsb'); if (el) { if (sb) { if (!hud.sbOpen) hud.sbT = 0; hud.sbT = (hud.sbT || 0) - dt; if (hud.sbT <= 0) { hud.sbT = 0.12; /* drawn the instant it opens, then kept live */ const rows = Object.entries(MP.players).sort((a, b) => MP.mode === 'surv' ? (b[1].score | 0) - (a[1].score | 0) : b[1].kills - a[1].kills); setHTML(el, `<h4>${MP.mode === 'surv' ? 'SURVIVAL CO-OP · WAVE ' + game.wave : MP.mode === 'tdm' ? 'TEAM DEATHMATCH' : 'FREE-FOR-ALL'}</h4>` + scoreTable(rows)); } } hud.sbOpen = sb; el.style.display = sb ? 'block' : 'none'; } }
   const showInv = !!keys.Tab && !MP.active && (player.alive || game.mode === 'botdm');
+  if (showInv) { if (!hudCache.inv) hud.invT = 0; hud.invT = (hud.invT || 0) - dt; if (hud.invT <= 0) { hud.invT = 0.12; renderInventory(); } } /* fresh numbers before it is shown, never last time's */
   if (hudCache.inv !== showInv) { hudCache.inv = showInv; $('invp').style.display = showInv ? 'block' : 'none'; }
-  if (showInv) { hud.invT = (hud.invT || 0) - dt; if (hud.invT <= 0) { hud.invT = 0.4; renderInventory(); } }
   const canArm = game.phase === 'inter' && player.alive;
   if (hudCache.arm !== canArm) { hudCache.arm = canArm; $('armhint').style.opacity = canArm ? 1 : 0; $('armhint').textContent = survOn() ? 'BREAK — SPEND YOUR CASH AT AN ARMORY (FOLLOW THE ICONS)' : 'PRESS B — ARMORY (CHANGE WEAPONS)'; }
   if (hud.blood > 0 || hud.bloodOn) { hud.blood = Math.max(0, (hud.blood || 0) - dt * 0.6); const bo = $('bloodov'); if (bo) bo.style.opacity = String(Math.min(0.6, hud.blood)); hud.bloodOn = hud.blood > 0; }

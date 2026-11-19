@@ -212,7 +212,9 @@ function handleGame(d) {
     case 'die': {
       const victim = d.id, killer = typeof d.by === 'string' ? d.by : victim; if (r && victim !== MP.myId) { const sp = spatial(r.pos); sfx.voice('death', { pos: sp.pos, vol: sp.vol * 1.8, pitch: 95 + (hashStr(String(victim)) % 60) }); }
       killFeed(killer === victim ? null : pname(killer), null, wShort(d.w), !!d.head && killer !== victim, pname(victim), null, killer === MP.myId || victim === MP.myId);
+      { const KP = MP.players[killer], VP = MP.players[victim]; if (killer !== victim && KP && killer !== MP.myId) { KP.lifeK = (KP.lifeK || 0) + 1; feedStreak(KP.name, KP.lifeK, false); } if (VP && (VP.lifeK || 0) >= 5 && killer !== victim) feedEnded(killer === MP.myId ? 'You' : pname(killer), victim === MP.myId ? 'Your' : VP.name, VP.lifeK, killer === MP.myId || victim === MP.myId); if (victim === MP.myId && killer !== victim) game.nemesis = killer; if (killer !== victim) game.firstBlood = game.firstBlood || killer !== MP.myId; }
       if (killer === MP.myId && victim !== MP.myId) mpKillConfirm(victim, !!d.head);
+      { const VP = MP.players[victim]; if (VP) VP.lifeK = 0; }
       break;
     }
     case 'rocket': { const p = arrV3(d.p), v = arrV3(d.v); if (p && v && v.length() < 80) { spawnRocket(p, v, d.id); const sp = spatial(p); sfx.boom(sp.dist + 4, sp.pan, 0.3); } break; }
@@ -231,8 +233,7 @@ function mpKillConfirm(victim, head) {
   ksKill();
   const vb = MP.players[victim] && MP.players[victim].bot; if (!vb) { game.kills++; if (head) game.heads++; } statKill(head, vb ? 'bot' : 'pvp'); // bot kills earn XP but stay out of your PvP K/D
   if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time;
-  const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
-  if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]);
+  { const rv = remotes.get(victim), P = MP.players[victim]; killMedals({ head, dist: rv ? rv.pos.distanceTo(player.pos) : 20, melee: !!WEAPONS[wst.cur].melee && !game.lastNadeKill && !game.ksKind, back: !!game.lastBackstab, victimKey: victim, victimStreak: P ? P.lifeK || 0 : 0, ks: !!game.ksKind }); }
   hitMarker(true, head); showHint((head ? 'HEADSHOT · ' : '') + 'ELIMINATED ' + pname(victim).toUpperCase(), head ? '#ff6b5a' : '#ffcf6b');
 }
 function hostDeath(d) {

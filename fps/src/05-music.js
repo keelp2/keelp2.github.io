@@ -3,7 +3,7 @@ const NOTE = n => 440 * Math.pow(2, (n - 69) / 12); // MIDI -> Hz
 const INSTR = {
   pad(dest, t, f, d, v) { const c = sfx.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.4; lp.connect(g); g.connect(dest);
     const a = Math.min(1.4, d * 0.35); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.09, t + a); g.gain.setValueAtTime(v * 0.09, t + d - 0.2); g.gain.linearRampToValueAtTime(0.0001, t + d + 0.8);
-    for (const det of [-9, 0, 8]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d + 0.9); } },
+    for (const det of [-8, 8]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d + 0.9); } }, /* two voices, not three: thick pads were the main cause of overload */
   strings(dest, t, f, d, v) { const c = sfx.ctx, g = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.connect(g); g.connect(dest);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.11, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + d * 0.95);
     for (const det of [-6, 6]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(lp); o.start(t); o.stop(t + d); } },
@@ -155,15 +155,15 @@ const music = {
     const spb = 60 / song.bpm, ev = song.ev.slice().sort((a, b) => a[0] - b[0]);
     const st = { out, t0: c.currentTime + 0.08, i: 0, loopN: 0, timer: 0 };
     const tick = () => {
-      const horizon = c.currentTime + 0.3;
+      const horizon = c.currentTime + 1.2; /* schedule well ahead: a render hitch on the main thread can no longer starve the music */
       for (;;) {
         if (st.i >= ev.length) { if (!song.loop) return; st.i = 0; st.loopN++; }
         const e = ev[st.i], at = st.t0 + (e[0] + st.loopN * song.len) * spb; if (at > horizon) break;
-        if (at > c.currentTime - 0.05) INSTR[e[1] === 'tomhz' ? 'tom' : e[1]](out, Math.max(at, c.currentTime), e[1] === 'boing' || e[1] === 'tomhz' ? e[2] : NOTE(e[2]), e[3] * spb, e[4], e[5]);
+        if (at > c.currentTime - 0.12) INSTR[e[1] === 'tomhz' ? 'tom' : e[1]](out, Math.max(at, c.currentTime), e[1] === 'boing' || e[1] === 'tomhz' ? e[2] : NOTE(e[2]), e[3] * spb, e[4], e[5]);
         st.i++;
       }
     };
-    tick(); st.timer = setInterval(tick, 60);
+    tick(); st.timer = setInterval(tick, 120);
     this.cur = st; this.name = name;
     if (!song.loop) setTimeout(() => { if (this.cur === st && name !== 'title') { this.cur = null; this.name = ''; } }, (song.len * spb + 1) * 1000);
   },

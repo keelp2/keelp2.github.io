@@ -74,9 +74,12 @@ function startBotMatch() {
 function botKilled(victim, killer, head) {
   const vs = victim.stat; if (vs) vs.deaths++;
   let kname = 'the swamp';
-  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; ksKill(); if (head) game.heads++; statKill(head, 'bot'); kname = 'You'; hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
-    if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time; const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' }; if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]); }
-  else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
+  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; ksKill(); if (head) game.heads++; statKill(head, 'bot'); kname = 'You'; hitMarker(true, head); if (head) sfx.play('head'); /* the HEADSHOT medal says it now */
+    if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time;
+    killMedals({ head, dist: victim.pos.distanceTo(player.pos), melee: !!WEAPONS[wst.cur].melee && !game.lastNadeKill && !game.ksKind, back: !!game.lastBackstab, victimKey: victim, victimStreak: victim.lifeK || 0, ks: !!game.ksKind });
+    if ((victim.lifeK || 0) >= 5) feedEnded('You', victim.name, victim.lifeK, true); }
+  else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; killer.lifeK = (killer.lifeK || 0) + 1; feedStreak(killer.name, killer.lifeK, false); if ((victim.lifeK || 0) >= 5) feedEnded(killer.name, victim.name, victim.lifeK, false); game.firstBlood = true; }
+  victim.lifeK = 0;
   if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
   const tc = t => (BD.teams && t >= 0 ? (t ? '#ff7a7a' : '#7ac4ff') : null), mine = killer === PLAYER_T;
   killFeed(kname, tc(killer ? (mine ? 0 : killer.team) : -1), mine ? killLabel() : killer && killer.W ? killer.W.short : '', head, victim.name, tc(victim.team), mine);
@@ -84,6 +87,7 @@ function botKilled(victim, killer, head) {
   checkBotEnd();
 }
 function botPlayerDie() {
+  { const kb = BD.lastAttacker instanceof Enemy ? BD.lastAttacker : null; if (kb) { game.nemesis = kb; kb.lifeK = (kb.lifeK || 0) + 1; feedStreak(kb.name, kb.lifeK, false); if ((game.lifeK || 0) >= 5) feedEnded(kb.name, 'Your', game.lifeK, true); } game.firstBlood = true; }
   ksReset(); if (SURV.tgt) supportCancel();
   const k = BD.lastAttacker instanceof Enemy ? BD.lastAttacker : null; BD.stats[0].deaths++;
   if (k && k.stat) k.stat.kills++; if (BD.teams && k) BD.teamKills[k.team]++;

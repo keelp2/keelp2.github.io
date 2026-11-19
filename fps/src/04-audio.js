@@ -57,7 +57,7 @@ const sfx = {
     this.musicBus = c.createGain(); this.musicBus.gain.value = settings.music;
     const comp = c.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 6; comp.attack.value = 0.002; comp.release.value = 0.18;
     const tame = c.createBiquadFilter(); tame.type = 'highshelf'; tame.frequency.value = 7500; tame.gain.value = -5; // less hiss and fizz, easier on the ears
-    this.sfxBus.connect(tame); tame.connect(comp); comp.connect(c.destination); this.musicBus.connect(c.destination);
+    this.sfxBus.connect(tame); tame.connect(comp); comp.connect(c.destination); { const lim = c.createDynamicsCompressor(); lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 14; lim.attack.value = 0.003; lim.release.value = 0.18; this.musicBus.connect(lim); lim.connect(c.destination); } /* the music gets its own limiter: stacked synth voices used to clip (the grainy sound) */
     this.verb = c.createConvolver(); this.verb.buffer = this.impulse(2.4, 2.8); this.verbIn = c.createGain(); this.verbIn.gain.value = 0.55;
     this.verbIn.connect(this.verb); this.verb.connect(this.sfxBus);
     const len = c.sampleRate * 2, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
@@ -188,6 +188,7 @@ const sfx = {
       case 'eRifle': return this.gun('rifle', o); case 'eShotgun': return this.gun('shotgun', o); case 'eHeavy': return this.gun('lmg', o); case 'eSniper': return this.gun('sniper', o);
       case 'pistol': case 'revolver': case 'rifle': case 'ak': case 'smg': case 'lmg': case 'shotgun': case 'dmr': case 'sniper': return this.gun(n, o);
       case 'charge': T({ type: 'sine', f: 600, f2: 1800, dur: 1.0, g: 0.18, a: 0.3 }); break;
+      case 'medal': T({ type: 'triangle', f: 1320, dur: 0.12, g: 0.09 }); T({ type: 'sine', f: 1980, dur: 0.22, g: 0.06, delay: 0.05 }); N({ dur: 0.03, type: 'highpass', f: 6000, g: 0.12 }); break;
       case 'nukeSiren': T({ type: 'sawtooth', f: 420, f2: 760, dur: 0.5, g: 0.09 }); T({ type: 'sawtooth', f: 760, f2: 420, dur: 0.45, g: 0.09, delay: 0.5 }); break;
       case 'heli': N({ dur: 0.09, type: 'lowpass', f: 260, f2: 90, g: 0.55 }); T({ f: 58, f2: 38, dur: 0.08, g: 0.35 }); break; // rotor thump
       case 'empty': N({ dur: 0.035, type: 'bandpass', f: 3500, q: 6, g: 0.4 }); break;
