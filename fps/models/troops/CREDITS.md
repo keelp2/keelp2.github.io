@@ -4,5 +4,5 @@ Built with [ara3d](https://www.npmjs.com/package/ara3d) (MIT) from MakeHuman dat
 with motion-capture clips derived from the CMU Graphics Lab Motion Capture Database. Exported at "low" detail with a
 Mixamo-named game rig, then textures were downscaled and vertex data quantized for the web.
 
-- `c1`–`c4`: Coalition (Desert Storm, 1991): desert camo, plate carriers, PASGT-style helmets / cap
-- `g1`–`g4`: Republican Guard (1991): olive camo, berets, steel helmet, keffiyeh
+- `ca cs ch cr cb cg`: Coalition (Desert Storm, 1991) assault, scout, heavy, recon, breacher, grenadier
+- `ga gs gh gr gb gg`: Republican Guard (1991), same classes. Recon ghillie suits are generated in code.

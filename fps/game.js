@@ -1452,9 +1452,9 @@ function buildOldQuarter(L) {
     // west / centre blocks
     sol(-52, 0, -46, 34, 7, 'plasterB');
     h2(-36, 22, 14, 12, { m: 'plasterA' }, { w: [28], s: [-29] }); sol(-22, 22, -4, 34, 6, 'plasterB', { roof: true });
-    h2(-30, 2, 16, 12, { m: 'plasterB' }, { s: [-22], e: [8] }); sol(-36, 2, -30, 18, 6, 'plasterA'); sol(-30, 14, -14, 18, 6, 'plasterA');
+    h2(-30, 2, 16, 12, { m: 'plasterB' }, { s: [-18], e: [8] }); // passage door kept clear of the stairwell (it runs along the far wall) sol(-36, 2, -30, 18, 6, 'plasterA'); sol(-30, 14, -14, 18, 6, 'plasterA');
     // east blocks
-    h2(14, 2, 16, 12, { m: 'plasterA' }, { w: [8], s: [22] }); sol(30, 2, 32, 18, 6, 'plasterB'); sol(14, 14, 30, 18, 6, 'plasterB');
+    h2(14, 2, 16, 12, { m: 'plasterA' }, { w: [8], s: [26] }); sol(30, 2, 32, 18, 6, 'plasterB'); sol(14, 14, 30, 18, 6, 'plasterB');
     h2(18, 22, 14, 12, { m: 'plasterB' }, { e: [28], s: [25] }); sol(4, 22, 18, 34, 6, 'plasterA', { roof: true });
     // chokepoints: arches across the souk and the mid street (alternate routes: the cross-alleys & houses)
     { const z = 26 * sg; doorway(L, -46, -36, z, -42.6, -39.4, 6, 'plasterB'); doorway(L, -4, 4, z, -1.7, 1.7, 6, 'plasterA'); }
@@ -3021,9 +3021,10 @@ function addAccessories(kind, o) { // per-class kit, in each faction's period ge
   else { vest(false); helmet(false, false); }
 }
 // ---- realistic troops: 4 per faction. Players get the soldier for their class; bots/NPCs a varied pick by name.
-const TROOPS = [['c1', 'c2', 'c3', 'c4'], ['g1', 'g2', 'g3', 'g4']];
-const CLASS_TROOP = [{ knight: 'c1', ginger: 'c4', ogre: 'c2', fairy: 'c3', wolf: 'c2', witch: 'c1' }, { knight: 'g2', ginger: 'g3', ogre: 'g4', fairy: 'g1', wolf: 'g2', witch: 'g1' }];
-function troopId(kind, faction, seed, byClass) { const f = faction ? 1 : 0; if (byClass && CLASS_TROOP[f][kind]) return CLASS_TROOP[f][kind]; const L = TROOPS[f]; return L[hashStr(String(seed === undefined ? Math.random() : seed)) % L.length]; }
+// each class has its own soldier per faction (assault, scout, heavy, recon, breacher, grenadier); survival enemies wear the Guard's
+const TROOPS = [['ca', 'cs', 'ch', 'cr', 'cb', 'cg'], ['ga', 'gs', 'gh', 'gr', 'gb', 'gg']];
+const CLASS_TROOP = [{ knight: 'ca', ginger: 'cs', ogre: 'ch', fairy: 'cr', wolf: 'cb', witch: 'cg', guard: 'ca', goblin: 'cs', troll: 'ch', archer: 'cr' }, { knight: 'ga', ginger: 'gs', ogre: 'gh', fairy: 'gr', wolf: 'gb', witch: 'gg', guard: 'ga', goblin: 'gs', troll: 'gh', archer: 'gr' }];
+function troopId(kind, faction, seed, byClass) { const f = faction ? 1 : 0; if (CLASS_TROOP[f][kind]) return CLASS_TROOP[f][kind]; /* classes always read at a glance, like CoD */ const L = TROOPS[f]; return L[hashStr(String(seed === undefined ? Math.random() : seed)) % L.length]; }
 function makeTroopChar(kind, opt, gl, tid, faction) {
   const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
   const root = window.BP_SkeletonUtils.clone(gl.scene); inner.add(root);
@@ -3036,14 +3037,42 @@ function makeTroopChar(kind, opt, gl, tid, faction) {
   root.updateMatrixWorld(true); const hb = bones.HeadTop_End || bones.Head; let h = 1.8; if (hb) { const v = new V3(); hb.getWorldPosition(v); h = v.y + (bones.HeadTop_End ? 0.02 : 0.12); }
   inner.scale.setScalar((1.8 / Math.max(1.2, h)) * (opt.scale || (CHAR[kind] && CHAR[kind].scale) || 1));
   const mixer = new THREE.AnimationMixer(root), act = {};
-  for (const c of gl.animations) { const nm = /idle/i.test(c.name) ? 'Idle' : /run/i.test(c.name) ? 'Run' : /walk/i.test(c.name) ? 'Walk' : c.name; act[nm] = mixer.clipAction(c); }
+  for (const c of gl.animations) { const n = c.name, nm = /crouch.*walk/i.test(n) ? 'CrouchWalk' : /crouch/i.test(n) ? 'CrouchIdle' : /strafe left/i.test(n) ? 'StrafeL' : /strafe right/i.test(n) ? 'StrafeR' : /walk back/i.test(n) ? 'Back' : /sprint/i.test(n) ? 'Sprint' : /idle/i.test(n) ? 'Idle' : /run/i.test(n) ? 'Run' : /walk/i.test(n) ? 'Walk' : n; act[nm] = mixer.clipAction(c); }
   (act.Idle || Object.values(act)[0]).play(); g.updateMatrixWorld(true);
   const rp = new V3(); if (bones.RightArm) { bones.RightArm.getWorldPosition(rp); inner.worldToLocal(rp); }
   const out = { group: g, inner, bodyMat, mixer, act, bones, animState: 'Idle', legL: null, legR: null, skinned: true, rsign: rp.x >= 0 ? 1 : -1, wings: null, troop: tid, look: { faction, female: tid === 'c3' } };
   out.headAcc = new THREE.Group(); out.chestAcc = new THREE.Group(); inner.add(out.headAcc, out.chestAcc);
   const iq = inner.getWorldQuaternion(new THREE.Quaternion()).invert(), bq = b => b ? iq.clone().multiply(b.getWorldQuaternion(new THREE.Quaternion())).invert() : null;
   out.headBind = bq(bones.Head); out.chestBind = bq(bones.Spine2);
+  if (tid === 'cr' || tid === 'gr') try { ghillieSuit(out, inner, bones, faction); } catch (e) { console.warn('ghillie failed', e); }
   return out;
+}
+// Ghillie suit + boonie: thousands of burlap/leaf tufts on every limb, merged into one mesh per bone so they follow the animation cheaply
+function ghillieSuit(o, inner, bones, faction) {
+  inner.updateMatrixWorld(true); const iq = inner.getWorldQuaternion(new THREE.Quaternion()), tmp = new V3(), R = seeded(faction ? 4242 : 2424);
+  const cols = (faction ? [0x3c4226, 0x4a4a2e, 0x2e3420, 0x5a5236, 0x434a2c, 0x6a6040] : [0xa8946a, 0x8a7652, 0xc0ac80, 0x7a6644, 0x9a8a5c, 0xb5a175]).map(c => new THREE.Color(c));
+  const mat = MAT({ vertexColors: true, roughness: 1 }); mat.side = THREE.DoubleSide;
+  const P = n => inner.worldToLocal(bones[n].getWorldPosition(new V3()));
+  const attach = n => { const b = bones[n], gq = new THREE.Group(); gq.quaternion.copy(b.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(iq)); gq.scale.setScalar(1 / b.getWorldScale(tmp).x * inner.getWorldScale(new V3()).x); b.add(gq); return gq; };
+  const tuft = (pos, nrm, col, len, out) => { // one shaggy strip: a thin quad hanging along/away from the surface
+    const w = 0.02 + R() * 0.025, h = len * (0.7 + R() * 0.6), down = new V3(0, -1, 0).lerp(nrm, 0.35 + R() * 0.4).normalize(), side = new V3().crossVectors(down, nrm).normalize().multiplyScalar(w);
+    const a = pos.clone().add(side), b2 = pos.clone().sub(side), c = pos.clone().addScaledVector(down, h).sub(side.clone().multiplyScalar(0.3)), d = pos.clone().addScaledVector(down, h).add(side.clone().multiplyScalar(0.3));
+    for (const v of [a, b2, c, a, c, d]) { out.p.push(v.x, v.y, v.z); out.n.push(nrm.x, nrm.y, nrm.z); const k = 0.8 + R() * 0.4; out.c.push(col.r * k, col.g * k, col.b * k); } };
+  const limb = (a, b, r, n, len) => { if (!bones[a] || !bones[b]) return; const A = P(a), B = P(b), ax = B.clone().sub(A), L = ax.length(); ax.normalize();
+    const u = new V3(0, 1, 0).cross(ax); if (u.lengthSq() < 1e-4) u.set(1, 0, 0); u.normalize(); const v = new V3().crossVectors(ax, u);
+    const out = { p: [], n: [], c: [] };
+    for (let i = 0; i < n; i++) { const t = R(), ang = R() * 6.283, nrm = u.clone().multiplyScalar(Math.cos(ang)).addScaledVector(v, Math.sin(ang)); const pos = A.clone().addScaledVector(ax, t * L).addScaledVector(nrm, r * (0.9 + R() * 0.3)).sub(A);
+      tuft(pos, nrm, cols[Math.floor(R() * cols.length)], len, out); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(out.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(out.n, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(out.c, 3));
+    const m = new THREE.Mesh(g, mat); m.castShadow = true; m.frustumCulled = false; attach(a).add(m); };
+  limb('Hips', 'Spine1', 0.17, 150, 0.2); limb('Spine1', 'Neck', 0.18, 220, 0.22); limb('Neck', 'Head', 0.09, 50, 0.16);
+  for (const sd of ['Left', 'Right']) { limb(sd + 'Shoulder', sd + 'Arm', 0.08, 50, 0.15); limb(sd + 'Arm', sd + 'ForeArm', 0.07, 90, 0.13); limb(sd + 'ForeArm', sd + 'Hand', 0.055, 60, 0.1); limb(sd + 'UpLeg', sd + 'Leg', 0.095, 120, 0.17); limb(sd + 'Leg', sd + 'Foot', 0.07, 80, 0.13); }
+  // boonie hat with a hood of tufts over the head
+  if (bones.Head) { const H = attach('Head'), top = bones.HeadTop_End ? P('HeadTop_End').sub(P('Head')) : new V3(0, 0.2, 0), hc = MAT({ color: cols[0].getHex(), roughness: 1 });
+    const crown = new THREE.Mesh(CG.half, hc); crown.position.copy(top).multiplyScalar(0.8); crown.scale.set(0.11, 0.075, 0.12); H.add(crown);
+    const brim = new THREE.Mesh(CG.cyl, hc); brim.position.copy(top).multiplyScalar(0.78); brim.scale.set(0.19, 0.008, 0.2); H.add(brim);
+    const out = { p: [], n: [], c: [] }; for (let i = 0; i < 70; i++) { const a = R() * 6.283, nrm = new V3(Math.cos(a), 0.15, Math.sin(a)).normalize(); tuft(top.clone().multiplyScalar(0.8).addScaledVector(nrm, 0.17), nrm, cols[Math.floor(R() * cols.length)], 0.14, out); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(out.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(out.n, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(out.c, 3)); H.add(new THREE.Mesh(g, mat)); }
 }
 function makeCharacter(kind, opt = {}) {
   let o = null;
@@ -3052,7 +3081,7 @@ function makeCharacter(kind, opt = {}) {
   try { if (!o && window.BP_ASSETS && window.BP_ASSETS.soldier && window.BP_SkeletonUtils) o = makeSoldierChar(kind, opt); } catch (e) { console.warn('soldier model failed, using fallback', e); o = null; }
   if (!o) o = makeProcChar(kind, opt);
   o.kind = kind; setCharWeapon(o, opt.weapon || 'rifle');
-  if (opt.sash !== undefined) { const m = new THREE.Mesh(CG.box, new THREE.MeshBasicMaterial({ color: opt.sash })); m.scale.set(0.5, 0.07, 0.3); m.rotation.z = 0.7; m.position.y = o.skinned ? 0 : 1.22; (o.chestAcc || o.inner).add(m); }
+  if (opt.sash !== undefined && !o.troop) { const m = new THREE.Mesh(CG.box, new THREE.MeshBasicMaterial({ color: opt.sash })); m.scale.set(0.5, 0.07, 0.3); m.rotation.z = 0.7; m.position.y = o.skinned ? 0 : 1.22; (o.chestAcc || o.inner).add(m); }
   return o;
 }
 function setCharWeapon(o, id) {
@@ -3072,11 +3101,14 @@ const CROUCH = { u: -1.25, l: 2.1, f: -0.75, s: 0.28 };
 function animChar(o, dt, speed, pitch = 0) {
   if (o.gunHolder) o.gunHolder.rotation.x = (o.gun && !o.gun.forePt ? -0.6 : 0) - pitch;
   if (o.mixer) {
-    const st = speed < 0.4 ? 'Idle' : speed < 3.4 ? 'Walk' : 'Run';
-    if (st !== o.animState && o.act[st]) { const from = o.act[o.animState], to = o.act[st]; to.reset(); to.play(); if (from) from.crossFadeTo(to, 0.25, false); o.animState = st; }
-    if (o.act.Walk) o.act.Walk.timeScale = clamp(speed / 1.6, 0.6, 1.7); if (o.act.Run) o.act.Run.timeScale = clamp(speed / 5, 0.7, 1.4);
+    let st = speed < 0.4 ? 'Idle' : speed < 3.4 ? 'Walk' : 'Run'; const dir = !!o.act.StrafeL; // mocap troops: pick the clip from where you move vs where you face
+    if (dir) { const gp = o.group.position; if (o._lp && dt > 0) { o._vx = damp(o._vx || 0, (gp.x - o._lp.x) / dt, 10, dt); o._vz = damp(o._vz || 0, (gp.z - o._lp.z) / dt, 10, dt); } o._lp = (o._lp || new V3()).copy(gp);
+      const yaw = o.group.rotation.y, fw = Math.sin(yaw) * (o._vx || 0) + Math.cos(yaw) * (o._vz || 0), rt = -Math.cos(yaw) * (o._vx || 0) + Math.sin(yaw) * (o._vz || 0), crouch = (o.crouchK || 0) > 0.45;
+      st = speed < 0.4 ? (crouch ? 'CrouchIdle' : 'Idle') : crouch ? 'CrouchWalk' : Math.abs(rt) > Math.abs(fw) * 1.25 ? (rt > 0 ? 'StrafeR' : 'StrafeL') : fw < -0.25 ? 'Back' : speed < 3.4 ? 'Walk' : speed < 5.7 || !o.act.Sprint ? 'Run' : 'Sprint'; }
+    if (st !== o.animState && o.act[st]) { const from = o.act[o.animState], to = o.act[st]; to.reset(); to.play(); if (from) from.crossFadeTo(to, 0.22, false); o.animState = st; }
+    for (const [k, base, lo, hi] of [['Walk', 1.6, 0.6, 1.7], ['Back', 1.4, 0.6, 1.6], ['StrafeL', 1.5, 0.6, 1.7], ['StrafeR', 1.5, 0.6, 1.7], ['CrouchWalk', 1.3, 0.6, 1.6], ['Run', 5, 0.7, 1.4], ['Sprint', 6.5, 0.8, 1.3]]) if (o.act[k]) o.act[k].timeScale = clamp(speed / base, lo, hi);
     o.mixer.update(dt);
-    { const c = o.crouchK || 0, B = o.bones; o.inner.position.y = -0.5 * c; // crouch: bend hips/knees/ankles and lower the body (hands stay on the gun via IK below)
+    if (dir && o.act.CrouchIdle) { o.inner.position.y = 0; } else { const c = o.crouchK || 0, B = o.bones; o.inner.position.y = -0.5 * c; // crouch: bend hips/knees/ankles and lower the body (hands stay on the gun via IK below)
       if (c > 0.01) { for (const sd of ['Left', 'Right']) { if (B[sd + 'UpLeg']) B[sd + 'UpLeg'].rotation.x += CROUCH.u * c; if (B[sd + 'Leg']) B[sd + 'Leg'].rotation.x += CROUCH.l * c; if (B[sd + 'Foot']) B[sd + 'Foot'].rotation.x += CROUCH.f * c; } if (B.Spine) B.Spine.rotation.x += CROUCH.s * c; } }
     o.group.updateMatrixWorld(true);
     // inverse kinematics: hands onto the weapon
@@ -3136,17 +3168,21 @@ function footTick(ent, dt, speed, crouched, onGround, foe) {
   const fall = Math.pow(1 - d / G.radius, 1.6), sp = spatial(ent.pos);
   sfx.step(surfaceAt(ent.pos.x, ent.pos.y, ent.pos.z), { pan: sp.pan, pos: { x: ent.pos.x, y: ent.pos.y + 0.05, z: ent.pos.z }, vol: G.vol * fall * (foe ? 1.1 : 0.7) * (1 - muffle * 0.45), muffle, gait });
 }
-function noise(p, radius, src) {
-  for (const e of enemies) {
-    if (e.dead || e === src || isAlly(src, e)) continue; const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z); if (d > radius) continue;
-    if (e.visible) continue; e.alertT = 4;
-    if (!e.bot || src === PLAYER_T || !e.target) { e.investigate = new V3(p.x + rand(-3, 3) * d / radius, p.y, p.z + rand(-3, 3) * d / radius); if (src) e.target = src; e.lostT = Math.min(e.lostT, 1); e.repathT = 0; }
+function noise(p, radius, src) { // like CoD: the nearest two or three react (the third swings wide); anyone already in a fight or holding a spot mostly ignores it
+  const near = enemies.filter(e => !e.dead && e !== src && !isAlly(src, e) && !e.visible && Math.hypot(e.pos.x - p.x, e.pos.z - p.z) <= radius).sort((a, b) => Math.hypot(a.pos.x - p.x, a.pos.z - p.z) - Math.hypot(b.pos.x - p.x, b.pos.z - p.z));
+  let k = 0;
+  for (const e of near) { const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z); e.alertT = 4;
+    if (e.bot) { const busy = e.target && e.lostT < 3, holding = e.role === 'anchor' && e.holdT > 0; if (k >= 3 || (busy && Math.random() < 0.75) || (holding && d > 18)) continue; }
+    let ix = p.x + rand(-3, 3) * d / radius, iz = p.z + rand(-3, 3) * d / radius;
+    if (e.bot && k === 2) { const ux = p.x - e.pos.x, uz = p.z - e.pos.z, l = Math.hypot(ux, uz) || 1, sd = Math.random() < 0.5 ? 1 : -1, n = world.nav.nearestSafe(p.x - uz / l * 10 * sd, p.y, p.z + ux / l * 10 * sd, 6); if (n >= 0) { const q = world.nav.nodePos(n); ix = q[0]; iz = q[2]; } }
+    e.investigate = new V3(ix, p.y, iz); if (src) e.target = src; e.lostT = Math.min(e.lostT, 1); e.repathT = 0; k++;
   }
 }
 const _ea = new V3(), _eb = new V3(), _ed = new V3(), _eo = new V3();
 class Enemy {
   constructor(type, x, z, wave, opt = {}) {
-    this.bot = type === 'bot'; this.type = type;
+    this.bot = type === 'bot'; this.type = type; // CoD-style bot roles: slayers push, flankers take side routes, anchors hold rooms/roofs, supports move with a teammate
+    this.role = this.bot ? ['slayer', 'slayer', 'flanker', 'anchor', 'support'][hashStr(String((opt && opt.name) || Math.random())) % 5] : null;
     const T = this.T = this.bot ? opt.T : ETYPES[type];
     this.W = WEAPONS[widx(T.weapon)];
     const D = DIFF[settings.difficulty];
@@ -3294,17 +3330,28 @@ class Enemy {
         // grenade the spot they were last seen hiding behind
         if (this.grenades > 0 && this.nadeCD <= 0 && t && this.lostT > 1.5 && this.lostT < 6) { const d = this.pos.distanceTo(this.lastKnown); if (d > 7 && d < 22) this.throwNade(this.lastKnown); }
         // flank: approach the last known position from the side instead of head-on
-        if (t && this.lostT > 2 && this.lostT < 2.1 && this.skill > 0.8 && Math.random() < 0.5) {
+        if (t && this.lostT > 2 && this.lostT < 2.1 && Math.random() < (this.role === 'flanker' ? 0.95 : this.role === 'anchor' ? 0.05 : this.skill > 0.8 ? 0.4 : 0.15)) {
           const ux = this.lastKnown.x - this.pos.x, uz = this.lastKnown.z - this.pos.z, l = Math.hypot(ux, uz) || 1, side = Math.random() < 0.5 ? 1 : -1;
           const n = world.nav.nearestSafe(this.lastKnown.x - uz / l * 9 * side, this.lastKnown.y, this.lastKnown.z + ux / l * 9 * side, 4); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.investigate = new V3(x, y, z); this.state = 'flank'; }
         }
         let goal = this.investigate || (t ? this.lastKnown : null);
         if (!goal && this.bot) { // roam
-          if ((!this.roam || this.pos.distanceTo(this.roam) < 2) && isAlly(this, PLAYER_T) && player.alive && Math.random() < 0.6) { const n = world.nav.nearestSafe(player.pos.x + rand(-6, 6), player.pos.y, player.pos.z + rand(-6, 6), 12); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } } // follow you, but only to places a body can reach and leave
+          if ((!this.roam || this.pos.distanceTo(this.roam) < 2) && this.role === 'support' && Math.random() < 0.75) { // move with a teammate, a few bodies back and off to one side
+            const mates = [...(isAlly(this, PLAYER_T) && player.alive ? [PLAYER_T] : []), ...enemies.filter(o => o !== this && !o.dead && isAlly(this, o) && o.role !== 'support')];
+            if (!this.buddy || this.buddy.dead || !mates.includes(this.buddy)) this.buddy = mates.length ? mates[Math.floor(Math.random() * mates.length)] : null;
+            const B = this.buddy; if (B) { const a = Math.random() * 6.28, r = rand(8, 14), n = world.nav.nearestSafe(B.pos.x + Math.cos(a) * r, B.pos.y, B.pos.z + Math.sin(a) * r, 10); if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); this.roamPost = false; this.holdDone = true; } } }
           if (this.holdT > 0 && this.roam && this.pos.distanceTo(this.roam) < 2.5) { this.holdT -= dt; if (this.lookT <= 0) this.lookT = rand(0.8, 1.6); } // holding a room / rooftop
-          else if (!this.roam || this.pos.distanceTo(this.roam) < 2) { const P = navPosts(); if (this.roam && this.roamPost && !this.holdDone) { this.holdT = rand(4, 11); this.holdDone = true; this.lookT = rand(1, 2); } else { this.holdDone = false; this.roamPost = false;
-            if (P.length && Math.random() < 0.55) { for (let q = 0; q < 6; q++) { const m = P[Math.floor(Math.random() * P.length)], [x, y, z] = world.nav.nodePos(m); if (enemies.some(o => o !== this && !o.dead && o.roam && Math.hypot(o.roam.x - x, o.roam.z - z) < 6)) continue; this.roam = new V3(x, y, z); this.roamPost = true; break; } } // go use a building / stairs / roof
-            if (!this.roamPost) { let n = world.nav.randomNode(); if (Math.random() < 0.35) for (let q = 0; q < 24; q++) { const m = world.nav.randomNode(); if (m >= 0 && world.nav.nodeH[m] > Math.max(2.2, n >= 0 ? world.nav.nodeH[n] : 0)) n = m; } // humans like high ground
+          else if (!this.roam || this.pos.distanceTo(this.roam) < 2) { const P = navPosts(); if (this.roam && this.roamPost && !this.holdDone) { this.holdT = this.role === 'anchor' ? rand(9, 20) : this.role === 'slayer' ? rand(2, 5) : rand(4, 11); this.holdDone = true; this.lookT = rand(1, 2); } else { this.holdDone = false; this.roamPost = false; this.roam = null;
+            const pPost = { anchor: 0.9, slayer: 0.25, flanker: 0.4, support: 0.5 }[this.role] || 0.55, spreadOK = (x, z) => !enemies.some(o => o !== this && !o.dead && o.roam && Math.hypot(o.roam.x - x, o.roam.z - z) < (isAlly(this, o) ? 14 : 6)); // teammates spread out
+            if (P.length && Math.random() < pPost) { for (let q = 0; q < 8; q++) { const m = P[Math.floor(Math.random() * P.length)], [x, y, z] = world.nav.nodePos(m); if (!spreadOK(x, z)) continue; this.roam = new V3(x, y, z); this.roamPost = true; break; } } // go use a building / stairs / roof
+            if (!this.roamPost && (this.role === 'slayer' || this.role === 'flanker')) { // slayers hunt where the fighting is; flankers swing wide around the edges
+              const foes = [...(!isAlly(this, PLAYER_T) && player.alive ? [PLAYER_T] : []), ...enemies.filter(o => o !== this && !o.dead && !isAlly(this, o)), ...remoteList.filter(r => !r.dead && !isAlly(this, r))], [bx0, bz0, bx1, bz1] = world.L.bounds, cx = (bx0 + bx1) / 2, cz = (bz0 + bz1) / 2;
+              for (let q = 0; q < 10 && !this.roam; q++) { let x, z;
+                if (this.role === 'slayer' && foes.length) { const F = foes[Math.floor(Math.random() * foes.length)]; x = F.pos.x + rand(-14, 14); z = F.pos.z + rand(-14, 14); }
+                else { const a = Math.random() * 6.28, k = rand(0.55, 0.85); x = cx + Math.cos(a) * (bx1 - bx0) / 2 * k; z = cz + Math.sin(a) * (bz1 - bz0) / 2 * k; }
+                const n = world.nav.nearestSafe(x, 0, z, 8); if (n >= 0) { const [px, py, pz] = world.nav.nodePos(n); if (spreadOK(px, pz)) this.roam = new V3(px, py, pz); } }
+              if (this.roam && this.roam.distanceTo(this.pos) < 2) this.roam = null; else if (this.roam) this.roamPost = false; }
+            if (!this.roamPost && !(this.roam && this.roam.distanceTo(this.pos) >= 2)) { let n = world.nav.randomNode(); if (Math.random() < 0.35) for (let q = 0; q < 24; q++) { const m = world.nav.randomNode(); if (m >= 0 && world.nav.nodeH[m] > Math.max(2.2, n >= 0 ? world.nav.nodeH[n] : 0)) n = m; } // humans like high ground
             if (n >= 0) { const [x, y, z] = world.nav.nodePos(n); this.roam = new V3(x, y, z); } } } }
           goal = this.holdT > 0 && this.roam && this.pos.distanceTo(this.roam) < 2.5 ? null : this.roam;
         }
@@ -6127,7 +6174,7 @@ function snap(obj, camPos, look, w = 220, h = 120) {
 function makeThumbs() { // built in small slices while the browser is idle, so the menu never freezes
   if (!PV.r) return; const jobs = [];
   for (const w of WEAPONS) jobs.push(() => { const g = buildGun(w.id, {}, false).g, box = new THREE.Box3().setFromObject(g), c = box.getCenter(new V3()); g.position.sub(c); g.rotation.y = Math.PI / 2; const len = box.getSize(new V3()).length(); THUMBS[w.id] = snap(g, new V3(0, 0.03, len * 1.25 + 0.05), new V3(0, 0, 0)); });
-  for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0], faction: 0, seed: 'class-' + k, byClass: true }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.2, 3.4), new V3(0, 0.95, 0), 160, 160);  });
+  for (const k in CLASSES) jobs.push(() => { const ch = makeCharacter(CLASSES[k].model, { weapon: DEFAULT_LO[k][0], faction: 0, seed: 'class-' + k, byClass: true }); ch.group.rotation.y = 0.5; animChar(ch, 0.016, 0, 0); THUMBS['cls_' + k] = snap(ch.group, new V3(0, 1.05, 4.4), new V3(0, 0.98, 0), 160, 160);  });
   let i = 0; const later = window.requestIdleCallback ? f => requestIdleCallback(f, { timeout: 250 }) : f => setTimeout(f, 16);
   const step = () => { const t = performance.now(); while (i < jobs.length && performance.now() - t < 10) { try { jobs[i](); } catch (e) {} i++; }
     if (i < jobs.length) { if (i % 12 < 3 && document.querySelector('.mtab.on[data-tab="loadout"]')) renderLoadout($('loadout')); later(step); }
