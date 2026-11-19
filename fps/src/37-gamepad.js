@@ -19,6 +19,8 @@ function pollGamepad(dt) {
   const dz = v => (Math.abs(v) < 0.14 ? 0 : (v - Math.sign(v) * 0.14) / 0.86), b = i => !!(g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > 0.35)), pr = i => b(i) && !gp.prev[i], rl = i => !b(i) && gp.prev[i]; gp.held = [0, 1, 2, 3].map(b);
   gp.mx = dz(g.axes[0] || 0); gp.my = dz(g.axes[1] || 0);
   const lx = dz(g.axes[2] || 0), ly = dz(g.axes[3] || 0);
+  if (game.state === 'play' && SURV.tgt) { const sp = tabletScale() * 0.55 * dt; tabletMove((gp.mx + lx) * sp, (gp.my + ly) * sp); if (b(4)) tabletRotate(-2.4 * dt); if (b(5)) tabletRotate(2.4 * dt); if (pr(7)) tabletConfirm(); if (pr(1) || pr(15)) supportCancel();
+    gp.mx = gp.my = 0; gp.fire = gp.ads = false; mouseL = mL; mouseR = mR; gp.prev = g.buttons.map((x, i) => b(i)); return; }
   if (game.state === 'play') {
     gpFocus(null);
     const w = WEAPONS[wst.cur], zoom = lerp(1, w.zoom, wst.ads); let slow = 1; const aaMode = settings.aimAssist === false || settings.aimAssist === 'off' ? 'off' : settings.aimAssist === 'precision' ? 'precision' : 'standard', aa = aaMode !== 'off' && player.alive;

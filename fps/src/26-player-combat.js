@@ -42,7 +42,7 @@ function meleeHit(w) {
   cands.sort((a, b) => a[0] - b[0]); let hits = 0;
   for (const [, e] of cands.slice(0, w.cleave || 1)) {
     const fy = e.isRemote ? e.yaw + Math.PI : e.yaw, tx = player.pos.x - e.pos.x, tz = player.pos.z - e.pos.z, tl = Math.hypot(tx, tz) || 1;
-    const behind = (Math.sin(fy) * tx + Math.cos(fy) * tz) / tl < -0.4, dmg = behind ? w.backstab : w.dmg, kb = w.knock || 4;
+    const behind = (Math.sin(fy) * tx + Math.cos(fy) * tz) / tl < -0.4, dmg = Math.max(behind ? w.backstab : w.dmg, e.maxHp ? e.maxHp + 1 : 250), kb = w.knock || 4; /* CoD rule: melee is a one-hit kill, every melee weapon, from any side */
     const hp = new V3(e.pos.x, e.pos.y + e.h * 0.6, e.pos.z);
     const killed = e.damage(dmg, false, { x: _f.x * kb, z: _f.z * kb }, 'player'); hits++; game.hits++;
     dmgNumber(hp, dmg, behind); if (!killed) hitMarker(false, behind); debris.burst(hp.x, hp.y, hp.z, 18, 3.5, 0.62, 0.04, 0.03, 0.55, 1, _f.x * 0.8, 0.2, _f.z * 0.8); bloodHit(hp.clone(), _f.clone(), false);

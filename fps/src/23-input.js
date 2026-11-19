@@ -9,6 +9,7 @@ addEventListener('keydown', e => {
   if (SURV.open && (e.code === 'Escape' || e.code === 'KeyB')) { closeBuy(); return; }
   if (SURV.open && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) { const n = ARMORY[SURV.open.kind].items().length; SURV.sel = (SURV.sel + (e.code === 'ArrowDown' ? 1 : n - 1)) % n; renderBuy(); e.preventDefault(); return; }
   if (SURV.open && e.code === 'Enter') { buyItem(SURV.sel); return; }
+  if (SURV.tgt && game.state === 'play') { if (e.code === 'KeyQ' || e.code === 'KeyE') { tabletRotate(e.code === 'KeyE' ? 0.26 : -0.26); return; } if (e.code === 'Escape') { supportCancel(); return; } if (e.code === 'Enter') { tabletConfirm(); return; } }
   if ((e.code === 'ControlLeft' || e.code === 'ControlRight') && !kbLocked && game.state === 'play' && !hud.ctrlWarned) { hud.ctrlWarned = true; showHint('C = CROUCH · Ctrl+W CLOSES THE TAB OUTSIDE FULLSCREEN', '#ff9b6b'); }
   if (e.code === 'AltLeft' || e.code === 'AltRight') e.preventDefault();
   if (e.code === 'Escape' && game.state === 'play' && !e.repeat) { if (document.pointerLockElement) document.exitPointerLock(); pauseGame(); return; } // with keyboard lock, Esc reaches the page
@@ -44,10 +45,11 @@ addEventListener('contextmenu', e => e.preventDefault());
 function lockKeys() { if (document.fullscreenElement && navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock().then(() => { kbLocked = true; }).catch(() => { kbLocked = false; }); }
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) { kbLocked = false; try { navigator.keyboard && navigator.keyboard.unlock(); } catch (e) {} } });
 addEventListener('beforeunload', e => { if (game.state === 'play' || game.state === 'paused' || game.state === 'dying' || MP.active) { e.preventDefault(); e.returnValue = ''; } }); // Ctrl+W can't be blocked: ask before closing mid-match
-addEventListener('wheel', e => { if (game.state !== 'play') return; const k = carry.indexOf(wst.cur); switchTo(carry[(k + (e.deltaY > 0 ? 1 : 2)) % 3]); }, { passive: true });
+addEventListener('wheel', e => { if (game.state !== 'play') return; if (SURV.tgt) { tabletRotate(e.deltaY > 0 ? 0.2 : -0.2); return; } const k = carry.indexOf(wst.cur); switchTo(carry[(k + (e.deltaY > 0 ? 1 : 2)) % 3]); }, { passive: true });
 addEventListener('mousemove', e => {
   if (!locked || game.state !== 'play' || !player.alive) return;
   const dx = clamp(e.movementX, -300, 300), dy = clamp(e.movementY, -300, 300);
+  if (SURV.tgt) { const k = tabletScale() / 520 * settings.sens; tabletMove(dx * k, dy * k); return; } /* holding the tablet: the mouse moves the marker, not your view */
   const zoom = lerp(1, WEAPONS[wst.cur].zoom, wst.ads);
   const s = 0.0022 * settings.sens / zoom;
   player.yaw -= dx * s; player.pitch = clamp(player.pitch - dy * s * (settings.invertY ? -1 : 1), -1.5, 1.5);

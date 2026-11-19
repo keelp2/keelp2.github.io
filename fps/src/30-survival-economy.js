@@ -3,7 +3,7 @@ const SURV = { cash: 0, eq: {}, stations: [], open: null, sel: 0, markers: [], s
 const ARMORY = {
   weapons: { name: 'WEAPON ARMORY', col: 0xff8a3d, items: () => [['ammo', 'Refill ammo (all guns)', 300]].concat([['smg', 1000], ['mp5', 1200], ['ump', 1300], ['shotgun', 1200], ['rifle', 1500], ['ak', 1700], ['grau', 1800], ['p90', 1800], ['dmr', 2000], ['scar', 2300], ['autoshotgun', 2200], ['lmg', 2500], ['sniper', 2600], ['mg', 3000], ['revolver', 700], ['deagle', 900], ['rpg', 4000]].map(([id, c]) => ['w:' + id, (WEAPONS[widx(id)] || {}).name || id, c])) },
   equipment: { name: 'EQUIPMENT ARMORY', col: 0x52b8ff, items: () => [['e:frag', 'Frag grenades ×2', 400, 'Lethal · throw with G / RB'], ['e:semtex', 'Semtex ×2', 500, 'Lethal · sticks · G / RB'], ['e:molotov', 'Molotov ×2', 500, 'Lethal · fire zone · G / RB'], ['e:flash', 'Flashbangs ×2', 300, 'Tactical · blinds · Q / LB'], ['e:smoke', 'Smoke grenades ×2', 250, 'Tactical · cover · Q / LB'], ['armor', 'Armor plates (+75)', 750, 'Applied instantly · blue bar'], ['heal', 'Field medkit (full health)', 400, 'Applied instantly']] },
-  support: { name: 'AIR SUPPORT', col: 0xff5a5a, items: () => [['air', 'Precision airstrike', 2500, 'Stored · press Z / D-pad right to aim, click / RT to call in'], ['air3', 'Carpet bombing run', 4500, 'Stored · Z / D-pad right · a long line of bombs']] },
+  support: { name: 'AIR SUPPORT', col: 0xff5a5a, items: () => [['air', 'Precision airstrike', 2500, 'Stored · Z / D-pad right opens the tablet: pick the spot, click / RT'], ['air3', 'Carpet bombing run', 4500, 'Stored · tablet: place and rotate the bombing run']] },
 };
 const survOn = () => game.mode === 'survival' && world && SURV.stations.length;
 const eqKind = slot => (game.mode === 'survival' && SURV.eq[slot]) || getLO()[slot];
@@ -59,7 +59,7 @@ const KS_ICON = {
   uav: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"/><path d="M12 12 L19.5 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="15" r="1.4" fill="currentColor"/></svg>',
   air: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c.8 0 1.3 1 1.3 2.4V9l7.7 4.6v2l-7.7-2.3v4.3l2.4 1.8v1.6L12 20l-3.7 1v-1.6l2.4-1.8v-4.3L3 15.6v-2L10.7 9V4.4C10.7 3 11.2 2 12 2z"/></svg>',
   air3: '<svg viewBox="0 0 24 24"><g fill="currentColor"><path d="M6 3h3v6l1.5 2h-6L6 9z"/><path d="M15 3h3v6l1.5 2h-6L15 9z"/><path d="M10.5 12h3v6l1.5 2H9l1.5-2z"/></g></svg>' };
-const STREAKS = [['uav', 3, 'UAV', 'Enemies show on your radar for 25 s'], ['air', 5, 'PRECISION AIRSTRIKE', 'Aim the marker, call in 4 heavy bombs'], ['air3', 7, 'CARPET BOMBING', 'A long line of bombs along your aim']];
+const STREAKS = [['uav', 3, 'UAV', 'Enemies show on your radar for 25 s'], ['air', 5, 'PRECISION AIRSTRIKE', 'Pick the spot on your tablet · 4 heavy bombs'], ['air3', 7, 'CARPET BOMBING', 'Lay the bombing run on your tablet · 9 bombs']];
 const pvpOn = () => game.mode === 'botdm' || (MP.active && MP.mode !== 'surv');
 const supOn = () => survOn() || pvpOn();
 /* button prompts for whichever device you are using (CoD-style): a big key cap, or a drawn D-pad with the right arm lit */
@@ -75,36 +75,63 @@ function ksBanner(id, name, desc) { let b = $('ksbanner'); if (!b) { b = documen
 function ksTrack() { /* the CoD stack: next streaks with progress pips */ let t = $('kstrack'); if (!t) { t = document.createElement('div'); t.id = 'kstrack'; $('hud').appendChild(t); }
   if (!pvpOn() || !player.alive && !MP.active) { t.style.display = 'none'; return; } t.style.display = 'flex'; const k = game.ks || 0;
   setHTML(t, STREAKS.map(([id, n, name]) => { const have = SURV.support.includes(id), got = k >= n; return `<div class="ks${have ? ' rdy' : got ? ' got' : ''}" title="${name}"><i>${KS_ICON[id]}</i><b>${n}</b>${have ? '' : `<u style="width:${Math.min(100, k / n * 100)}%"></u>`}</div>`; }).join('')); }
-function supportStart() { /* CoD-style: pull up the designator, put the marker where you want it, click to call it in */
+function supportStart() { /* CoD-style: pull up the tablet, pick the spot on the map (and the bombing run's heading), confirm */
   if (!supOn() || !player.alive || game.state !== 'play') return; if (SURV.tgt) return supportCancel(); if (!SURV.support.length) { showHint(survOn() ? 'NO AIR SUPPORT · BUY IT AT THE RED ARMORY' : 'NO KILLSTREAK READY · ' + STREAKS[0][1] + ' KILLS IN A ROW FOR A UAV', '#ff6b5a'); return; }
   if (SURV.support[0] === 'uav') { SURV.support.shift(); game.uavT = 25; showHint('UAV ONLINE', '#7ac4ff'); sfx.play('wave'); ambience.flyby && ambience.flyby(false); return; }
-  if (SURV.open) closeBuy(); SURV.tgt = { id: SURV.support[0], ok: false, at: new V3(), arm: 0.25, r0: !!mouseR }; sfx.play('switch'); mouseL = mL = false;
-  if (!SURV.mk) { const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0.85, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(2.6, 3.0, 40), m); ring.rotation.x = -Math.PI / 2; g.add(ring); const ring2 = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.55, 20), m); ring2.rotation.x = -Math.PI / 2; g.add(ring2);
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 30, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xff3b30, transparent: true, opacity: 0.35, depthWrite: false })); beam.position.y = 15; g.add(beam); SURV.mk = g; SURV.mkMat = m; }
-  scene.add(SURV.mk); SURV.mk.visible = true;
+  if (SURV.open) closeBuy(); const [x0, z0, x1, z1] = world.L.bounds; aimBasis(); const h = raycast(camera.position, _f, 120, false), at = camera.position.clone().addScaledVector(_f, Math.min(h.t, 35));
+  SURV.tgt = { id: SURV.support[0], x: clamp(at.x, x0, x1), z: clamp(at.z, z0, z1), ang: Math.atan2(_f.x, _f.z), r0: !!mouseR, l0: !!mouseL, t: 0 }; mouseL = mL = false; wst.adsOn = false;
+  let tb = $('tablet'); if (!tb) { tb = document.createElement('div'); tb.id = 'tablet'; tb.innerHTML = '<div class="tbez"><div class="ttop"><b></b><span></span></div><canvas width="640" height="640"></canvas><div class="thelp"></div></div>'; $('hud').appendChild(tb); }
+  tb.classList.add('on'); sfx.play('switch'); sfx.play('mtap');
 }
-function supportCancel() { SURV.tgt = null; if (SURV.mk) SURV.mk.visible = false; sfx.play('switch'); }
+function supportCancel() { SURV.tgt = null; const tb = $('tablet'); if (tb) tb.classList.remove('on'); sfx.play('switch'); }
 const setHTML = (el, h) => { if (el._h !== h) { el._h = h; el.innerHTML = h; } };
+const tabletScale = () => { const [x0, z0, x1, z1] = world.L.bounds; return Math.max(x1 - x0, z1 - z0) + 8; }; /* metres across the tablet */
+function tabletMove(dx, dz) { const T = SURV.tgt; if (!T) return; const [x0, z0, x1, z1] = world.L.bounds; T.x = clamp(T.x + dx, x0, x1); T.z = clamp(T.z + dz, z0, z1); }
+function tabletRotate(d) { if (SURV.tgt) { SURV.tgt.ang += d; sfx.play('mtap', { vol: 0.4 }); } }
+function tabletConfirm() { const T = SURV.tgt; if (!T || T.t < 0.25) return; const carpet = T.id === 'air3', at = new V3(T.x, 0, T.z); SURV.support.shift(); supportCancel();
+  callAirstrike(at, carpet, null, null, new V3(Math.sin(T.ang), 0, Math.cos(T.ang))); sfx.play('pickup'); }
+function tabletDraw() {
+  const T = SURV.tgt, tb = $('tablet'); if (!T || !tb || !radarImg) return; const cv = tb.querySelector('canvas'), g = cv.getContext('2d'), W = cv.width, [x0, z0, x1, z1] = world.L.bounds, span = tabletScale();
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, k = W / span, X = x => W / 2 + (x - cx) * k, Z = z => W / 2 + (z - cz) * k; /* north-up, whole map */
+  g.fillStyle = '#0b1410'; g.fillRect(0, 0, W, W);
+  g.save(); g.globalAlpha = 0.9; g.filter = 'saturate(0.35) brightness(1.15)'; g.drawImage(radarImg.c, X(radarImg.x0), Z(radarImg.z0), radarImg.c.width / radarImg.RS * k, radarImg.c.height / radarImg.RS * k); g.restore();
+  g.strokeStyle = 'rgba(120,255,170,0.08)'; g.lineWidth = 1; for (let i = 0; i <= W; i += W / 16) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, W); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); }
+  const dot = (x, z, col, r) => { g.fillStyle = col; g.beginPath(); g.arc(X(x), Z(z), r, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1.5; g.stroke(); };
+  for (const e of enemies) { if (e.dead) continue; if (isAlly(PLAYER_T, e)) { dot(e.pos.x, e.pos.z, '#4fb4ff', 5); continue; } if (game.time - e.lastFired < 2 || game.uavT > 0 || player.pulseT > 0) dot(e.pos.x, e.pos.z, '#ff3b30', 6); }
+  for (const r of remoteList) { if (r.dead) continue; if (isAlly(PLAYER_T, r)) { dot(r.pos.x, r.pos.z, '#4fb4ff', 5); continue; } if (game.time - r.lastFired < 2 || game.uavT > 0 || player.pulseT > 0) dot(r.pos.x, r.pos.z, '#ff3b30', 6); }
+  { const px = X(player.pos.x), pz = Z(player.pos.z), fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw); g.save(); g.translate(px, pz); g.rotate(Math.atan2(fx, -fz)); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 8); g.lineTo(0, 4); g.lineTo(-7, 8); g.closePath(); g.fill(); g.restore(); }
+  const tx = X(T.x), tz = Z(T.z), pulse = 0.5 + 0.5 * Math.sin(T.t * 6);
+  if (T.id === 'air3') { /* the bombing run: a runway strip along the heading, chevrons pointing the way the jets fly */
+    const len = 9 * 5 * k + 14 * k, wid = 13 * k; g.save(); g.translate(tx, tz); g.rotate(Math.atan2(Math.sin(T.ang), Math.cos(T.ang)) * -1 + Math.PI);
+    g.fillStyle = 'rgba(255,59,48,0.22)'; g.fillRect(-wid / 2, -len / 2, wid, len); g.strokeStyle = '#ff3b30'; g.lineWidth = 2.5; g.strokeRect(-wid / 2, -len / 2, wid, len);
+    g.setLineDash([10, 9]); g.lineDashOffset = -T.t * 40; g.beginPath(); g.moveTo(0, -len / 2); g.lineTo(0, len / 2); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#ff3b30'; for (let i = -2; i <= 2; i++) { const y = i * len / 6; g.beginPath(); g.moveTo(-wid * 0.28, y + 7); g.lineTo(0, y - 6); g.lineTo(wid * 0.28, y + 7); g.lineTo(wid * 0.28, y + 12); g.lineTo(0, y - 1); g.lineTo(-wid * 0.28, y + 12); g.closePath(); g.globalAlpha = 0.45 + 0.55 * ((i + 2 + T.t * 3) % 5 < 1 ? 1 : 0.4); g.fill(); } g.globalAlpha = 1;
+    g.restore();
+  } else { const r = 7.5 * k * 1.25; g.strokeStyle = '#ff3b30'; g.lineWidth = 2.5; g.beginPath(); g.arc(tx, tz, r, 0, 7); g.stroke(); g.fillStyle = `rgba(255,59,48,${0.12 + 0.12 * pulse})`; g.fill();
+    g.beginPath(); g.arc(tx, tz, r + 6 + pulse * 6, 0, 7); g.strokeStyle = `rgba(255,59,48,${0.5 - 0.4 * pulse})`; g.stroke(); }
+  g.strokeStyle = '#fff'; g.lineWidth = 2; for (const [a, b2, c, d] of [[-18, 0, -6, 0], [6, 0, 18, 0], [0, -18, 0, -6], [0, 6, 0, 18]]) { g.beginPath(); g.moveTo(tx + a, tz + b2); g.lineTo(tx + c, tz + d); g.stroke(); }
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, W - 26, W, 26); g.fillStyle = '#9cffb4'; g.font = '600 13px Inter, Arial, sans-serif'; g.fillText(`GRID ${String.fromCharCode(65 + clamp(Math.floor((T.x - x0) / (x1 - x0) * 8), 0, 7))}${1 + clamp(Math.floor((T.z - z0) / (z1 - z0) * 8), 0, 7)} · ${Math.round(Math.hypot(T.x - player.pos.x, T.z - player.pos.z))} m from you`, 10, W - 9);
+}
 function supportTick(dt) {
   const T = SURV.tgt; let tile = $('suptile'); if (!tile) { tile = document.createElement('div'); tile.id = 'suptile'; $('hud').appendChild(tile); }
-  const n = SURV.support.length, nm = id => id === 'air3' ? 'CARPET BOMBING' : id === 'uav' ? 'UAV' : 'AIRSTRIKE'; if (game.uavT > 0) game.uavT -= dt; ksTrack();
+  const n = SURV.support.length, nm = id => id === 'air3' ? 'CARPET BOMBING' : id === 'uav' ? 'UAV' : 'PRECISION AIRSTRIKE'; if (game.uavT > 0) game.uavT -= dt; ksTrack();
   { const b = $('ksbanner'); if (b && (game.ksbT > 0 || b._v)) { game.ksbT = (game.ksbT || 0) - dt; const t = 4.2 - game.ksbT, k = clamp(Math.min(t / 0.22, game.ksbT / 0.35), 0, 1); b._v = k > 0; b.style.opacity = k; b.style.transform = `translate(-50%, ${((1 - Math.min(1, t / 0.3)) * -16).toFixed(1)}px) scale(${(1 + (1 - Math.min(1, t / 0.3)) * 0.06).toFixed(3)})`; } } /* driven from the game loop: CSS transitions stall on some setups */
-  tile.style.display = supOn() && (n || T) ? 'block' : 'none';
+  tile.style.display = supOn() && n && !T ? 'block' : 'none';
   if (T && (!player.alive || game.state !== 'play')) { supportCancel(); return; }
-  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${SURV.support[0] === 'uav' ? 'press to launch' : 'press to aim'}</small>`); return; }
-  aimBasis(); const h = raycast(camera.position, _f, 220, false), d = Math.min(h.t, 220); T.at.copy(camera.position).addScaledVector(_f, d); T.at.y = TH(T.at.x, T.at.z) + 0.05;
-  const far = Math.hypot(T.at.x - player.pos.x, T.at.z - player.pos.z); T.ok = h.t < 220 && far > 6; T.arm -= dt;
-  SURV.mk.position.copy(T.at); SURV.mk.children[0].scale.setScalar(T.id === 'air3' ? 1.6 : 1); SURV.mkMat.color.setHex(T.ok ? 0xff3b30 : 0x888888);
-  setHTML(tile, `<b>${nm(T.id)} · TARGETING</b><small>${T.ok ? `${supFire()} call it in · ${supBack()} cancel · ${Math.round(far)} m` : far <= 6 ? 'TOO CLOSE — aim further away' : 'aim at the ground'}</small>`);
+  if (!T) { if (n) setHTML(tile, `<span class="skey">${supKey()}</span><b>${nm(SURV.support[0])}${n > 1 ? ' +' + (n - 1) : ''}</b><small>READY · ${SURV.support[0] === 'uav' ? 'press to launch' : 'press to open the tablet'}</small>`); return; }
+  T.t += dt; const tb = $('tablet'), car = T.id === 'air3';
+  setHTML(tb.querySelector('.ttop b'), nm(T.id)); setHTML(tb.querySelector('.ttop span'), game.uavT > 0 ? 'UAV LINK ACTIVE' : 'RED = ENEMY SEEN ON RADAR');
+  setHTML(tb.querySelector('.thelp'), gp.on ? `<kbd>L-stick</kbd> move${car ? ' · <kbd>LB</kbd><kbd>RB</kbd> rotate the run' : ''} · <kbd class="big">RT</kbd> call it in · <kbd>B</kbd> cancel`
+    : `<kbd>MOUSE</kbd> move${car ? ' · <kbd>WHEEL</kbd> / <kbd>Q</kbd><kbd>E</kbd> rotate the run' : ''} · <kbd class="big">CLICK</kbd> call it in · <kbd>RIGHT-CLICK</kbd> / <kbd>Z</kbd> cancel`);
   if (!mouseR) T.r0 = false; if (mouseR && !T.r0) { supportCancel(); mouseR = mR = false; wst.adsOn = false; return; }
-  if (mouseL && T.arm <= 0) { mouseL = mL = false; if (!T.ok) { sfx.play('hit'); return; } SURV.support.shift(); SURV.tgt = null; callAirstrike(T.at.clone(), T.id === 'air3');
-    SURV.mkMat.color.setHex(0xffb020); const t = 2200 + (T.id === 'air3' ? 9 * 240 : 4 * 330); setTimeout(() => { if (SURV.mk && !SURV.tgt) SURV.mk.visible = false; }, t); }
+  if (!mouseL) T.l0 = false; if (mouseL && !T.l0) { mouseL = mL = false; tabletConfirm(); return; }
+  tabletDraw();
 }
-function callAirstrike(at, carpet, owner, pts) { // jets roar over, then a string of heavy impacts walks across the target
+function callAirstrike(at, carpet, owner, pts, heading) { // jets roar over, then a string of heavy impacts walks across the target
   showHint(carpet ? 'CARPET BOMBING INBOUND' : 'AIRSTRIKE INBOUND', '#ff6b5a'); ambience.flyby && ambience.flyby(true);
-  const n = carpet ? 9 : 4, mine = !owner; let dir = new V3(rand(-1, 1), 0, rand(-1, 1)).normalize(); if (mine) { aimBasis(); if (Math.hypot(_f.x, _f.z) > 0.1) dir.set(_f.x, 0, _f.z).normalize(); } /* bombs walk along your line of sight */
-  if (!pts) { pts = []; for (let i = 0; i < n; i++) { const p = at.clone().addScaledVector(dir, (i - n / 2) * (carpet ? 5 : 3.5)); p.x += rand(-1.5, 1.5); p.z += rand(-1.5, 1.5); p.y = TH(p.x, p.z) + 0.3; pts.push(p); } }
+  const n = carpet ? 9 : 4, mine = !owner; const dir = heading ? heading.clone().normalize() : new V3(rand(-1, 1), 0, rand(-1, 1)).normalize(); /* carpet: along the heading you set on the tablet */
+  const ground = (x, z) => { const h = raycast(new V3(x, 80, z), new V3(0, -1, 0), 100, false); return h.t < 100 ? 80 - h.t + 0.2 : TH(x, z) + 0.3; }; /* first thing a falling bomb meets: a roof, a walkway, or the street */
+  if (!pts) { pts = []; for (let i = 0; i < n; i++) { const p = at.clone().addScaledVector(dir, carpet ? (i - (n - 1) / 2) * 5 : 0); const sc = carpet ? 1.5 : 3.2; p.x += rand(-sc, sc); p.z += rand(-sc, sc); p.y = ground(p.x, p.z); pts.push(p); } }
   if (mine && MP.active) netSend({ t: 'air', c: carpet ? 1 : 0, pts: pts.map(v3a) });
   pts.forEach((p, i) => setTimeout(() => { if (game.state !== 'play' && game.state !== 'dying') return; game.ownSupport = mine; game.ksKind = carpet ? 'air3' : 'air'; try { explosion(p, carpet ? 6.5 : 7.5, carpet ? 170 : 220, mine ? 'player' : owner); } finally { game.ownSupport = false; game.ksKind = null; } }, 2200 + i * (carpet ? 240 : 330)));
 }
