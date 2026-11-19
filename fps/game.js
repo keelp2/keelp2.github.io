@@ -3140,6 +3140,7 @@ function setCharWeapon(o, id) {
 }
 const _cv = new V3(), _cf = new V3(), _cr = new V3(), _aq = new THREE.Quaternion(), _bq = new THREE.Quaternion();
 const CROUCH = { u: -1.25, l: 2.1, f: -0.75, s: 0.28 };
+const SLIDE = { lu: -1.32, ll: 0.1, lf: -0.35, tu: -0.4, tl: 2.0, tf: 0.5, s: -0.42, s1: -0.2, h: 0.5, drop: 0.6, gun: -0.1 }, _sq = new THREE.Quaternion();
 function animChar(o, dt, speed, pitch = 0) {
   if (o.gunHolder) o.gunHolder.rotation.x = (o.gun && !o.gun.forePt ? -0.6 : 0) - pitch;
   if (o.mixer) {
@@ -3147,11 +3148,19 @@ function animChar(o, dt, speed, pitch = 0) {
     if (dir) { const gp = o.group.position; if (o._lp && dt > 0) { o._vx = damp(o._vx || 0, (gp.x - o._lp.x) / dt, 10, dt); o._vz = damp(o._vz || 0, (gp.z - o._lp.z) / dt, 10, dt); } o._lp = (o._lp || new V3()).copy(gp);
       const yaw = o.group.rotation.y, fw = Math.sin(yaw) * (o._vx || 0) + Math.cos(yaw) * (o._vz || 0), rt = (o.rsign || 1) * (Math.cos(yaw) * (o._vx || 0) - Math.sin(yaw) * (o._vz || 0)), crouch = (o.crouchK || 0) > 0.45;
       st = speed < 0.4 ? (crouch ? 'CrouchIdle' : 'Idle') : crouch ? 'CrouchWalk' : Math.abs(rt) > Math.abs(fw) * 1.25 ? (rt > 0 ? 'StrafeR' : 'StrafeL') : fw < -0.25 ? 'Back' : speed < 3.4 ? 'Walk' : speed < 5.7 || !o.act.Sprint ? 'Run' : 'Sprint'; }
+    o.slideK = damp(o.slideK || 0, o.sliding ? 1 : 0, o.sliding ? 14 : 7, dt); if (o.slideK > 0.05 && dir) st = 'Idle'; /* the slide pose is built on the standing clip */
     if (st !== o.animState && o.act[st]) { const from = o.act[o.animState], to = o.act[st]; to.reset(); to.play(); if (from) from.crossFadeTo(to, 0.22, false); o.animState = st; }
     for (const [k, base, lo, hi] of [['Walk', 1.6, 0.6, 1.7], ['Back', 1.4, 0.6, 1.6], ['StrafeL', 1.5, 0.6, 1.7], ['StrafeR', 1.5, 0.6, 1.7], ['CrouchWalk', 1.3, 0.6, 1.6], ['Run', 5, 0.7, 1.4], ['Sprint', 6.5, 0.8, 1.3]]) if (o.act[k]) o.act[k].timeScale = clamp(speed / base, lo, hi);
+    if (o._slSave) { for (const [bn, q] of o._slSave) bn.quaternion.copy(q); o._slSave = null; } /* undo last frame's slide pose (the mixer doesn't rewrite every bone every frame) */
     o.mixer.update(dt);
     if (dir && o.act.CrouchIdle) { o.inner.position.y = 0; o._ck = damp(o._ck || 0, (o.crouchK || 0) > 0.45 ? 1 : 0, 9, dt); if (o.gunHolder) { o.gunHolder.position.y = 1.24 - 0.5 * o._ck; o.gunHolder.position.z = 0.24 + 0.06 * o._ck; } } else { /* the crouch clip lowers the body, so the gun comes down with it */ const c = o.crouchK || 0, B = o.bones; o.inner.position.y = -0.5 * c;
       if (c > 0.01) { for (const sd of ['Left', 'Right']) { if (B[sd + 'UpLeg']) B[sd + 'UpLeg'].rotation.x += CROUCH.u * c; if (B[sd + 'Leg']) B[sd + 'Leg'].rotation.x += CROUCH.l * c; if (B[sd + 'Foot']) B[sd + 'Foot'].rotation.x += CROUCH.f * c; } if (B.Spine) B.Spine.rotation.x += CROUCH.s * c; } }
+    if (o.slideK > 0.01 && dir) { const k = o.slideK, B = o.bones; /* slide: lead leg out straight, back leg tucked under, torso leaned back, hips near the floor */
+      o.inner.position.y = -SLIDE.drop * k; if (o.gunHolder) { o.gunHolder.position.y = lerp(o.gunHolder.position.y, 1.24 - SLIDE.gun, k); o.gunHolder.rotation.z = 0.2 * k * (o.rsign || 1); }
+      o.group.updateMatrixWorld(true); _cr.set(1, 0, 0).applyQuaternion(o.group.getWorldQuaternion(_aq)); /* the body's own sideways axis: + tips forward */
+      for (const [n, a] of [['RightUpLeg', SLIDE.lu], ['RightLeg', SLIDE.ll], ['RightFoot', SLIDE.lf], ['LeftUpLeg', SLIDE.tu], ['LeftLeg', SLIDE.tl], ['LeftFoot', SLIDE.tf], ['Spine', SLIDE.s], ['Spine1', SLIDE.s1], ['Head', SLIDE.h]]) { const bn = B[n]; if (!bn || !a) continue;
+        (o._slSave || (o._slSave = [])).push([bn, bn.quaternion.clone()]); bn.parent.updateWorldMatrix(true, false); bn.parent.getWorldQuaternion(_bq); _sq.setFromAxisAngle(_cr, a * k); bn.quaternion.premultiply(_bq.clone().invert().multiply(_sq).multiply(_bq)); } }
+    else if (o.gunHolder && o.gunHolder.rotation.z) o.gunHolder.rotation.z = 0;
     o.group.updateMatrixWorld(true);
     // inverse kinematics: hands onto the weapon
     const yaw = o.group.rotation.y; _cf.set(Math.sin(yaw), 0, Math.cos(yaw)); _cr.set(Math.cos(yaw), 0, -Math.sin(yaw)).multiplyScalar(o.rsign);
@@ -3198,11 +3207,11 @@ function surfaceAt(x, y, z) {
   return GROUNDSURF[world.L.ground] || 'dirt';
 }
 const GAIT = { sneak: { radius: 7, vol: 0.18, bots: 0 }, walk: { radius: 24, vol: 0.62, bots: 9 }, sprint: { radius: 38, vol: 1, bots: 16 } };
-function gaitOf(speed, crouched) { return crouched || speed < 4.0 ? 'sneak' : speed > 6.9 ? 'sprint' : 'walk'; }
+function gaitOf(speed, crouched, quiet) { return crouched || quiet ? 'sneak' : speed > 6.9 ? 'sprint' : 'walk'; } /* sneaking is a choice (crouch / Alt), not a speed: a strafing or aiming enemy is still heard */
 // called every frame for a bot / remote player; plays their footstep where you can hear it
-function footTick(ent, dt, speed, crouched, onGround, foe) {
+function footTick(ent, dt, speed, crouched, onGround, foe, quiet) {
   if (!onGround || speed < 1.2) { ent.stepAcc = Math.min(ent.stepAcc || 0, 1.4); return; }
-  const gait = gaitOf(speed, crouched); ent.stepAcc = (ent.stepAcc || 0) + speed * dt; if (ent.stepAcc < (gait === 'sprint' ? 2.6 : 1.95)) return; ent.stepAcc = 0;
+  const gait = gaitOf(speed, crouched, quiet); ent.stepAcc = (ent.stepAcc || 0) + speed * dt; if (ent.stepAcc < (gait === 'sprint' ? 2.6 : 1.95)) return; ent.stepAcc = 0;
   const G = GAIT[gait];
   if (G.bots && ent.bot) noise(ent.pos, G.bots * 0.8, ent);
   const dx = ent.pos.x - camera.position.x, dy = ent.pos.y + 0.1 - camera.position.y, dz = ent.pos.z - camera.position.z, d = Math.hypot(dx, dy, dz); if (d > G.radius) return;
@@ -3415,7 +3424,7 @@ class Enemy {
     this.vel.x = damp(this.vel.x, mx * spd, k, dt); this.vel.z = damp(this.vel.z, mz * spd, k, dt);
     this.stepSmooth = 0; moveBody(this, dt);
     if (this.pos.y < -10) { this.hp = 0; this.die(false, true); return true; }
-    footTick(this, dt, Math.hypot(this.vel.x, this.vel.z), false, this.onGround, !isAlly(PLAYER_T, this));
+    footTick(this, dt, Math.hypot(this.vel.x, this.vel.z), (this.crouchK || 0) > 0.5, this.onGround, !isAlly(PLAYER_T, this));
     this.progT = (this.progT || 0) + dt; // long-window watchdog: wanting to move but getting nowhere
     if (this.progT >= 3) { const pp = this.progP || (this.progP = this.pos.clone()), moved = Math.hypot(this.pos.x - pp.x, this.pos.z - pp.z); this.progT = 0; this.progP.copy(this.pos);
       if (moved < 1.0 && ml > 0.3 && spd > 0 && !this.visible) this.noProg = (this.noProg || 0) + 3; else this.noProg = 0;
@@ -4946,7 +4955,7 @@ function updatePlayer(dt) {
   if (P.sprinting) P.sprintLock = 0.14; else P.sprintLock = Math.max(0, P.sprintLock - dt);
   // slide
   if (crouchKey && !P.crouchKeyPrev && P.onGround && speed > 6.2 && P.slideCD <= 0 && !P.sliding) {
-    P.sliding = true; P.slideT = 0.9; const boost = Math.min(speed * 1.35 + 1, 13.5); P.vel.x *= boost / speed; P.vel.z *= boost / speed;
+    P.sliding = true; P.slideT = 0.9; sfx.play('slide', { vol: 0.9 }); debris.burst(P.pos.x, P.pos.y + 0.05, P.pos.z, 10, 2.2, 0.5, 0.45, 0.38, 0.7, 0.4, P.vel.x * 0.1, 0.25, P.vel.z * 0.1); camPunch.v -= 3; const boost = Math.min(speed * 1.35 + 1, 13.5); P.vel.x *= boost / speed; P.vel.z *= boost / speed;
     sfx.play('slide'); vm.kick = 0.3;
   }
   P.crouchKeyPrev = crouchKey;
@@ -5007,7 +5016,7 @@ function updatePlayer(dt) {
   if (!wasGround && P.onGround && vyBefore < -5) { P.landKick = Math.min(-vyBefore * 0.008, 0.12); sfx.play('land', { vol: clamp(-vyBefore / 14, 0.3, 1) }); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: clamp(-vyBefore / 12, 0.3, 1), gait: 'sprint', near: true }); if (-vyBefore > 6) noise(P.pos, 12, PLAYER_T); }
   if (P.pos.y < -15) { const s = world.L.spawn; P.pos.set(s.x, s.y + 0.1, s.z); P.vel.set(0, 0, 0); }
   // footsteps
-  if (P.onGround && !P.sliding && speed > 1.2) { P.stepAcc += speed * dt; if (P.stepAcc > (P.sprinting ? 2.7 : 2.1)) { P.stepAcc = 0; const gait = gaitOf(speed, P.crouch > 0.5); P.gait = gait; if (GAIT[gait].bots) noise(P.pos, GAIT[gait].bots, PLAYER_T); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: gait === 'sneak' ? 0.22 : gait === 'sprint' ? 0.75 : 0.5, gait, near: true }); } } else if (speed < 1.2) P.gait = 'still';
+  if (P.onGround && !P.sliding && speed > 1.2) { P.stepAcc += speed * dt; if (P.stepAcc > (P.sprinting ? 2.7 : 2.1)) { P.stepAcc = 0; const gait = gaitOf(speed, P.crouch > 0.5, keys.AltLeft && !P.sprinting); P.gait = gait; if (GAIT[gait].bots) noise(P.pos, GAIT[gait].bots, PLAYER_T); sfx.step(surfaceAt(P.pos.x, P.pos.y, P.pos.z), { vol: gait === 'sneak' ? 0.22 : gait === 'sprint' ? 0.75 : 0.5, gait, near: true }); } } else if (speed < 1.2) P.gait = 'still';
 }
 
 // ============================================================ VIEWMODEL & CAMERA
@@ -5026,13 +5035,14 @@ function updateCamera(dt) {
   const bobAmt = P.onGround && !P.sliding ? clamp(speed / 6, 0, 1.4) : 0;
   const by = Math.abs(Math.sin(P.bob)) * 0.045 * bobAmt * (1 - wst.ads * 0.8);
   const strafe = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
-  P.tilt = damp(P.tilt, P.sliding ? 0.06 : -strafe * 0.012, 8, dt);
+  P.slK = damp(P.slK || 0, P.sliding ? 1 : 0, P.sliding ? 12 : 6, dt);
+  P.tilt = damp(P.tilt, P.sliding ? 0.11 : -strafe * 0.012, 9, dt);
   recoil.p = damp(recoil.p, 0, wst.sinceShot > 0.06 ? 9 : 2, dt); recoil.y = damp(recoil.y, 0, 7, dt);
   game.shake = Math.max(0, game.shake - dt * 1.6);
   const sh = game.shake * game.shake * 0.05;
   let breathe = 0, breatheY = 0;
   if (w.scope && wst.ads > 0.9) { const k = (keys.ShiftLeft || keys.ShiftRight) ? 0.15 : 1; breathe = Math.sin(game.time * 1.3) * 0.004 * k; breatheY = Math.sin(game.time * 0.9) * 0.003 * k; }
-  camera.position.set(P.pos.x, P.pos.y + P.h - 0.12 + P.stepSmooth + by - P.landKick - (P.alive ? 0 : 0), P.pos.z);
+  camera.position.set(P.pos.x, P.pos.y + P.h - 0.12 + P.stepSmooth + by - P.landKick - P.slK * 0.2 + (P.sliding ? rand(-1, 1) * 0.0035 * Math.min(1, speed / 9) : 0), P.pos.z); /* sliding: lower, and the ground buzzes through the camera */
   camera.rotation.set(clamp(P.pitch + recoil.p + rand(-sh, sh) + breatheY - (P.revK || 0) * 0.55, -1.55, 1.55), P.yaw + recoil.y + rand(-sh, sh) + breathe, P.tilt + camPunch.x * 0.02 + (P.dnK || 0) * 0.22);
   if (P.dnK) camera.position.y -= P.dnK * 0.55; if (P.revK) camera.position.y -= P.revK * 0.45; // downed: on the ground, tilted · reviving: kneel over them
   if (!P.alive) deathCam(game.state === 'dying' ? 1.6 - game.dieT : (game.deadT || 0));
@@ -5054,6 +5064,7 @@ function updateCamera(dt) {
   let y = lerp(hip[1], ap[1], a) + vm.swayY * sw - by * 0.3 - P.landKick * 0.5 - vm.sprint * 0.05;
   let z = lerp(hip[2], ap[2], a) + vm.kick * 0.06;
   let rx = vm.kick * 0.12 * (1 - a * 0.6) - vm.sprint * 0.25, ry = vm.sprint * 0.55 + vm.swayX * 2 * sw, rz = vm.sprint * 0.25 + P.tilt * 2;
+  if (P.slK > 0.01) { const k = P.slK * (1 - a * 0.85); rz += 0.42 * k; ry -= 0.1 * k; rx += 0.06 * k; x -= 0.035 * k; y -= 0.025 * k; z += 0.03 * k; } /* slide: gun canted over, tucked in to the body */
   if (wst.reloading) {
     const p = 1 - wst.reloadT / wst.reloadTotal, k = Math.sin(Math.PI * clamp(p, 0, 1));
     if (w.shell) { const bump = Math.sin(clamp((p - 0.35) / 0.4, 0, 1) * Math.PI); rx -= 0.24 - bump * 0.09; rz += 0.38; ry += 0.12; y -= 0.045 - bump * 0.018; x -= 0.03; } // rolled over, thumbing each shell in
@@ -5639,7 +5650,7 @@ function handleGame(d) {
       if (MP.isHost && typeof d.to === 'string' && (d.to.startsWith('bot-') || d.to.startsWith('z-'))) { const e = enemies.find(x => x.netId === d.to && !x.dead); if (e) { e.mpAttacker = d.id; const rr = remotes.get(d.id); if (rr && !e.visible) { e.target = rr; e.attacker = rr; e.lastKnown.copy(rr.pos); } e.damage(clamp(num(d.dmg), 0, 250), !!d.head, null, null); } }
       break;
     case 'pane': { const pn = panes[num(d.i, -1)]; if (pn) breakPane(pn, false, true); break; }
-    case 'hm': if (d.to === MP.myId && game.state === 'playing') hitMarker(!!d.kill, false, d.k === 'stun' ? 'stun' : 'nade'); break;
+    case 'hm': if (d.to === MP.myId && game.state === 'play') hitMarker(!!d.kill, false, d.k === 'stun' ? 'stun' : 'nade'); break;
     case 'die': {
       const victim = d.id, killer = typeof d.by === 'string' ? d.by : victim; if (r && victim !== MP.myId) { const sp = spatial(r.pos); sfx.voice('death', { pos: sp.pos, vol: sp.vol * 1.8, pitch: 95 + (hashStr(String(victim)) % 60) }); }
       killFeed(killer === victim ? null : pname(killer), null, wShort(d.w), !!d.head && killer !== victim, pname(victim), null, killer === MP.myId || victim === MP.myId);
@@ -5780,7 +5791,7 @@ class Remote {
     if (this.lastArr) { const iv = Math.min(now - this.lastArr, 500); this.ivAvg = lerp(this.ivAvg || 33, iv, 0.1); this.jit = lerp(this.jit || 5, Math.abs(iv - this.ivAvg), 0.1); }
     this.lastArr = now;
     this.delay = clamp((this.ivAvg || 33) + (this.jit || 5) * 2.5 + 8, 40, 220); // just enough buffer to hide this connection's jitter
-    this.lastAd = clamp(num(d.ad, 0), 0, 1); if (typeof d.at === 'string') this.att = attDecode(d.at); this.lastH = clamp(num(d.h, 1.75), 1, 1.8);
+    this.lastAd = clamp(num(d.ad, 0), 0, 1); if (typeof d.at === 'string') this.att = attDecode(d.at); this.lastSl = d.sl ? 1 : 0; this.lastH = clamp(num(d.h, 1.75), 1, 1.8);
     this.snaps.push({ w: typeof d.w === 'string' ? d.w : this.weaponId, pitch: clamp(num(d.pt), -1.5, 1.5), t: now, x: p.x, y: p.y, z: p.z, yaw: num(d.yaw), h: clamp(num(d.h, 1.75), 1, 1.8), alive: !!d.alive, dn: !!d.dn });
     if (this.snaps.length > 40) this.snaps.shift();
   }
@@ -5800,9 +5811,9 @@ class Remote {
     if (this.dead) { this.deadT += dt; this.group.rotation.x = -this.fallDir * Math.min(1, this.deadT / 0.5) * 1.45; }
     else { this.downed = !!b.dn; this.dnK = damp(this.dnK || 0, this.downed ? 1 : 0, 5, dt); this.group.rotation.x = this.dnK * 1.2; if (this.downed) this.crouchK = 1; } // downed: on the ground, propped on an elbow
     const sp = Math.hypot(this.pos.x - px, this.pos.z - pz) / Math.max(dt, 1e-3);
-    this.spS = lerp(this.spS || 0, Math.min(sp, 10), Math.min(1, dt * 8)); if (alive) footTick(this, dt, this.spS, b.h < 1.45, Math.abs(this.pos.y - (this.lastY === undefined ? this.pos.y : this.lastY)) < 0.08 || this.spS > 0, true); this.lastY = this.pos.y;
+    this.spS = lerp(this.spS || 0, Math.min(sp, 10), Math.min(1, dt * 8)); if (alive) footTick(this, dt, this.spS, b.h < 1.45, Math.abs(this.pos.y - (this.lastY === undefined ? this.pos.y : this.lastY)) < 0.08 || this.spS > 0, true, this.spS < 4 && !(this.lastAd > 0.5)); /* remotes don't send Alt: slow and not aiming reads as a quiet walk */ this.lastY = this.pos.y;
     if (b.w && b.w !== this.weaponId && widx(b.w) >= 0) setCharWeapon(this, b.w);
-    animChar(this, dt, Math.min(sp, 9), b.pitch || 0);
+    this.sliding = !!this.lastSl && alive; animChar(this, dt, Math.min(sp, 9), b.pitch || 0);
     if (this.skinned) { this.crouchK = clamp((1.82 * this.s - this.h) / (0.65 * this.s), 0, 1); this.inner.scale.y = this.s; } else this.inner.scale.y = this.s * clamp(this.h / (1.82 * this.s), 0.55, 1); flapWings(this, game.time);
     this.group.position.copy(this.pos); this.group.rotation.y = this.yaw + Math.PI; // remote yaw is camera yaw (faces -z)
     this.tag.visible = alive; this.tag.position.y = this.h + 0.45;
@@ -5909,7 +5920,7 @@ function updateMP(dt) {
   MP.sendT -= dt;
   if (MP.sendT <= 0) {
     MP.sendT = 1 / 30;
-    netSend({ t: 'st', p: v3a(player.pos), yaw: Math.round(player.yaw * 1000) / 1000, pt: Math.round(player.pitch * 100) / 100, h: Math.round(player.h * 100) / 100, alive: player.alive, w: WEAPONS[wst.cur].id, dn: player.downed ? 1 : 0, ad: Math.round(wst.ads * 10) / 10, at: attCode(settings.att[WEAPONS[wst.cur].id]) });
+    netSend({ t: 'st', p: v3a(player.pos), yaw: Math.round(player.yaw * 1000) / 1000, pt: Math.round(player.pitch * 100) / 100, h: Math.round(player.h * 100) / 100, alive: player.alive, w: WEAPONS[wst.cur].id, dn: player.downed ? 1 : 0, ad: Math.round(wst.ads * 10) / 10, sl: player.sliding ? 1 : 0, at: attCode(settings.att[WEAPONS[wst.cur].id]) });
   }
   if (!player.alive) { MP.respawnT -= dt; game.deadT = (game.deadT || 0) + dt; if (MP.respawnT <= 0 && MP.mode !== 'surv') mpRespawn(); }
   MP.matchT -= dt;
@@ -6071,11 +6082,11 @@ function potgRecord(dt) {
   if (POTG.frames.length > 20 * 900) POTG.frames.splice(0, 20 * 60); // keep at most 15 minutes
   const a = [], myTeam = MP.active && MP.mode === 'tdm' ? mpTeamOf(PLAYER_T) : 0;
   potgActor('me', { names: ['You', cleanName(settings.name)], name: cleanName(settings.name) + '#' + PROFILE.tag, kind: cls().model, faction: myTeam, seed: PROFILE.id, human: true });
-  a.push(['me', player.pos.x, player.pos.y, player.pos.z, player.yaw + Math.PI, player.pitch || 0, player.alive ? 1 : 0, WEAPONS[wst.cur].id, Math.round(wst.ads * 10) / 10, Math.round((player.crouch || 0) * 10) / 10]);
+  a.push(['me', player.pos.x, player.pos.y, player.pos.z, player.yaw + Math.PI, player.pitch || 0, player.alive ? 1 : 0, WEAPONS[wst.cur].id, Math.round(wst.ads * 10) / 10, Math.round((player.crouch || 0) * 10) / 10, player.sliding ? 1 : 0]);
   for (const e of enemies) { if (!e._pid) e._pid = 'e' + (POTG.nid++); potgActor(e._pid, { names: [e.T && e.T.name, e.netId && MP.players[e.netId] && MP.players[e.netId].name].filter(Boolean), name: (e.T && e.T.name) || 'Bot', kind: e.kind, faction: e.look ? e.look.faction : 1, seed: e.T && e.T.name, human: false, troop: e.troop });
     a.push([e._pid, e.pos.x, e.pos.y, e.pos.z, e.yaw, e.aimPitch || 0, e.dead ? 0 : 1, e.W ? e.W.id : 'rifle', e.visible && e.target && (e.aimT > 0 || e.state === 'engage') ? 1 : 0, Math.round((e.crouchK || 0) * 10) / 10]); }
   for (const r of remoteList) { const id = 'r' + r.id; potgActor(id, { names: [r.name], name: r.name, kind: r.kind, faction: r.look ? r.look.faction : 0, seed: r.name, look: r.look, human: !(MP.players[r.id] && MP.players[r.id].bot), troop: r.troop });
-    a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, r.weaponId || 'rifle', r.lastAd || 0, r.lastH ? clamp((1.75 - r.lastH) / 0.6, 0, 1) : 0]); }
+    a.push([id, r.pos.x, r.pos.y, r.pos.z, r.yaw + Math.PI, r.pitch || 0, r.dead ? 0 : 1, r.weaponId || 'rifle', r.lastAd || 0, r.lastH ? clamp((1.75 - r.lastH) / 0.6, 0, 1) : 0, r.lastSl || 0]); }
   { const A = POTG.actors.me; (A.att || (A.att = {}))[WEAPONS[wst.cur].id] = Object.assign({}, settings.att[WEAPONS[wst.cur].id]); }
   for (const r of remoteList) if (r.att && r.weaponId) { const A = POTG.actors['r' + r.id]; if (A) (A.att || (A.att = {}))[r.weaponId] = r.att; }
   POTG.frames.push({ t: POTG.t, a });
@@ -6134,8 +6145,8 @@ function updatePotg(dt) {
     const P = j => lin ? lerp(a0[j], a1[j], k) : CR(am[j], a0[j], a1[j], a2[j], k), Y0 = a0[4] + angDiff(a0[4], am[4]), Y2 = a0[4] + angDiff(a0[4], a1[4]), Y3 = Y2 + angDiff(a1[4], a2[4]);
     const x = P(1), y = P(2), z = P(3), yaw = lin ? a0[4] + angDiff(a0[4], a1[4]) * k : CR(Y0, a0[4], Y2, Y3, k), pitch = clamp(P(5), -1.5, 1.5);
     const sp0 = Math.hypot(a1[1] - a0[1], a1[3] - a0[3]) / Math.max(1e-3, f1.t - f0.t), sp = ch._sp = lin ? 0 : damp(ch._sp == null ? sp0 : ch._sp, sp0, 6, dt * slow);
-    ch.group.position.set(x, y, z); ch._ly = y; ch.group.rotation.y = yaw; if (ch.weaponId !== a0[7] && a0[7]) { try { setCharWeapon(ch, a0[7]); ch.weaponId = a0[7]; } catch (e) {} } animChar(ch, dt * slow, sp, a0[5]);
-    if (id === G.B.id) { G.hero = { x, y, z, yaw, pitch, snap: lin, ads: lerp(a0[8] || 0, a1[8] || 0, k), crouch: lerp(a0[9] || 0, a1[9] || 0, k) }; G.spd = sp; if (G.vmId !== a0[7] && a0[7]) potgViewmodel(G, a0[7], ((POTG.actors[id] || {}).att || {})[a0[7]]); } }
+    ch.group.position.set(x, y, z); ch._ly = y; ch.group.rotation.y = yaw; ch.sliding = !!a0[10]; if (ch.weaponId !== a0[7] && a0[7]) { try { setCharWeapon(ch, a0[7]); ch.weaponId = a0[7]; } catch (e) {} } animChar(ch, dt * slow, sp, a0[5]);
+    if (id === G.B.id) { G.hero = { x, y, z, yaw, pitch, snap: lin, ads: lerp(a0[8] || 0, a1[8] || 0, k), crouch: lerp(a0[9] || 0, a1[9] || 0, k), slide: G.slK = damp(G.slK || 0, a0[10] ? 1 : 0, 10, dt) }; G.spd = sp; if (G.vmId !== a0[7] && a0[7]) potgViewmodel(G, a0[7], ((POTG.actors[id] || {}).att || {})[a0[7]]); } }
   for (; G.ei >= 0 && G.ei < POTG.ev.length && POTG.ev[G.ei].t <= G.t; G.ei++) { const e = POTG.ev[G.ei]; if (e.t < G.B.t0) continue; const cp = camera.position;
     if (e.type === 'tr') { const mine = G.hero && Math.hypot(e.a[0] - G.hero.x, e.a[2] - G.hero.z) < 1.6; if (mine) { G.lastTr = { t: e.t, b: e.b }; G.kick = 1; if (G.vm && G.vm.userData.flash) { G.vm.userData.flash.visible = true; setTimeout(() => { if (G.vm) G.vm.userData.flash.visible = false; }, 50); } }
       spawnTracer(mine && G.vm ? G.vm.localToWorld(new V3(0, 0.03, -0.75)) : new V3(...e.a), new V3(...e.b), 0xffd890, 700, 0.016); const d = Math.hypot(e.a[0] - cp.x, e.a[2] - cp.z); sfx.gun(e.g || 'rifle', { dist: d, pos: { x: e.a[0], y: e.a[1], z: e.a[2] }, vol: 0.9 }); }
@@ -6145,8 +6156,9 @@ function updatePotg(dt) {
     else if (e.type === 'kill' && e.vn != null && !(POTG.names[e.k] === G.B.id)) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, false);
     if (e.type === 'kill' && POTG.names[e.k] === G.B.id) { if (e.vn != null) feedLine(e.k, e.kc, e.w, e.h, e.vn, e.vc, true); hitMarker(true, !!e.h); G.kc++; const c = $('potgCall'); if (c) { c.textContent = (e.h ? 'HEADSHOT · ' : '') + (['', 'ELIMINATED ' + (e.v || '').toUpperCase(), 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE'][Math.min(5, G.kc)]); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); } if (e.h) sfx.play('hmhead'); } }
   const H = G.hero; if (!H) return; // through the hero's eyes, with their gun in hand
-  const eye = new V3(H.x, H.y + 1.62 - 0.55 * H.crouch, H.z), Wp = WEAPONS[widx(G.vmId || 'rifle')] || WEAPONS[0], ads = H.ads > 0.5 ? 1 : H.ads * 2, scoped = !!Wp.scope && H.ads > 0.85; // exactly what they saw: same aim, stance and zoom
+  const eye = new V3(H.x, H.y + 1.62 - 0.55 * H.crouch - 0.2 * (H.slide || 0), H.z), Wp = WEAPONS[widx(G.vmId || 'rifle')] || WEAPONS[0], ads = H.ads > 0.5 ? 1 : H.ads * 2, scoped = !!Wp.scope && H.ads > 0.85; // exactly what they saw: same aim, stance and zoom
   camera.position.copy(eye); camera.lookAt(eye.x + Math.sin(H.yaw) * 20 * Math.cos(H.pitch), eye.y + Math.sin(H.pitch) * 20, eye.z + Math.cos(H.yaw) * 20 * Math.cos(H.pitch));
+  if (H.slide > 0.01) camera.rotateZ(0.11 * H.slide);
   { const q = camera.quaternion; if (!G.cq || H.snap || G.cq.angleTo(q) > 0.9) G.cq = q.clone(); else G.cq.slerp(q, 1 - Math.exp(-dt * 38)); q.copy(G.cq); } /* a light filter on top: takes the edge off steppy aim without visible lag */
   camera.fov = settings.fov / lerp(1, Wp.zoom || 1.3, ads); camera.updateProjectionMatrix(); sky.position.copy(camera.position);
   const sc = $('potgScope'); if (sc) sc.style.opacity = scoped ? 1 : 0; G.xh = settings.xhair === 'none' ? 0 : Math.max(0, 1 - H.ads * 1.6) * (G.spd > 5.5 && H.ads < 0.2 ? 0.3 : 1); $('xh').style.opacity = G.xh; if (!G.killcam) hitTick(dt);
@@ -6483,7 +6495,7 @@ function updateAvatar(dt) {
   avatar.group.visible = true; avatar.group.position.set(player.pos.x, player.pos.y, player.pos.z); avatar.group.rotation.y = player.yaw + Math.PI;
   avatar.group.rotation.x = player.alive ? 0 : -Math.min(1, (game.deadT || 0) / 0.5) * 1.4;
   if (avatar.skinned) { avatar.crouchK = clamp((1.75 - player.h) / 0.65, 0, 1); avatar.inner.scale.y = (CHAR[cls().model] || { scale: 1 }).scale; } else avatar.inner.scale.y = (CHAR[cls().model] || { scale: 1 }).scale * (player.h / 1.75);
-  animChar(avatar, dt, Math.hypot(player.vel.x, player.vel.z), player.pitch);
+  avatar.sliding = player.sliding; animChar(avatar, dt, Math.hypot(player.vel.x, player.vel.z), player.pitch);
   if (avatar.flash) avatar.flash.visible = vm.flashT > 0;
   if (outroShow) return true; // the outro camera frames the operator itself
   // over-the-shoulder camera with collision
@@ -6643,5 +6655,5 @@ for (const [id, key, conv] of [['xhair', 'xhair', String], ['xcolor', 'xcolor', 
 const firstTouch = () => { sfx.init(); setTimeout(() => { if (game.state === 'menu') music.play('title'); }, 100); /* no music once a match is on */ removeEventListener('pointerdown', firstTouch); removeEventListener('keydown', firstTouch); };
 addEventListener('pointerdown', firstTouch); addEventListener('keydown', firstTouch);
 requestAnimationFrame(frame);
-window.__bp = { cam: () => camera, gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
+window.__bp = { cam: () => camera, gunLab: () => ({ buildGun, ATT_OPTS }), killLab: () => ({ potgKillcam, killcamTick, botPlayerDie, BD }), keysRef: () => keys, updatePlayer: dt => updatePlayer(dt), potgLab: () => ({ POTG, potgRecord, potgPick, startPotg, updatePotg }), welcomeBack: f => welcomeBack(f), charLab: () => ({ makeCharacter, animChar, CLASSES, CHAR, SLIDE }), audioLab: () => ({ INSTR, SONGS, sfx, NOTE, music, MUSIC_OK, SAMPLES }), introAt: t => { if (game.intro) { game.intro.t = t; updateIntro(0.0001); } return !!game.intro; }, wstRef: () => wst, WEAPONS, updateWeapon: dt => updateWeapon(dt), TH: (x, z) => TH(x, z), raycast: (...a) => raycast(...a), navPosts: () => navPosts(), PV, PRES, SURV, carryRef: () => carry, openBuy: s => openBuy(s), buyItem: i => buyItem(i), anyOverlap: (...a) => anyOverlap(...a), postcard: o => postcard(o), loadMap: i => loadMap(i), los: (...a) => los(...a), startReload: () => startReload(), quickMelee: () => quickMelee(), gainXP: (n, l) => gainXP(n, l), startOutro: (a, b, c) => startOutro(a, b, c), terr: () => TERR, TH: (x, z) => TH(x, z), panes: () => panes, hitMarker: (...a) => hitMarker(...a), makeSmoke: p => makeSmoke(p), smokeBlocked: (...a) => smokeBlocked(...a), music, SONGS, STATS, hud, smokes, nades: () => grenades, clouds: () => clouds, ng, sfx, surfaceAt: (x, y, z) => surfaceAt(x, y, z), damagePlayer: (d, a) => damagePlayer(d, null, a), equip: id => { const i = widx(id); carry[0] = i; rebuildViewmodels(); inv[i] = { mag: WEAPONS[i].mag, res: WEAPONS[i].res }; wst.cur = i; wst.switchT = 0; vmModels.forEach((m, k) => { if (m) m.g.visible = k === i; }); }, WEAPONS, settingsRef: () => settings, makeCharacter, animChar, MP, remotes, pickupsList: () => pickups, prof, renderer, game, player, enemies: () => enemies, startGame, settings, wst, inv: () => inv, keys, world: () => world, setMouse: (l, r) => { mouseL = mL = l; mouseR = mR = r; } };
 })();
