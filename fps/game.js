@@ -211,7 +211,7 @@ for (const [k, mf, mg] of [['pistol', 1900, 0.3], ['revolver', 900, 0.45], ['rif
 // Recorded clips: list them in audio/sfx/manifest.json ({ "gun_rifle": ["rifle_1.mp3", "rifle_2.mp3"], ... }) and they replace
 // the generated sound for that key (a random take each time); anything not listed keeps the generated version. See audio/README.md.
 const SAMPLES = {}, GUNALIAS = { battle: 'ak', bullpup: 'rifle', hyper: 'smg', ump45: 'smg', autosg: 'shotgun', fifty: 'sniper', mpistol: 'smg', revolver: 'pistol', dmr: 'sniper' };
-function loadSamples(c) { fetch('audio/sfx/hitmarker.wav?v=1').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(ab => c.decodeAudioData(ab)).then(buf => { SAMPLES.hitmarker = [buf]; }).catch(() => {}); /* the hit-marker clip */
+function loadSamples(c) { fetch('audio/sfx/hitmarker.wav?v=2').then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(ab => c.decodeAudioData(ab)).then(buf => { SAMPLES.hitmarker = [buf]; }).catch(() => {}); /* the hit-marker clip */
   fetch('audio/sfx/manifest.json?v=' + (window.BP_AUDIO_V || 1)).then(r => r.ok ? r.json() : null).then(m => { if (!m) return;
   for (const [key, files] of Object.entries(m)) for (const f of [].concat(files)) fetch('audio/sfx/' + f).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(ab => c.decodeAudioData(ab)).then(buf => (SAMPLES[key] || (SAMPLES[key] = [])).push(buf)).catch(() => {}); }).catch(() => {}); }
 // Hit-marker sounds: a high-register 808 kick. Each layer is a sine whose pitch dives fast (the "punch"), with a
@@ -359,7 +359,7 @@ const sfx = {
   },
   hmPlay(n, dest) { /* pre-rendered so the attack is sample-sharp; 4 slight variants each so rapid fire doesn't sound like a machine */
     const c = this.ctx, H = SAMPLES.hitmarker && SAMPLES.hitmarker[0]; if (H) { /* the recorded clip: body hits as-is, headshots a touch higher with a ping, kills lower and heavier */
-      const src = c.createBufferSource(), g = c.createGain(); src.buffer = H; src.playbackRate.value = (n === 'hmhead' ? 1.07 : n === 'hmkill' ? 0.86 : 1) * (0.985 + Math.random() * 0.03); g.gain.value = n === 'hmkill' ? 1.25 : 1; src.connect(g); g.connect(dest); src.start();
+      const src = c.createBufferSource(), g = c.createGain(); src.buffer = H; src.playbackRate.value = (n === 'hmhead' ? 1.07 : n === 'hmkill' ? 0.86 : 1) * (0.985 + Math.random() * 0.03); g.gain.value = n === 'hmkill' ? 1.1 : 1; src.connect(g); g.connect(dest); src.start();
       if (n === 'hmhead') this.osc(dest, { type: 'sine', f: 3700, dur: 0.09, g: 0.07 });
       if (n === 'hmkill') { const s2 = c.createBufferSource(), g2 = c.createGain(); s2.buffer = H; s2.playbackRate.value = 1.12; g2.gain.value = 0.55; s2.connect(g2); g2.connect(dest); s2.start(c.currentTime + 0.035); }
       return; }
