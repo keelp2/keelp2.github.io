@@ -3326,7 +3326,7 @@ function startBotMatch() {
 function botKilled(victim, killer, head) {
   const vs = victim.stat; if (vs) vs.deaths++;
   let kname = 'the swamp';
-  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; if (head) game.heads++; statKill(head); kname = 'You'; hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
+  if (killer === PLAYER_T) { const me = BD.stats[0]; me.kills++; game.kills++; if (head) game.heads++; statKill(head, 'bot'); kname = 'You'; hitMarker(true, head); if (head) { sfx.play('head'); showHint('HEADSHOT', '#ff6b5a'); }
     if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time; const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' }; if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]); }
   else if (killer && killer.stat) { killer.stat.kills++; kname = killer.name; }
   if (BD.teams && killer && killer.team >= 0 && killer.team !== victim.team) BD.teamKills[killer.team]++;
@@ -3886,8 +3886,15 @@ const STATS = (() => { let d = null; try { d = JSON.parse(localStorage.getItem('
   return Object.assign({ ai: BUCKET(), pvp: BUCKET(), time: 0, bestStreak: 0, bestWave: 0, bestScore: 0, runs: 0, weapons: {}, recent: [], xp: 0 }, d); })();
 const saveStats = () => { try { localStorage.setItem('bp_stats', JSON.stringify(STATS)); } catch (e) {} };
 const wstat = id => STATS.weapons[id] || (STATS.weapons[id] = { kills: 0, shots: 0, hits: 0 });
-const lvlOf = xp => { let l = 1, need = 1000; while (xp >= need && l < 150) { xp -= need; l++; need = 1000 + (l - 1) * 200; } return { l, cur: xp, need }; };
-function statKill(head) { const id = game.lastNadeKill ? 'nade' : WEAPONS[wst.cur].id; wstat(id).kills++; STATS.bestStreak = Math.max(STATS.bestStreak, game.streak || 1); gainXP(100 + (head ? 50 : 0), head ? 'HEADSHOT' : 'KILL'); }
+// Level curve: L2 after about one match; every unlock (L22) takes ~60 bot matches or ~20-25 online matches.
+const xpNeed = l => 1500 + (l - 1) * 300;
+const lvlOf = xp => { let l = 1, need = xpNeed(1); while (xp >= need && l < 150) { xp -= need; l++; need = xpNeed(l); } return { l, cur: xp, need }; };
+{ if (STATS.xpv !== 2) { // keep everyone's level when the curve changed: same level, same progress through it
+  let xp = STATS.xp || 0, l = 1, need = 1000; while (xp >= need && l < 150) { xp -= need; l++; need = 1000 + (l - 1) * 200; }
+  let cum = 0; for (let k = 1; k < l; k++) cum += xpNeed(k); STATS.xp = cum + Math.round(xp / need * xpNeed(l)); STATS.xpv = 2; saveStats(); } }
+// kill XP by victim: a real player is worth the most; bots and survival enemies (which come in waves of dozens) far less
+const KILL_XP = { pvp: [100, 50], bot: [50, 25], ai: [15, 10] };
+function statKill(head, kind = 'ai') { const id = game.lastNadeKill ? 'nade' : WEAPONS[wst.cur].id; wstat(id).kills++; STATS.bestStreak = Math.max(STATS.bestStreak, game.streak || 1); const [b, h] = KILL_XP[kind] || KILL_XP.ai; gainXP(b + (head ? h : 0), head ? 'HEADSHOT' : 'KILL'); }
 // XP lands the moment you earn it (CoD-style): a small +N popup, and a full level-up moment mid-match
 function gainXP(n, label) {
   const amt = Math.round(n * (MP.active ? 1.5 : 1)), before = lvlOf(STATS.xp).l; STATS.xp += amt; game.xpGiven = (game.xpGiven || 0) + amt; const after = lvlOf(STATS.xp).l;
@@ -3907,8 +3914,8 @@ function statEnd(mode, result, deaths) { // result: 'win' | 'loss' | 'draw' | 'r
   B.matches++; if (result === 'win') B.wins++; else if (result === 'loss') B.losses++; else if (result === 'draw') B.draws++; else STATS.runs++;
   B.kills += game.kills; B.deaths += deaths; B.heads += game.heads; B.shots += game.shots; B.hits += game.hits; STATS.time += game.runTime || game.time || 0;
   if (mode === 'SURVIVAL') { STATS.bestWave = Math.max(STATS.bestWave, game.wave); STATS.bestScore = Math.max(STATS.bestScore, game.score); }
-  const xp = Math.round((game.kills * 100 + game.heads * 50 + (result === 'win' ? 600 : result === 'draw' ? 300 : result === 'loss' ? 150 : game.wave * 120)) * (mode === 'MULTIPLAYER' ? 1.5 : 1));
-  const given = game.xpGiven || 0, before = lvlOf(STATS.xp - given).l, rest = Math.max(0, xp - given); STATS.xp += rest; const after = lvlOf(STATS.xp).l; if (lvlOf(STATS.xp - rest).l < after && game.state !== 'menu') levelUpFx(after); // kill XP was already granted live
+  const vsAI = mode !== 'MULTIPLAYER', bonus = Math.round((result === 'win' ? 600 : result === 'draw' ? 300 : result === 'loss' ? 150 : game.wave * 60) * (vsAI ? (result === 'run' ? 1 : 0.6) : 1.5)); // match bonus; kill XP was granted live
+  const given = game.xpGiven || 0, xp = given + bonus, before = lvlOf(STATS.xp - given).l, rest = bonus; STATS.xp += rest; const after = lvlOf(STATS.xp).l; if (lvlOf(STATS.xp - rest).l < after && game.state !== 'menu') levelUpFx(after); // kill XP was already granted live
   STATS.recent.unshift({ mode, map: world ? world.def.name : '', result, k: game.kills, d: deaths, acc: game.shots ? Math.round(game.hits / game.shots * 100) : 0, at: Date.now() }); STATS.recent = STATS.recent.slice(0, 10);
   saveStats(); renderCareer(); renderRank(); const L1 = lvlOf(STATS.xp), L0 = lvlOf(STATS.xp - Math.max(xp, given)), from = L1.l > L0.l ? 0 : Math.round(L0.cur / L0.need * 100), to = Math.round(L1.cur / L1.need * 100);
   return `<div class="xpres">${emblem(L1.l, 34)}<b>LEVEL ${L1.l}</b><i><u data-from="${from}" data-to="${to}" style="width:${from}%"></u></i></div>${game.kills} kills · ${deaths} deaths · ${game.shots ? Math.round(game.hits / game.shots * 100) : 0}% accuracy · <b>+${xp} XP</b>${after > before ? ` · <b class="lvup">LEVEL UP — ${after}</b>` : ''}${mode === 'MULTIPLAYER' ? '' : ' · <small>(vs AI: not counted in PvP K/D)</small>'}`;
@@ -4096,7 +4103,7 @@ function updateWaves(dt) {
   }
 }
 function onKill(e, head) {
-  game.kills++; if (head) game.heads++; statKill(head);
+  game.kills++; if (head) game.heads++; statKill(head, 'ai');
   let pts = e.T.score + (head ? Math.round(e.T.score * 0.5) : 0);
   if (game.time - game.lastKill < 2.5) game.streak++; else game.streak = 1;
   game.lastKill = game.time;
@@ -5250,7 +5257,7 @@ function handleGame(d) {
   }
 }
 function mpKillConfirm(victim, head) {
-  const vb = MP.players[victim] && MP.players[victim].bot; if (!vb) { game.kills++; if (head) game.heads++; } statKill(head); // bot kills earn XP but stay out of your PvP K/D
+  const vb = MP.players[victim] && MP.players[victim].bot; if (!vb) { game.kills++; if (head) game.heads++; } statKill(head, vb ? 'bot' : 'pvp'); // bot kills earn XP but stay out of your PvP K/D
   if (game.time - game.lastKill < 3) game.streak++; else game.streak = 1; game.lastKill = game.time;
   const names = { 2: 'DOUBLE KILL', 3: 'TRIPLE KILL', 4: 'QUAD KILL', 5: 'RAMPAGE' };
   if (game.streak >= 2) showStreak(names[Math.min(game.streak, 5)]);
@@ -5276,7 +5283,7 @@ function mpZDied(e, killer, head) {
 }
 function handleZDie(d) {
   const mine = d.by === MP.myId, pts = num(d.pts) | 0;
-  if (mine) { game.kills++; if (d.head) game.heads++; statKill(!!d.head); game.score += pts; addCash(pts, d.head ? 'HEADSHOT' : ''); hitMarker(true, !!d.head); if (d.head) sfx.play('head'); }
+  if (mine) { game.kills++; if (d.head) game.heads++; statKill(!!d.head, 'ai'); game.score += pts; addCash(pts, d.head ? 'HEADSHOT' : ''); hitMarker(true, !!d.head); if (d.head) sfx.play('head'); }
   killFeed(mine ? 'You' : pname(d.by), mine ? '#ffd27a' : null, '', !!d.head, String(d.nm || 'Hostile').slice(0, 20) + (mine ? '  +' + pts : ''), null, mine);
 }
 function handleWave(d) {
